@@ -23,12 +23,6 @@
         :alt: Twitter
         :target: https://twitter.com/paper2table
 
-.. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
-    :alt: Project generated with PyScaffold
-    :target: https://pyscaffold.org/
-
-|
-
 ===========
 paper2table
 ===========
@@ -42,8 +36,20 @@ A longer description of your project goes here...
 
 .. _pyscaffold-notes:
 
-Note
-====
+Installing
+==========
 
-This project has been set up using PyScaffold 4.6. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+.. code-block:: bash
+
+    # install base dependencies
+    $ pip install -e .
+
+    # install testing dependencies
+    $ pip install -e .[testing]
+
+Running
+=======
+
+.. code-block:: bash
+
+    python -m paper2table

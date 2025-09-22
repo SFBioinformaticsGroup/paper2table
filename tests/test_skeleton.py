@@ -1,6 +1,6 @@
 import pytest
 
-from paper2table.skeleton import fib, main
+from paper2table.__main__ import fib, main
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
