@@ -5,8 +5,6 @@ import sys
 from paper2table import __version__
 from .agent import call_agent
 
-import json
-
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
 __license__ = "MIT"
@@ -59,9 +57,12 @@ def main(args):
     setup_logging(args.loglevel)
     _logger.debug("Processing paper...")
 
-    print(call_agent().output.model_dump_json())
+    result = call_agent(args.path)
+    json_result = result.output.model_dump_json()
 
-    _logger.info("Script ends here")
+    print(json_result)
+
+    _logger.debug("Paper processed")
 
 if __name__ == "__main__":
     #

@@ -1,8 +1,9 @@
 from pydantic import create_model
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
-from pydantic import BaseModel, Field
 
+from pathlib import Path
+from pydantic_ai import Agent, BinaryContent
 
 # TODO this will be generated dynamically
 RowModel = create_model(
@@ -19,7 +20,8 @@ instructions = (
     "You are going to read the given paper and extract a table that corresponds to the given structure"
 )
 
-def call_agent():
+def call_agent(path):
+    paper_path = Path(path)
     model = GoogleModel("gemini-1.5-flash")
     agent = Agent(
         model,
@@ -27,18 +29,7 @@ def call_agent():
         instructions=instructions,
     )
     return agent.run_sync(
-        """
-    | common_name        | scientific_name         | species       |
-    |--------------------|-------------------------|---------------|
-    | Sunflower          | Helianthus annuus       | annuus        |
-    | Rose               | Rosa gallica            | gallica       |
-    | Tulip              | Tulipa gesneriana       | gesneriana    |
-    | Lavender           | Lavandula angustifolia  | angustifolia  |
-    | Oak                | Quercus robur           | robur         |
-    | Maple              | Acer saccharum          | saccharum     |
-    | Dandelion          | Taraxacum officinale    | officinale    |
-    | Bamboo             | Bambusa vulgaris        | vulgaris      |
-    | Cactus (Prickly Pear) | Opuntia ficus-indica | ficus-indica  |
-    | Coffee             | Coffea arabica          | arabica       |
-"""
+        [
+            BinaryContent(data=paper_path. read_bytes(), media_type="application/pdf"),
+        ]
     )
