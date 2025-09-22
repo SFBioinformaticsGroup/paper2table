@@ -3,6 +3,7 @@ import logging
 import sys
 
 from paper2table import __version__
+from .agent import call_agent
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -55,20 +56,13 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
     _logger.debug("Processing paper...")
-    print("Processing paper")
+
+    print(call_agent().output)
+
     _logger.info("Script ends here")
-
-
-def run():
-    """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
-
-    This function can be used as entry point to create console scripts with setuptools.
-    """
-    main(sys.argv[1:])
-
 
 if __name__ == "__main__":
     #
     #     python -m paper2table <path>
     #
-    run()
+    main(sys.argv[1:])

@@ -53,3 +53,6 @@ Running
 .. code-block:: bash
 
     python -m paper2table
+
+    # e.g. pass Gemini API key
+    GEMINI_API_KEY=.... python -m paper2table PATH
