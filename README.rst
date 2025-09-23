@@ -47,6 +47,9 @@ Installing
     # install testing dependencies
     $ pip install -e .[testing]
 
+    # install tox build tool
+    $ pip install tox
+
 Running
 =======
 
@@ -56,3 +59,11 @@ Running
 
     # e.g. pass Gemini API key
     GEMINI_API_KEY=.... python -m paper2table PATH
+
+
+Running tests
+=============
+
+.. code-block:: bash
+
+    $ tox
