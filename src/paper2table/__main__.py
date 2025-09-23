@@ -25,7 +25,13 @@ def parse_args(args):
       :obj:`argparse.Namespace`: command line parameters namespace
     """
     parser = argparse.ArgumentParser(description="Extract a table from any paper")
-    parser.add_argument(dest="path", help="The paper's path", type=str, metavar="PATH")
+    parser.add_argument(
+        dest="paths",
+        nargs="+",
+        help="One ore more paper paths",
+        type=str,
+        metavar="PATH",
+    )
     parser.add_argument(
         "-m",
         "--model",
@@ -78,25 +84,26 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
-    if not schema:
-        print("Missing schema. Need to either pass --schema-path or --schema")
-        exit(1)
+    for paper_path in args.paths:
+        schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
+        if not schema:
+            print("Missing schema. Need to either pass --schema-path or --schema")
+            exit(1)
 
-    _logger.debug(
-        f"Processing paper {args.path} with model {args.model} and {schema}..."
-    )
+        _logger.debug(
+            f"Processing paper {paper_path} with model {args.model} and {schema}..."
+        )
 
-    result = call_agent(
-        args.path,
-        model=args.model,
-        schema=schema,
-    )
-    json_result = result.output.model_dump_json()
+        result = call_agent(
+            paper_path,
+            model=args.model,
+            schema=schema,
+        )
+        json_result = result.output.model_dump_json()
 
-    print(json_result)
+        print(json_result)
 
-    _logger.debug("Paper processed")
+        _logger.debug(f"Paper {paper_path} processed")
 
 
 if __name__ == "__main__":
