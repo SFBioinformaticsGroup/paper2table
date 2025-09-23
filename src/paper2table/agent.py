@@ -1,16 +1,8 @@
-from pydantic import create_model
-from pydantic_ai import Agent
-from pydantic_ai.models.google import GoogleModel
-
 from pathlib import Path
+from typing import Any
+
+from pydantic import create_model
 from pydantic_ai import Agent, BinaryContent
-
-from typing import Any
-from pydantic import create_model
-
-
-from typing import Any
-from pydantic import create_model
 
 
 def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
@@ -58,7 +50,7 @@ instructions = (
 )
 
 
-def call_agent(path, model, schema):
+def call_agent(path: str, model: str, schema: str):
     paper_path = Path(path)
     agent = Agent(
         model,
