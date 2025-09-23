@@ -29,7 +29,7 @@ def parse_args(args):
         "--model",
         type=str,
         help="set language model. Default is google-gla:gemini-2.5-flash",
-        default="google-gla:gemini-2.5-flash"
+        default="google-gla:gemini-2.5-flash",
     )
     parser.add_argument(
         "-vv",
@@ -65,12 +65,17 @@ def main(args):
     setup_logging(args.loglevel)
     _logger.debug(f"Processing paper {args.path} with model {args.model}...")
 
-    result = call_agent(args.path, model=args.model)
+    result = call_agent(
+        args.path,
+        model=args.model,
+        schema="common_name:str scientific_name:str species:str",
+    )
     json_result = result.output.model_dump_json()
 
     print(json_result)
 
     _logger.debug("Paper processed")
+
 
 if __name__ == "__main__":
     #
