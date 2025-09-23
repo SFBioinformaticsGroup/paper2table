@@ -17,12 +17,12 @@ TableModel = create_model("TableModel", rows=(list[RowModel], ...))
 
 instructions = (
     "You are a PhD researcher."
-    "You are going to read the given paper and extract a table that corresponds to the given structure"
+    "You are going to read the given paper and extract a table that corresponds to the given structure",
+    "In order to generate the table, only consider data that is in tabular format. Ignore any plain text paragraph"
 )
 
-def call_agent(path):
+def call_agent(path, model):
     paper_path = Path(path)
-    model = GoogleModel("gemini-1.5-flash")
     agent = Agent(
         model,
         output_type=TableModel,
