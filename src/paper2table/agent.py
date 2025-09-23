@@ -44,11 +44,19 @@ def build_table_model(schema: str):
 
 
 instructions = (
-    "You are a PhD researcher."
+    "CONTEXT",
+    "=======",
+    "You are a PhD researcher.",
+    "",
+    "TASK",
+    "====",
     "You are going to read the given paper and extract a table that corresponds to the given structure",
-    "In order to generate the table, only consider data that is in tabular format. Ignore any plain text paragraph",
+    "",
+    "RESTRICTIONS"
+    "============",
+    " * In order to generate the table, only consider data that is in tabular format. Ignore any plain text paragraph",
+    " * If there is no data available for a column and a row, don't try to generate new data. Place null instead"
 )
-
 
 def call_agent(path: str, model: str, schema: str):
     paper_path = Path(path)
