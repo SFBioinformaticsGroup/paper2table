@@ -40,7 +40,7 @@ def build_table_model(schema: str):
     """
     fields = parse_schema(schema)
     RowModel = create_model("RowModel", **fields)
-    return create_model("TableModel", rows=(list[RowModel], ...))
+    return create_model("TableModel", rows=(list[RowModel], ...), citation=(str, ...))
 
 
 instructions = (
@@ -55,7 +55,8 @@ instructions = (
     "RESTRICTIONS"
     "============",
     " * In order to generate the table, only consider data that is in tabular format. Ignore any plain text paragraph",
-    " * If there is no data available for a column and a row, don't try to generate new data. Place null instead"
+    " * If there is no data available for a column and a row, don't try to generate new data. Place null instead",
+    " * When possible, you'll generate in the citation output field an APA-style cite of the paper from where the table was extracted"
 )
 
 def call_agent(path: str, model: str, schema: str):
