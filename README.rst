@@ -38,10 +38,10 @@ Running
 
 .. code-block:: bash
 
-    python -m paper2table PATH -p SCHEMA
+    python -m paper2table -p SCHEMA PATH ...
 
     # e.g. pass Gemini API key
-    GEMINI_API_KEY=... python -m paper2table tests/data/demo_table.pdf -m google-gla:gemini-1.5-flash -p tests/data/demo_schema.txt
+    GEMINI_API_KEY=... python -m paper2table -m google-gla:gemini-1.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
 
 
 Running tests
