@@ -36,7 +36,7 @@ Installing
 File preparation
 ================
 
-Before running ``paper2table``, it is recommended that you normalize your input papers files first, so that you avoid duplicate work. In order to do so, a small program `filenorm`
+Before running ``paper2table``, it is recommended that you normalize your input papers files first, so that you avoid duplicate work. In order to do so, a small program ``filenorm``
 is provided that will remove duplicate files and normalize filenames.
 
 .. code-block:: bash
@@ -51,7 +51,7 @@ is provided that will remove duplicate files and normalize filenames.
 Running
 =======
 
-`paper2table` can read paper's table using two different backends: using the `camelot <https://camelot-py.readthedocs.io/en/master/>`_ package (this is the default option) or an external
+``paper2table`` can read paper's table using two different backends: using the `camelot <https://camelot-py.readthedocs.io/en/master/>`_ package (this is the default option) or an external
 generate agent. This first one is usually faster and deterministic (and has no additional cost), but the latter is usually more robust.
 
 .. code-block:: bash
