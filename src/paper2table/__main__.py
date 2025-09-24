@@ -1,12 +1,13 @@
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
 from paper2table import __version__
 
-from .readers import agent
-from .readers import camelot
+from .readers import agent, camelot
+from .writers import file, stdout
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -38,7 +39,7 @@ def parse_args(args):
         "--reader",
         choices=["camelot", "agent"],
         help="How tables are going to be extracted",
-        default="camelot"
+        default="camelot",
     )
     parser.add_argument(
         "-m",
@@ -58,6 +59,12 @@ def parse_args(args):
         "--schema-path",
         type=str,
         help="set table schema path",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-directory-path",
+        type=str,
+        help="Destination directory",
     )
     parser.add_argument(
         "-vv",
@@ -113,12 +120,10 @@ def main(args):
     for paper_path in args.paths:
         result = read_tables(paper_path)
 
-        # if args.output == "stdout":
-        #     print_outputs(tables, formatter)
-        # else:
-        #     save_outputs(tables, args.format, formatter)
-
-        print(result)
+        if args.output_directory_path:
+            file.write_tables(result, paper_path, args.output_directory_path)
+        else:
+            stdout.write_tables(result)
 
         _logger.debug(f"Paper {paper_path} processed")
 

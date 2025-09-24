@@ -69,14 +69,14 @@ def extract_metadata(pdf_path: str):
     return citation
 
 
-def read_tables(pdf_path: str):
+def read_tables(pdf_path: str) -> dict:
     try:
         camelot_tables = camelot.read_pdf(
-            pdf_path, suppress_stdout=True,  flavor="hybrid", pages="all"
+            pdf_path, suppress_stdout=True, flavor="hybrid", pages="all"
         )
     except Exception as e:
         _logger.warning(f"Error reading {pdf_path}: {e}")
-        return json.dumps(Tables(pdf_path, []).to_dict())
+        return Tables(pdf_path, []).to_dict()
 
     tables = []
     for idx, table in enumerate(camelot_tables):
@@ -85,4 +85,4 @@ def read_tables(pdf_path: str):
         tables.append(Table(idx, page_number, dataframe))
 
     citation = extract_metadata(pdf_path)
-    return json.dumps(Tables(pdf_path, tables, citation).to_dict())
+    return Tables(pdf_path, tables, citation).to_dict()

@@ -63,7 +63,7 @@ instructions = (
 )
 
 
-def read_tables(path: str, model: str, schema: str):
+def read_tables(path: str, model: str, schema: str) -> dict:
     paper_path = Path(path)
     agent = Agent(
         model,
@@ -74,4 +74,4 @@ def read_tables(path: str, model: str, schema: str):
         [
             BinaryContent(data=paper_path.read_bytes(), media_type="application/pdf"),
         ]
-    ).output.model_dump_json()
+    ).output.model_dump()
