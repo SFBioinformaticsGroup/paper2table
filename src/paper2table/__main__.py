@@ -4,10 +4,14 @@ import os
 import sys
 from pathlib import Path
 
+import time
+
 from paper2table import __version__
 
 from .readers import agent, camelot
 from .writers import file, stdout
+
+from tqdm import tqdm
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -33,6 +37,12 @@ def parse_args(args):
         help="One ore more paper paths",
         type=str,
         metavar="PATH",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Don't output progress information",
     )
     parser.add_argument(
         "-r",
@@ -106,6 +116,8 @@ def main(args):
             exit(1)
 
         def read_tables(paper_path):
+            # TODO add an optional sleep for agents
+            # time.sleep(5)
             _logger.debug(
                 f"Processing paper {paper_path} with model {args.model} and {schema}..."
             )
@@ -117,7 +129,7 @@ def main(args):
             _logger.debug(f"Processing paper {paper_path} with camelot...")
             return camelot.read_tables(paper_path)
 
-    for paper_path in args.paths:
+    for paper_path in get_paper_paths(args):
         try:
             result = read_tables(paper_path)
 
@@ -129,6 +141,11 @@ def main(args):
             _logger.debug(f"Paper {paper_path} processed")
         except Exception as e:
             _logger.warning(f"Paper {paper_path} failed {str(e)}")
+
+
+def get_paper_paths(args):
+    return args.paths if args.quiet else tqdm(args.paths)
+
 
 if __name__ == "__main__":
     #
