@@ -80,8 +80,15 @@ same ``paper2table`` command:
 
     # this instead of just outputting the data here, it will create a new directory
     # suitable for use with tablemerge command
-    $ python -m paper2table -t -o . tests/data/demo_table.pdf
+    $ python -m paper2table -t -o tests/data/tables tests/data/demo_table.pdf
 
+After doing this, you can merge tables like this:
+
+.. code-block:: bash
+
+    # this instead of just outputting the data here, it will create a new directory
+    # suitable for use with tablemerge command
+    $ python -m tablemerge -o tests/data/merges tests/data/tables/*
 
 Running tests
 =============
