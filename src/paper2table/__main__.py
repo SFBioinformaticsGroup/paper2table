@@ -118,15 +118,17 @@ def main(args):
             return camelot.read_tables(paper_path)
 
     for paper_path in args.paths:
-        result = read_tables(paper_path)
+        try:
+            result = read_tables(paper_path)
 
-        if args.output_directory_path:
-            file.write_tables(result, paper_path, args.output_directory_path)
-        else:
-            stdout.write_tables(result)
+            if args.output_directory_path:
+                file.write_tables(result, paper_path, args.output_directory_path)
+            else:
+                stdout.write_tables(result)
 
-        _logger.debug(f"Paper {paper_path} processed")
-
+            _logger.debug(f"Paper {paper_path} processed")
+        except Exception as e:
+            _logger.warning(f"Paper {paper_path} failed {str(e)}")
 
 if __name__ == "__main__":
     #
