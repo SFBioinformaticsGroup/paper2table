@@ -70,6 +70,18 @@ generate agent. This first one is usually faster and deterministic (and has no a
     # e.g. use the agent backend with the Gemini API
     $ GEMINI_API_KEY=... python -m paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
 
+Merging
+=======
+
+``paper2table`` also provides a table merging program called ``tablemerge``. In order to be able to use it, you'll need to first generate some metadata. You can produce it using the
+same ``paper2table`` command:
+
+.. code-block:: bash
+
+    # this instead of just outputting the data here, it will create a new directory
+    # suitable for use with tablemerge command
+    $ python -m paper2table -t -o . tests/data/demo_table.pdf
+
 
 Running tests
 =============

@@ -55,3 +55,4 @@ MANIFEST
 
 # tables
 **/*.tables.json
+**/tables.metadata.json

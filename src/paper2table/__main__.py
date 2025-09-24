@@ -9,7 +9,8 @@ import time
 from paper2table import __version__
 
 from .readers import agent, camelot
-from .writers import file, stdout
+from .writers import tablemerge, file, stdout
+from .writers.tablemerge import TablemergeMetadata
 
 from tqdm import tqdm
 
@@ -77,6 +78,12 @@ def parse_args(args):
         help="Destination directory",
     )
     parser.add_argument(
+        "-t",
+        "--tablemerge",
+        action="store_true",
+        help="Generates a tablemerge directory. Must be used with -o",
+    )
+    parser.add_argument(
         "-vv",
         "--verbose",
         dest="loglevel",
@@ -105,17 +112,14 @@ def setup_logging(loglevel):
     )
 
 
-def main(args):
-    args = parse_args(args)
-    setup_logging(args.loglevel)
-
+def get_tables_reader(args):
     if args.reader == "agent":
         schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
         if not schema:
             print("Missing schema. Need to either pass --schema-path or --schema")
             exit(1)
 
-        def read_tables(paper_path):
+        def read_tables(paper_path: str):
             # TODO add an optional sleep for agents
             # time.sleep(5)
             _logger.debug(
@@ -125,26 +129,63 @@ def main(args):
 
     else:
 
-        def read_tables(paper_path):
+        def read_tables(paper_path: str):
             _logger.debug(f"Processing paper {paper_path} with camelot...")
             return camelot.read_tables(paper_path)
+
+    return read_tables
+
+
+def get_table_writer(args):
+    if args.output_directory_path:
+
+        def write_tables(result: dict, paper_path: str):
+            file.write_tables(
+                result, paper_path, output_directory_path=args.output_directory_path
+            )
+
+    if args.tablemerge:
+        if not args.output_directory_path:
+            print("--tablemerge requires also --output-directory-path")
+            exit(1)
+        metadata = TablemergeMetadata(args.reader, args.model)
+
+        def write_tables(result: dict, paper_path: str):
+            tablemerge.write_tables(
+                result,
+                paper_path,
+                output_directory_path=args.output_directory_path,
+                metadata=metadata,
+            )
+
+    else:
+
+        def write_tables(result: dict, paper_path: str):
+            stdout.write_tables(result)
+
+    return write_tables
+
+
+def get_paper_paths(args):
+    return args.paths if args.quiet else tqdm(args.paths)
+
+
+def main(args):
+    args = parse_args(args)
+    setup_logging(args.loglevel)
+
+    read_tables = get_tables_reader(args)
+    write_tables = get_table_writer(args)
 
     for paper_path in get_paper_paths(args):
         try:
             result = read_tables(paper_path)
 
-            if args.output_directory_path:
-                file.write_tables(result, paper_path, args.output_directory_path)
-            else:
-                stdout.write_tables(result)
+            write_tables(result, paper_path)
 
             _logger.debug(f"Paper {paper_path} processed")
         except Exception as e:
             _logger.warning(f"Paper {paper_path} failed {str(e)}")
-
-
-def get_paper_paths(args):
-    return args.paths if args.quiet else tqdm(args.paths)
 
 
 if __name__ == "__main__":
