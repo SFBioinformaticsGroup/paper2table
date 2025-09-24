@@ -51,7 +51,7 @@ is provided that will remove duplicate files and normalize filenames.
 Running
 =======
 
-`paper2table` can read paper's table using two different backends: using the `camelot <https://camelot-py.readthedocs.io/en/master/>` package (this is the default option) or an external
+`paper2table` can read paper's table using two different backends: using the `camelot <https://camelot-py.readthedocs.io/en/master/>`_ package (this is the default option) or an external
 generate agent. This first one is usually faster and deterministic (and has no additional cost), but the latter is usually more robust.
 
 .. code-block:: bash
