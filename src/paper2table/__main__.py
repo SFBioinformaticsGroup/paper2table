@@ -5,7 +5,8 @@ from pathlib import Path
 
 from paper2table import __version__
 
-from .agent import call_agent
+from .readers import agent
+from .readers import camelot
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -31,6 +32,13 @@ def parse_args(args):
         help="One ore more paper paths",
         type=str,
         metavar="PATH",
+    )
+    parser.add_argument(
+        "-r",
+        "--reader",
+        choices=["camelot", "agent"],
+        help="How tables are going to be extracted",
+        default="camelot"
     )
     parser.add_argument(
         "-m",
@@ -84,24 +92,33 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    for paper_path in args.paths:
+    if args.reader == "agent":
         schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
         if not schema:
             print("Missing schema. Need to either pass --schema-path or --schema")
             exit(1)
 
-        _logger.debug(
-            f"Processing paper {paper_path} with model {args.model} and {schema}..."
-        )
+        def read_tables(paper_path):
+            _logger.debug(
+                f"Processing paper {paper_path} with model {args.model} and {schema}..."
+            )
+            return agent.read_tables(paper_path, model=args.model, schema=schema)
 
-        result = call_agent(
-            paper_path,
-            model=args.model,
-            schema=schema,
-        )
-        json_result = result.output.model_dump_json()
+    else:
 
-        print(json_result)
+        def read_tables(paper_path):
+            _logger.debug(f"Processing paper {paper_path} with camelot...")
+            return camelot.read_tables(paper_path)
+
+    for paper_path in args.paths:
+        result = read_tables(paper_path)
+
+        # if args.output == "stdout":
+        #     print_outputs(tables, formatter)
+        # else:
+        #     save_outputs(tables, args.format, formatter)
+
+        print(result)
 
         _logger.debug(f"Paper {paper_path} processed")
 

@@ -1,5 +1,5 @@
 import pytest
-from paper2table.agent import parse_schema
+from paper2table.readers.agent import parse_schema
 
 
 def test_parse_schema_space_separated():
