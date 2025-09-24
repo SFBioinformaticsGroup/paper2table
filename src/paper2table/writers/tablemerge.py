@@ -38,7 +38,7 @@ def write_tables(
     os.makedirs(tablemerge_path, exist_ok=True)
 
     if not os.path.exists(metadata_path):
-        with open(metadata_path, "w") as f:
+        with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata.to_dict(), f)
 
     file.write_tables(tables, paper_path, tablemerge_path)

@@ -1,0 +1,59 @@
+import re
+
+
+def normalize_value(value):
+    return (
+        re.sub(r"\s+", " ", value.strip()).lower() if isinstance(value, str) else value
+    )
+
+
+def normalize_row(row):
+    return {column: normalize_value(value) for column, value in row.items()}
+
+
+def merge_rows_unique(rows, seen):
+    merged = []
+    for row in rows:
+        normalized = normalize_row(row)
+        row_tuple = tuple(sorted(normalized.items()))
+        if row_tuple not in seen:
+            seen.add(row_tuple)
+            merged.append(normalized)
+    return merged
+
+
+def intercalate_rows(list_of_rows):
+    merged = []
+    seen = set()
+    iterators = [iter(rows) for rows in list_of_rows]
+    finished = False
+    while not finished:
+        finished = True
+        for it in iterators:
+            try:
+                row = next(it)
+                merged.extend(merge_rows_unique([row], seen))
+                finished = False
+            except StopIteration:
+                continue
+    return merged
+
+
+def merge_tables(tables_list):
+    if not len(tables_list):
+      raise ValueError("Must pass at least one element")
+
+    pages = {}
+    for tables in tables_list:
+        for t in tables:
+            page = t.get("page")
+            pages.setdefault(page, []).append(t["rows"])
+
+    merged_tables = []
+    for page, rows_list in pages.items():
+        merged_rows = intercalate_rows(rows_list)
+        table = {"rows": merged_rows}
+        if page is not None:
+            table["page"] = page
+        merged_tables.append(table)
+    return merged_tables
