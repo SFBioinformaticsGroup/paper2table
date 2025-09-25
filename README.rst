@@ -90,6 +90,26 @@ After doing this, you can merge tables like this:
     # suitable for use with tablemerge command
     $ python -m tablemerge -o tests/data/merges tests/data/tables/*
 
+
+Generating stats
+================
+
+A tool ``tablestats`` is provided for getting some stats about the extracted tables. It can be used to query both the direct output of
+a ``paper2table`` run or the results of a ``tablemerge`` output.
+
+.. code-block:: bash
+
+    # generate a json file with stats
+    python -m tablestats -o test/data/stats.json test/data/merges
+
+    # pretty print stats to stdout
+    # you can optionally sort results by number of extracted tables
+    python -m tablestats --sort desc test/data/merges
+
+    # if you only need to output empty files, use --empty
+    # this is useful for debugging your results
+    python -m tablestats --empty test/data/merges
+
 Running tests
 =============
 
