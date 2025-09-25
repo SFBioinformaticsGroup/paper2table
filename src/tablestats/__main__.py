@@ -10,8 +10,8 @@ def read_paper(paper_path):
         return json.load(f)
 
 
-def compute_papers_stats(input_dir: str) -> GlobalStats:
-    input_path = Path(input_dir)
+def compute_papers_stats(path: str) -> GlobalStats:
+    input_path = Path(path)
     stats = GlobalStats(papers=0, papers_stats=dict(), rows=0, tables=0)
 
     for paper_file in input_path.glob("*.tables.json"):
@@ -21,7 +21,7 @@ def compute_papers_stats(input_dir: str) -> GlobalStats:
     return stats
 
 
-def save_stats(stats: GlobalStats, output_file):
+def write_stats(stats: GlobalStats, output_file):
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(stats.to_dict(), f)
 
@@ -31,14 +31,15 @@ def parse_arguments():
         description="Compute stats for JSON tables directory."
     )
     parser.add_argument(
-        "input_dir",
+        "path",
         help="Directory containing tables.metadata.json and .tables.json paper files",
+        metavar="PATH"
     )
-    parser.add_argument("--out", help="Optional output JSON file for stats")
+    parser.add_argument("-o", "--out", help="Optional output JSON file for stats")
     return parser.parse_args()
 
 
-def format_report(stats: GlobalStats) -> str:
+def format_stats(stats: GlobalStats) -> str:
     lines = []
     lines.append("Global Stats:")
     lines.append(f"  Papers: {stats.papers}")
@@ -60,12 +61,12 @@ def format_report(stats: GlobalStats) -> str:
 
 def main():
     args = parse_arguments()
-    stats = compute_papers_stats(args.input_dir)
+    stats = compute_papers_stats(args.path)
 
     if args.out:
-        save_stats(stats, args.out)
+        write_stats(stats, args.out)
     else:
-        print(format_report(stats))
+        print(format_stats(stats))
 
 
 if __name__ == "__main__":
