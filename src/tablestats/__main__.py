@@ -1,9 +1,8 @@
 import argparse
 import json
 from pathlib import Path
-from .stats import compute_paper_stats
-from collections import OrderedDict
 
+from .stats import GlobalStats, update_papers_stats
 
 
 def read_paper(paper_path):
@@ -11,34 +10,20 @@ def read_paper(paper_path):
         return json.load(f)
 
 
-def compute_papers_stats(input_dir):
+def compute_papers_stats(input_dir: str) -> GlobalStats:
     input_path = Path(input_dir)
-
-    stats = {
-        "papers": 0,
-        "tables": 0,
-        "rows": 0,
-        "papers_stats": {},
-    }
+    stats = GlobalStats(papers=0, papers_stats=dict(), rows=0, tables=0)
 
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
-        paper_stats = compute_paper_stats(paper_data)
-
-        stats["papers"] += 1
-        stats["tables"] += paper_stats["tables"]
-        stats["rows"] += paper_stats["rows"]
-
-        stats["papers_stats"][paper_file.name] = paper_stats
-
-    stats["papers_stats"] = stats["papers_stats"]
+        update_papers_stats(stats, paper_file.name, paper_data)
 
     return stats
 
 
-def save_stats(stats, output_file):
+def save_stats(stats: GlobalStats, output_file):
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(stats, f, ensure_ascii=False)
+        json.dump(stats.to_dict(), f)
 
 
 def parse_arguments():
@@ -52,23 +37,25 @@ def parse_arguments():
     parser.add_argument("--out", help="Optional output JSON file for stats")
     return parser.parse_args()
 
-def format_report(stats):
+
+def format_report(stats: GlobalStats) -> str:
     lines = []
     lines.append("Global Stats:")
-    lines.append(f"  Papers: {stats['papers']}")
-    lines.append(f"  Tables: {stats['tables']}")
-    lines.append(f"  Rows: {stats['rows']}")
+    lines.append(f"  Papers: {stats.papers}")
+    lines.append(f"  Tables: {stats.tables}")
+    lines.append(f"  Rows: {stats.rows}")
     lines.append("")
     lines.append("Per-Paper Stats:")
-    for paper, paper_stats in stats["papers_stats"].items():
+    for paper, paper_stats in stats.papers_stats.items():
         lines.append(f"- {paper}:")
-        lines.append(f"    Tables: {paper_stats['tables']}")
-        lines.append(f"    Rows: {paper_stats['rows']}")
-        lines.append(f"    Rows with agreement > 1: {paper_stats['rows_with_agreement']}")
-        if "agreement_percentage" in paper_stats:
-            lines.append(f"    Agreement percentage: {paper_stats['agreement_percentage']:.2f}%")
+        lines.append(f"    Tables: {paper_stats.tables}")
+        lines.append(f"    Rows: {paper_stats.rows}")
+        lines.append(f"    Rows with agreement > 1: {paper_stats.rows_with_agreement}")
+        if paper_stats.agreement_percentage is not None:
+            lines.append(
+                f"    Agreement percentage: {paper_stats.agreement_percentage:.2f}%"
+            )
     return "\n".join(lines)
-
 
 
 def main():
