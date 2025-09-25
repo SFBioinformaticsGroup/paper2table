@@ -1,6 +1,8 @@
 import argparse
 import json
 from pathlib import Path
+from collections import OrderedDict
+from typing import Literal
 
 from .stats import GlobalStats, update_papers_stats
 
@@ -21,6 +23,18 @@ def compute_papers_stats(path: str) -> GlobalStats:
     return stats
 
 
+def sort_stats(
+    stats: GlobalStats, mode: Literal["none"] | Literal["asc"] | Literal["desc"]
+):
+    if mode == "none":
+        return
+
+    multiplier = 1 if mode == "asc" else -1
+    stats.papers_stats = OrderedDict(
+        sorted(stats.papers_stats.items(), key=lambda item: multiplier * item[1].tables)
+    )
+
+
 def write_stats(stats: GlobalStats, output_file):
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(stats.to_dict(), f)
@@ -33,9 +47,16 @@ def parse_arguments():
     parser.add_argument(
         "path",
         help="Directory containing tables.metadata.json and .tables.json paper files",
-        metavar="PATH"
+        metavar="PATH",
     )
     parser.add_argument("-o", "--out", help="Optional output JSON file for stats")
+    parser.add_argument(
+        "-s",
+        "--sort",
+        choices=["none", "asc", "desc"],
+        help="Sort by number of tables",
+        default="none",
+    )
     return parser.parse_args()
 
 
@@ -62,6 +83,7 @@ def format_stats(stats: GlobalStats) -> str:
 def main():
     args = parse_arguments()
     stats = compute_papers_stats(args.path)
+    sort_stats(stats, args.sort)
 
     if args.out:
         write_stats(stats, args.out)
