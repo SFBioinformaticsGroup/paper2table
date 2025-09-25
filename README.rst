@@ -14,10 +14,13 @@ paper2table
     Extract tables from papers
 
 
-A longer description of your project goes here...
+``paper2table`` is a toolchain for extracting tabular information from scientific papers. It is composed of various command-line programs:
 
+  * ``paper2table``: the main command, which is used to extract data
+  * ``filenorm``: a command for preparing papers
+  * ``tablemerge``: a command for merging result of multiple ``paper2table`` runs
+  * ``tablestats``: a command for querying ``paper2table`` and ``tablemerge`` results
 
-.. _pyscaffold-notes:
 
 Installing
 ==========
