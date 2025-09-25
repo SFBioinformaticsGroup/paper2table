@@ -22,15 +22,6 @@ _logger = logging.getLogger(__name__)
 
 
 def parse_args(args):
-    """Parse command line parameters
-
-    Args:
-      args (List[str]): command line parameters as list of strings
-          (for example  ``["--help"]``).
-
-    Returns:
-      :obj:`argparse.Namespace`: command line parameters namespace
-    """
     parser = argparse.ArgumentParser(description="Extract a table from any paper")
     parser.add_argument(
         dest="paths",
@@ -58,6 +49,14 @@ def parse_args(args):
         type=str,
         help="set language model. Default is google-gla:gemini-2.5-flash",
         default="google-gla:gemini-2.5-flash",
+    )
+    parser.add_argument(
+        "-z",
+        "--model-sleep",
+        type=int,
+        help="number of seconds to wait between model calls."
+        " Only used with agent reader. Default is 5 seconds ",
+        default=5,
     )
     parser.add_argument(
         "-s",
@@ -120,8 +119,7 @@ def get_tables_reader(args):
             exit(1)
 
         def read_tables(paper_path: str):
-            # TODO add an optional sleep for agents
-            # time.sleep(5)
+            time.sleep(args.model_sleep)
             _logger.debug(
                 f"Processing paper {paper_path} with model {args.model} and {schema}..."
             )
