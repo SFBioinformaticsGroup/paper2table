@@ -47,7 +47,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "-o",
-        "--output-directory-path",
+        "--output-directory",
         type=str,
         help="Directory to store merged output",
         default="."
@@ -60,7 +60,7 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    merge_directories(args.paths, args.output_directory_path)
+    merge_directories(args.paths, args.output_directory)
 
 
 if __name__ == "__main__":

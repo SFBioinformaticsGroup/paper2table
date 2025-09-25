@@ -29,10 +29,10 @@ class TablemergeMetadata:
 def write_tables(
     tables: dict,
     paper_path: str,
-    output_directory_path: str,
+    output_directory: str,
     metadata: TablemergeMetadata,
 ):
-    tablemerge_path = os.path.join(output_directory_path, str(metadata.uuid))
+    tablemerge_path = os.path.join(output_directory, str(metadata.uuid))
     metadata_path = os.path.join(tablemerge_path, "tables.metadata.json")
 
     os.makedirs(tablemerge_path, exist_ok=True)

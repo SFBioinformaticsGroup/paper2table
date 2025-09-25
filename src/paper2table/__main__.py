@@ -73,7 +73,7 @@ def parse_args(args):
     )
     parser.add_argument(
         "-o",
-        "--output-directory-path",
+        "--output-directory",
         type=str,
         help="Destination directory",
     )
@@ -137,16 +137,16 @@ def get_tables_reader(args):
 
 
 def get_table_writer(args):
-    if args.output_directory_path:
+    if args.output_directory:
 
         def write_tables(result: dict, paper_path: str):
             file.write_tables(
-                result, paper_path, output_directory_path=args.output_directory_path
+                result, paper_path, output_directory=args.output_directory
             )
 
     if args.tablemerge:
-        if not args.output_directory_path:
-            print("--tablemerge requires also --output-directory-path")
+        if not args.output_directory:
+            print("--tablemerge requires also --output-directory")
             exit(1)
         metadata = TablemergeMetadata(args.reader, args.model)
 
@@ -154,7 +154,7 @@ def get_table_writer(args):
             tablemerge.write_tables(
                 result,
                 paper_path,
-                output_directory_path=args.output_directory_path,
+                output_directory=args.output_directory,
                 metadata=metadata,
             )
 
