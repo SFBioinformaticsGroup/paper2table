@@ -57,6 +57,12 @@ def parse_arguments():
         help="Sort by number of tables",
         default="none",
     )
+    parser.add_argument(
+        "-e",
+        "--empty",
+        action="store_true",
+        help="Only output the names of the empty files. Can't be used with --out",
+    )
     return parser.parse_args()
 
 
@@ -85,7 +91,18 @@ def main():
     stats = compute_papers_stats(args.path)
     sort_stats(stats, args.sort)
 
-    if args.out:
+    if args.empty:
+        if args.out:
+            print("--empty can't be used with --out")
+            exit(1)
+        print(
+            *[
+                path.replace(".tables.json", ".pdf")
+                for path, stats in stats.papers_stats.items()
+                if not stats.tables
+            ]
+        )
+    elif args.out:
         write_stats(stats, args.out)
     else:
         print(format_stats(stats))
