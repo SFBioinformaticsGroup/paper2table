@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import create_model
+from pydantic import BaseModel, create_model
 from pydantic_ai import Agent, BinaryContent
+
+from ..tables_protocol import TableProtocol, TablesProtocol
 
 
 def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
@@ -44,7 +46,11 @@ def build_table_model(schema: str):
 
 
 def build_tables_model(schema: str):
-    return create_model("TablesModel", tables=(list[build_table_model(schema)], ...), citation=(str, ...))
+    return create_model(
+        "TablesModel",
+        tables=(list[build_table_model(schema)], ...),
+        citation=(str, ...),
+    )
 
 
 instructions = (
@@ -62,10 +68,35 @@ instructions = (
     " * Don't try to transform cell's contents nor to resume text nor to paraphrase it. Extract data as-is",
     " * If there is no data available for a column and a row, don't try to generate new data. Place an empty string instead",
     " * When possible, you'll generate in the citation output field an APA-style cite of the paper from where the table was extracted",
-    " * Annotate each table with the page number in the paper where it starts"
+    " * Annotate each table with the page number in the paper where it starts",
 )
 
-def read_tables(path: str, model: str, schema: str) -> dict:
+
+class TableModelWrapper:
+    """Wrapper for a TableModel"""
+
+    def __init__(self, model: BaseModel):
+        self.model = model
+
+    def to_dict(self) -> str:
+        return self.model.model_dump()
+
+
+class TablesModelWrapper:
+    """Wrapper for a TablesModel"""
+
+    def __init__(self, model: BaseModel):
+        self.model = model
+
+    @property
+    def tables(self) -> list[TableProtocol]:
+        return self.model.tables
+
+    def to_dict(self) -> str:
+        return self.model.model_dump()
+
+
+def read_tables(path: str, model: str, schema: str) -> TablesProtocol:
     paper_path = Path(path)
     agent = Agent(
         model,

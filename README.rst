@@ -54,15 +54,18 @@ is provided that will remove duplicate files and normalize filenames.
 Running
 =======
 
-``paper2table`` can read paper's table using two different backends: using the `camelot <https://camelot-py.readthedocs.io/en/master/>`_ package (this is the default option) or an external
-generate agent. This first one is usually faster and deterministic (and has no additional cost), but the latter is usually more robust.
+``paper2table`` can read paper's table using three different backends:
+
+  * the `pdfplumber <https://github.com/jsvine/pdfplumber>`_ package (this is the default option)
+  * the `camelot <https://camelot-py.readthedocs.io/en/master/>`_ package (this is the default option)
+  * an external generative agent. This  option is usually more robust, but slower, less deterministic and presents additional costs
 
 .. code-block:: bash
 
     # basic usage
     $ python -m paper2table -p SCHEMA PATH [PATH ...]
 
-    # e.g. use the default camelot reader backend
+    # e.g. use the default pdfplumber reader backend
     $ python -m paper2table -q tests/data/demo_table.pdf
 
     # by default paper2table outputs data to stdout

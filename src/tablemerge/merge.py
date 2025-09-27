@@ -43,6 +43,7 @@ def merge_tables(tables_list):
     if not len(tables_list):
       raise ValueError("Must pass at least one element")
 
+    # TODO prevent duplicate values in the same input table
     pages = {}
     for tables in tables_list:
         for t in tables:

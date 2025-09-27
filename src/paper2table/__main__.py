@@ -1,18 +1,16 @@
 import argparse
 import logging
-import os
 import sys
+import time
 from pathlib import Path
 
-import time
+from tqdm import tqdm
 
 from paper2table import __version__
-
-from .readers import agent, camelot
-from .writers import tablemerge, file, stdout
-from .writers.tablemerge import TablemergeMetadata
-
-from tqdm import tqdm
+from paper2table.readers import agent, camelot, pdfplumber
+from paper2table.tables_protocol import TablesProtocol
+from paper2table.writers import file, stdout, tablemerge
+from paper2table.writers.tablemerge import TablemergeMetadata
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -39,9 +37,9 @@ def parse_args(args):
     parser.add_argument(
         "-r",
         "--reader",
-        choices=["camelot", "agent"],
+        choices=["pdfplumber", "camelot", "agent"],
         help="How tables are going to be extracted",
-        default="camelot",
+        default="pdfplumber",
     )
     parser.add_argument(
         "-m",
@@ -125,6 +123,11 @@ def get_tables_reader(args):
             )
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
+    elif args.reader == "pdfplumber":
+
+        def read_tables(paper_path: str):
+            _logger.debug(f"Processing paper {paper_path} with pdfplumber...")
+            return pdfplumber.read_tables(paper_path)
     else:
 
         def read_tables(paper_path: str):
@@ -137,7 +140,7 @@ def get_tables_reader(args):
 def get_table_writer(args):
     if args.output_directory:
 
-        def write_tables(result: dict, paper_path: str):
+        def write_tables(result: TablesProtocol, paper_path: str):
             file.write_tables(
                 result, paper_path, output_directory=args.output_directory
             )
@@ -148,7 +151,7 @@ def get_table_writer(args):
             exit(1)
         metadata = TablemergeMetadata(args.reader, args.model)
 
-        def write_tables(result: dict, paper_path: str):
+        def write_tables(result: TablesProtocol, paper_path: str):
             tablemerge.write_tables(
                 result,
                 paper_path,
@@ -158,7 +161,7 @@ def get_table_writer(args):
 
     else:
 
-        def write_tables(result: dict, paper_path: str):
+        def write_tables(result: TablesProtocol, paper_path: str):
             stdout.write_tables(result)
 
     return write_tables

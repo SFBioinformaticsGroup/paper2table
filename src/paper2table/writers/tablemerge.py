@@ -4,6 +4,8 @@ from typing import Optional
 from uuid import UUID, uuid4
 from datetime import datetime as dt
 
+from paper2table.tables_protocol import TablesProtocol
+
 from . import file
 
 class TablemergeMetadata:
@@ -27,7 +29,7 @@ class TablemergeMetadata:
 
 
 def write_tables(
-    tables: dict,
+    tables: TablesProtocol,
     paper_path: str,
     output_directory: str,
     metadata: TablemergeMetadata,

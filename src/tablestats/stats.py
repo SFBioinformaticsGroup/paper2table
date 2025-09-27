@@ -51,7 +51,7 @@ def compute_paper_stats(paper_data) -> PaperStats:
     tables_count = len(tables)
     rows_count = sum(len(t.get("rows", [])) for t in tables)
     rows_with_agreement = sum(
-        sum(1 for r in table.get("rows", []) if r.get("_agreement_level", 0) > 1)
+        sum(1 for r in table.get("rows", []) if r.get("$agreement_level", 0) > 1)
         for table in tables
     )
 
