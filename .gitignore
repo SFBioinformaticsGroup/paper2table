@@ -56,3 +56,8 @@ MANIFEST
 # tables
 **/*.tables.json
 **/tables.metadata.json
+
+# outputs
+stats.json
+stats.txt
+viewer.html
