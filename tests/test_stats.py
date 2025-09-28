@@ -25,9 +25,9 @@ def test_paper_with_agreement_levels():
         "tables": [
             {
                 "rows": [
-                    {"family": "Apiaceae", "_agreement_level": 0},
-                    {"family": "Rosaceae", "_agreement_level": 2},
-                    {"family": "Lamiaceae", "_agreement_level": 3},
+                    {"family": "Apiaceae", "$agreement_level": 0},
+                    {"family": "Rosaceae", "$agreement_level": 2},
+                    {"family": "Lamiaceae", "$agreement_level": 3},
                 ]
             }
         ]
@@ -43,7 +43,7 @@ def test_multiple_tables():
     paper_data = {
         "tables": [
             {"rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]},
-            {"rows": [{"family": "Lamiaceae", "_agreement_level": 2}]},
+            {"rows": [{"family": "Lamiaceae", "$agreement_level": 2}]},
         ]
     }
     stats = compute_paper_stats(paper_data)
