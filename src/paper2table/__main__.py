@@ -53,20 +53,26 @@ def parse_args(args):
         "--model-sleep",
         type=int,
         help="number of seconds to wait between model calls."
-        " Only used with agent reader. Default is 5 seconds ",
+        " Only used by agent reader. Default is 5 seconds ",
         default=5,
     )
     parser.add_argument(
         "-s",
         "--schema",
         type=str,
-        help="set table schema in the form column:type",
+        help="set table schema in the form column:type. Only used by agent reader",
     )
     parser.add_argument(
         "-p",
         "--schema-path",
         type=str,
-        help="set table schema path",
+        help="set table schema path. Only used by agent reader",
+    )
+    parser.add_argument(
+        "-c",
+        "--column-names-hints-path",
+        type=str,
+        help="set table schema path. Only used by agent reader",
     )
     parser.add_argument(
         "-o",
@@ -126,8 +132,10 @@ def get_tables_reader(args):
     elif args.reader == "pdfplumber":
 
         def read_tables(paper_path: str):
-            _logger.debug(f"Processing paper {paper_path} with pdfplumber...")
-            return pdfplumber.read_tables(paper_path)
+            column_names_hints = Path(args.column_names_hints_path).read_text() if args.column_names_hints_path else ""
+
+            _logger.debug(f"Processing paper {paper_path} with pdfplumber and {column_names_hints} as column names hints...")
+            return pdfplumber.read_tables(paper_path, column_names_hints)
     else:
 
         def read_tables(paper_path: str):

@@ -1,0 +1,11 @@
+common_names
+especie
+familia
+family
+name
+nombre
+nombre_cientifico
+nombre_comun
+scientific_name
+species
+vernacular_name

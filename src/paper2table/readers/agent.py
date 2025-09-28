@@ -4,29 +4,29 @@ from typing import Any
 from pydantic import BaseModel, create_model
 from pydantic_ai import Agent, BinaryContent
 
+from utils.tokenize_schema import tokenize_schema
+
 from ..tables_protocol import TableProtocol, TablesProtocol
+
+types_map: dict[str, Any] = {
+    "str": str,
+    "int": int,
+    "float": float,
+    "bool": bool,
+}
 
 
 def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
-    """Parse schema string into a dictionary of field definitions."""
-    normalized = schema_str.replace(",", " ").replace("\n", " ")
-    parts = [p.strip() for p in normalized.split() if p.strip()]
-
-    type_map: dict[str, Any] = {
-        "str": str,
-        "int": int,
-        "float": float,
-        "bool": bool,
-    }
+    parts = tokenize_schema(schema_str)
 
     fields: dict[str, tuple[Any, ...]] = {}
     for part in parts:
         if ":" not in part:
             raise ValueError(f"Invalid field specifier: {part}")
         name, type_str = part.split(":", 1)
-        if type_str not in type_map:
+        if type_str not in types_map:
             raise ValueError(f"Unsupported type: {type_str}")
-        fields[name] = (type_map[type_str], ...)
+        fields[name] = (types_map[type_str], ...)
 
     return fields
 

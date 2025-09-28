@@ -2,10 +2,9 @@ import argparse
 import hashlib
 import os
 import signal
-import string
 import sys
-import unicodedata
 
+from utils.normalize_name import normalize_name
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -25,16 +24,6 @@ def md5sum(path):
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-def normalize_name(name):
-    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
-    valid = string.ascii_lowercase + string.digits + "_"
-    name = name.lower()
-    name = "".join(ch if ch in valid else "_" for ch in name)
-    while "__" in name:
-        name = name.replace("__", "_")
-    return name.strip("_")
 
 
 def plan_actions(files):

@@ -68,6 +68,12 @@ Running
     # e.g. use the default pdfplumber reader backend
     $ python -m paper2table -q tests/data/demo_table.pdf
 
+    # e.g. use the pdfplumber reader specifying column name hints
+    python -m paper2table -r pdfplumber -c tests/data/demo_column_hints.txt  tests/data/demo_table.pdf
+
+    # e.g. use the camelot reader backend
+    $ python -m paper2table -r camelot -q tests/data/demo_table.pdf
+
     # by default paper2table outputs data to stdout
     # but you can specify an output directory
     $ python -m paper2table -o .  tests/data/demo_table.pdf
