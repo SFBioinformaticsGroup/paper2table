@@ -1,10 +1,9 @@
 import argparse
 import hashlib
 import os
-import signal
-import sys
 
 from utils.normalize_name import normalize_name
+from utils.handle_sigint import handle_sigint
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -71,17 +70,12 @@ def execute(
             explain_rename(old, new)
 
 
-def handle_sigint(_sig, _frame):
-    print("\nCancelled")
-    sys.exit(1)
-
-
 def confirm(question):
     return input(f"{question} [y/N] ").strip().lower() == "y"
 
 
 def main():
-    signal.signal(signal.SIGINT, handle_sigint)
+    handle_sigint()
 
     args = parse_args()
     duplicates, renames, checksums = plan_actions(args.files)

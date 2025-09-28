@@ -11,6 +11,7 @@ from paper2table.readers import agent, camelot, pdfplumber
 from paper2table.tables_protocol import TablesProtocol
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
+from utils.handle_sigint import handle_sigint
 
 __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
@@ -178,8 +179,9 @@ def get_table_writer(args):
 def get_paper_paths(args):
     return args.paths if args.quiet else tqdm(args.paths)
 
-
 def main(args):
+    handle_sigint()
+
     args = parse_args(args)
     setup_logging(args.loglevel)
 
