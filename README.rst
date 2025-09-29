@@ -20,6 +20,7 @@ paper2table
 * ``filenorm``: a command for preparing papers
 * ``tablemerge``: a command for merging result of multiple ``paper2table`` runs
 * ``tablestats``: a command for querying ``paper2table`` and ``tablemerge`` results
+* ``table2html``
 
 
 Installing
