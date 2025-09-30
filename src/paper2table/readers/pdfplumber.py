@@ -35,7 +35,7 @@ def read_tables(pdf_path: str, column_names_hints: str) -> TablesProtocol:
                     table_fragment if table_fragment else [],
                     column_names_hints=parsed_hints,
                 )
-                tables.append(Table(len(tables), page.page_number, dataframe))
+                tables.append(Table(page.page_number, dataframe))
         except Exception as e:
             _logger.warning(f"Error reading page {page.page_number} of {pdf_path}: {e}")
 

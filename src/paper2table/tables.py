@@ -3,18 +3,14 @@ import os
 from pandas import DataFrame
 
 class Table:
-    def __init__(self, index: int, page: int, dataframe: DataFrame):
-        self.index = index
+    def __init__(self, page: int, dataframe: DataFrame):
         self.page = page
         self.df = dataframe
 
     def to_dict(self):
         return {
             "rows": self.df.to_dict(orient="records"),
-            "metadata": {
-                "page": self.page,
-                "index": self.index,
-            },
+            "page": self.page,
         }
 
 

@@ -17,9 +17,9 @@ def read_tables(pdf_path: str) -> TablesProtocol:
         return Tables(pdf_path, [])
 
     tables = []
-    for idx, table in enumerate(camelot_tables):
+    for table in enumerate(camelot_tables):
         page_number = table.page
         dataframe = table.df
-        tables.append(Table(idx, page_number, dataframe))
+        tables.append(Table(page_number, dataframe))
 
     return Tables(pdf_path, tables)
