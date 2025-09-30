@@ -1,6 +1,6 @@
-
 import os
 from pandas import DataFrame
+
 
 class Table:
     def __init__(self, page: int, dataframe: DataFrame):
@@ -15,16 +15,15 @@ class Table:
 
 
 class Tables:
-    def __init__(self, pdf_path: str, tables: list[Table], citation=None):
+    def __init__(self, pdf_path: str, tables: list[Table]):
         self.pdf_path = pdf_path
         self.filename = os.path.basename(pdf_path)
         self.tables = tables
-        self.citation = citation
 
     def to_dict(self):
         return {
-            "tables": [table.to_dict() for table in self.tables],
-            "citation": self.citation,
+            "tables": [{"table_fragments": [table.to_dict()]} for table in self.tables],
+            "citation": None,
             "metadata": {
                 "filename": self.filename,
             },
