@@ -8,6 +8,7 @@ from paper2table.tables_protocol import TablesProtocol
 
 from . import file
 
+
 class TablemergeMetadata:
     reader: str
     model: Optional[str]
@@ -41,6 +42,6 @@ def write_tables(
 
     if not os.path.exists(metadata_path):
         with open(metadata_path, "w", encoding="utf-8") as f:
-            json.dump(metadata.to_dict(), f)
+            json.dump(metadata.to_dict(), f, ensure_ascii=False)
 
     file.write_tables(tables, paper_path, tablemerge_path)

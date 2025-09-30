@@ -37,7 +37,7 @@ def sort_stats(
 
 def write_stats(stats: GlobalStats, output_file):
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(stats.to_dict(), f)
+        json.dump(stats.to_dict(), f, ensure_ascii=False)
 
 
 def parse_arguments():

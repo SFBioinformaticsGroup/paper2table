@@ -22,7 +22,7 @@ def merge_tables_file(tables_basename, input_dirs, output_path):
     merged_data = {"tables": merged_tables, "citation": citation or ""}
 
     with open(output_path / tables_basename, "w", encoding="utf-8") as outfile:
-        json.dump(merged_data, outfile)
+        json.dump(merged_data, outfile, ensure_ascii=False)
 
 
 def merge_directories(input_dirs: list[str], output_dir: str):
