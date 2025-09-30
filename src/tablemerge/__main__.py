@@ -50,7 +50,7 @@ def parse_arguments():
         "--output-directory",
         type=str,
         help="Directory to store merged output",
-        default="."
+        default=".",
     )
     parser.add_argument(
         "paths", nargs="+", help="Input directories containing .tables.json files"

@@ -50,7 +50,9 @@ def build_html(metadata, papers):
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
 
         for idx, table in enumerate(content.get("tables", []), 1):
-            fragments =  table['table_fragments'] if 'table_fragments' in table else [table]
+            fragments = (
+                table["table_fragments"] if "table_fragments" in table else [table]
+            )
             for fragment in fragments:
                 html.append(f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>")
                 rows = fragment.get("rows", [])
@@ -66,8 +68,12 @@ def build_html(metadata, papers):
                 )
 
                 for row in rows:
-                    level = row.get("_agreement_level", 0)
-                    css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
+                    row_agreement_level = row.get("$agreement_level", 0)
+                    css_class = (
+                        "low"
+                        if row_agreement_level <= 1
+                        else "medium" if row_agreement_level == 2 else "high"
+                    )
                     html.append("<tr class='{}'>".format(css_class))
                     for col in columns:
                         html.append(f"<td>{row.get(col,'')}</td>")
