@@ -42,7 +42,8 @@ def build_table_model(schema: str):
     """
     fields = parse_schema(schema)
     RowModel = create_model("RowModel", **fields)
-    return create_model("TableModel", rows=(list[RowModel], ...), page=(int, ...))
+    TableFragmentModel = create_model("TableFragment", rows=(list[RowModel], ...), page=(int, ...))
+    return create_model("TableModel", table_fragments=(list[TableFragmentModel], ...))
 
 
 def build_tables_model(schema: str):
@@ -68,7 +69,8 @@ instructions = (
     " * Don't try to transform cell's contents nor to resume text nor to paraphrase it. Extract data as-is",
     " * If there is no data available for a column and a row, don't try to generate new data. Place an empty string instead",
     " * When possible, you'll generate in the citation output field an APA-style cite of the paper from where the table was extracted",
-    " * Annotate each table with the page number in the paper where it starts",
+    " * When a table spans across multiple pages, generate multiple table_fragments, one for each page. Otherwise, generate a single table fragment",
+    " * Annotate each table fragment with the page number where it appears",
 )
 
 
@@ -103,8 +105,9 @@ def read_tables(path: str, model: str, schema: str) -> TablesProtocol:
         output_type=build_tables_model(schema),
         instructions=instructions,
     )
-    return agent.run_sync(
+    output = agent.run_sync(
         [
             BinaryContent(data=paper_path.read_bytes(), media_type="application/pdf"),
         ]
-    ).output.model_dump()
+    ).output
+    return TableModelWrapper(output)
