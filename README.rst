@@ -91,7 +91,7 @@ same ``paper2table`` command:
 
 .. code-block:: bash
 
-    # this instead of just outputting the data here, it will create a new directory
+    # this command will create a new directory with the resultset, adding a metadata file
     # suitable for use with tablemerge command
     $ python -m paper2table -t -o tests/data/tables tests/data/demo_table.pdf
 
@@ -99,8 +99,6 @@ After doing this, you can merge tables like this:
 
 .. code-block:: bash
 
-    # this instead of just outputting the data here, it will create a new directory
-    # suitable for use with tablemerge command
     $ python -m tablemerge -o tests/data/merges tests/data/tables/*
 
 
@@ -123,9 +121,67 @@ a ``paper2table`` run or the results of a ``tablemerge`` output.
     # this is useful for debugging your results
     python -m tablestats --empty test/data/merges
 
+Visualizing data
+================
+
+A tool ``table2html`` is provided for displaying a resultset:
+
+.. code-block:: bash
+
+    # it can be used both with the raw resultset of a paper2table run
+    # or with the output of tablemerge
+    python -m table2html ../test/data/merges
+
+
 Running tests
 =============
 
 .. code-block:: bash
 
     $ tox
+
+
+``TablesFile`` format
+=====================
+
+``paper2table`` and ``tablemerge`` command output the the extracted tables data in a ``TablesFile`` file format,
+(with extension ``.tables.json``). You can validate that those files follow the exact format using ``tablevalidate``:
+
+.. code-block:: bash
+
+    python -m tablevalidate tests/data/tables/*
+
+
+The format is informally specified this way:
+
+.. code-block:: javascript
+
+    {
+      "tables": [
+        {
+          "rows": [
+            {
+              "COLUMN_NAME_1": string | [{ "value": string, "agreement_level": integer }],
+              "COLUMN_NAME_2": string | [{ "value": string, "agreement_level": integer }],
+              "COLUMN_NAME_3": string | [{ "value": string, "agreement_level": integer }],
+              "$agreement_level": interger // this is optional
+            }
+          ],
+          "page": integer,
+        },
+        {
+          "table_fragment": [
+            {
+              "rows": ..., // same schema as previous "rows" attribute
+              "page": integer
+            }
+          ]
+        }
+      ],
+      "citation": string | [{ "value": string, "agreement_level": integer }],
+      "metadata": { // optional
+        "filename": string,
+      }
+    }
+
+You can also find a proper json schema definition in `tablesfile.schema.json <./tablesfile.schema.json>`_

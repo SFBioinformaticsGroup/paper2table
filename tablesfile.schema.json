@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tables File",
+  "type": "object",
+  "properties": {
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "oneOf": [
+          {
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/row"
+                }
+              },
+              "page": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "rows",
+              "page"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "table_fragment": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/row"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "rows",
+                    "page"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "table_fragment"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "citation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/valueWithAgreement"
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "valueWithAgreement": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "agreement_level": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value",
+        "agreement_level"
+      ],
+      "additionalProperties": false
+    },
+    "columnValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/valueWithAgreement"
+          }
+        }
+      ]
+    },
+    "row": {
+      "type": "object",
+      "patternProperties": {
+        "^(?!\\$agreement_level).*$": {
+          "$ref": "#/$defs/columnValue"
+        },
+        "^\\$agreement_level$": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
