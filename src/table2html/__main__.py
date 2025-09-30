@@ -38,7 +38,11 @@ def build_html(metadata, papers):
     html.append("<h1>Paper2Table Viewer</h1>")
 
     if metadata:
-        html.append("<h2>Metadata</h2><pre>{}</pre>".format(json.dumps(metadata, indent=2)))
+        html.append(
+            "<h2>Metadata</h2><pre>{}</pre>".format(
+                json.dumps(metadata, indent=2, ensure_ascii=False)
+            )
+        )
 
     html.append("<h2>Papers</h2>")
     for paper_name, content in papers.items():
@@ -46,26 +50,30 @@ def build_html(metadata, papers):
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
 
         for idx, table in enumerate(content.get("tables", []), 1):
-            html.append(f"<h4>Table {idx} (page {table.get('page','?')})</h4>")
-            rows = table.get("rows", [])
-            if not rows:
-                html.append("<p><i>No rows</i></p>")
-                continue
+            fragments =  table['table_fragments'] if 'table_fragments' in table else [table]
+            for fragment in fragments:
+                html.append(f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>")
+                rows = fragment.get("rows", [])
+                if not rows:
+                    html.append("<p><i>No rows</i></p>")
+                    continue
 
-            # Build header from keys
-            columns = list(rows[0].keys())
-            html.append("<table class='table'>")
-            html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
+                # Build header from keys
+                columns = list(rows[0].keys())
+                html.append("<table class='table'>")
+                html.append(
+                    "<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>"
+                )
 
-            for row in rows:
-                level = row.get("_agrement_level", 0)
-                css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
-                html.append("<tr class='{}'>".format(css_class))
-                for col in columns:
-                    html.append(f"<td>{row.get(col,'')}</td>")
-                html.append("</tr>")
+                for row in rows:
+                    level = row.get("_agreement_level", 0)
+                    css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
+                    html.append("<tr class='{}'>".format(css_class))
+                    for col in columns:
+                        html.append(f"<td>{row.get(col,'')}</td>")
+                    html.append("</tr>")
 
-            html.append("</table>")
+                html.append("</table>")
 
         html.append("</div>")
 
@@ -79,9 +87,15 @@ def save_html(html, output_file: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate static HTML viewer for paper2tables results")
-    parser.add_argument("input_dir", help="Directory with tables.metadata.json and *.tables.json")
-    parser.add_argument("--out", default="viewer.html", help="Output HTML file (default: viewer.html)")
+    parser = argparse.ArgumentParser(
+        description="Generate static HTML viewer for paper2tables results"
+    )
+    parser.add_argument(
+        "input_dir", help="Directory with tables.metadata.json and *.tables.json"
+    )
+    parser.add_argument(
+        "--out", default="viewer.html", help="Output HTML file (default: viewer.html)"
+    )
     args = parser.parse_args()
 
     metadata, papers = load_papers(Path(args.input_dir))
