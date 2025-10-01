@@ -3,6 +3,8 @@ import json
 import webbrowser
 from pathlib import Path
 
+from utils.table_fragments import get_table_fragments
+
 
 def load_papers(directory: Path):
     metadata_file = directory / "tables.metadata.json"
@@ -50,9 +52,7 @@ def build_html(metadata, papers):
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
 
         for idx, table in enumerate(content.get("tables", []), 1):
-            fragments = (
-                table["table_fragments"] if "table_fragments" in table else [table]
-            )
+            fragments = get_table_fragments(table)
             for fragment in fragments:
                 html.append(f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>")
                 rows = fragment.get("rows", [])

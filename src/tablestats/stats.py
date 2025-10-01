@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
 
+from utils.table_fragments import get_table_fragments
+
 
 @dataclass
 class PaperStats:
@@ -49,10 +51,15 @@ def update_papers_stats(stats: GlobalStats, paper_filename: str, paper_data: dic
 def compute_paper_stats(paper_data) -> PaperStats:
     tables = paper_data.get("tables", [])
     tables_count = len(tables)
-    rows_count = sum(len(t.get("rows", [])) for t in tables)
-    rows_with_agreement = sum(
-        sum(1 for r in table.get("rows", []) if r.get("$agreement_level", 0) > 1)
+    rows_count = sum(
+        len(fragment.get("rows", []))
         for table in tables
+        for fragment in get_table_fragments(table)
+    )
+    rows_with_agreement = sum(
+        sum(1 for row in fragment.get("rows", []) if row.get("$agreement_level", 0) > 1)
+        for table in tables
+        for fragment in get_table_fragments(table)
     )
 
     agreement_percentage = None
