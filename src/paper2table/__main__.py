@@ -133,10 +133,17 @@ def get_tables_reader(args):
     elif args.reader == "pdfplumber":
 
         def read_tables(paper_path: str):
-            column_names_hints = Path(args.column_names_hints_path).read_text() if args.column_names_hints_path else ""
+            column_names_hints = (
+                Path(args.column_names_hints_path).read_text()
+                if args.column_names_hints_path
+                else ""
+            )
 
-            _logger.debug(f"Processing paper {paper_path} with pdfplumber and {column_names_hints} as column names hints...")
+            _logger.debug(
+                f"Processing paper {paper_path} with pdfplumber and {column_names_hints} as column names hints..."
+            )
             return pdfplumber.read_tables(paper_path, column_names_hints)
+
     else:
 
         def read_tables(paper_path: str):
@@ -147,17 +154,11 @@ def get_tables_reader(args):
 
 
 def get_table_writer(args):
-    if args.output_directory:
-
-        def write_tables(result: TablesProtocol, paper_path: str):
-            file.write_tables(
-                result, paper_path, output_directory=args.output_directory
-            )
+    if args.tablemerge and not args.output_directory:
+        print("--tablemerge requires also --output-directory")
+        exit(1)
 
     if args.tablemerge:
-        if not args.output_directory:
-            print("--tablemerge requires also --output-directory")
-            exit(1)
         metadata = TablemergeMetadata(args.reader, args.model)
 
         def write_tables(result: TablesProtocol, paper_path: str):
@@ -166,6 +167,13 @@ def get_table_writer(args):
                 paper_path,
                 output_directory=args.output_directory,
                 metadata=metadata,
+            )
+
+    elif args.output_directory:
+
+        def write_tables(result: TablesProtocol, paper_path: str):
+            file.write_tables(
+                result, paper_path, output_directory=args.output_directory
             )
 
     else:
@@ -178,6 +186,7 @@ def get_table_writer(args):
 
 def get_paper_paths(args):
     return args.paths if args.quiet else tqdm(args.paths)
+
 
 def main(args):
     handle_sigint()
