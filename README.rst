@@ -171,7 +171,7 @@ The format is informally specified this way:
           "page": integer,
         },
         {
-          "table_fragment": [
+          "table_fragments": [
             {
               "rows": ..., // same schema as previous "rows" attribute
               "page": integer

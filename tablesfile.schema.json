@@ -28,7 +28,7 @@
           },
           {
             "properties": {
-              "table_fragment": {
+              "table_fragments": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -52,7 +52,7 @@
               }
             },
             "required": [
-              "table_fragment"
+              "table_fragments"
             ],
             "additionalProperties": false
           }

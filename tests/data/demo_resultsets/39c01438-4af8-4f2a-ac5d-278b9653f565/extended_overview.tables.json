@@ -1,9 +1,9 @@
 {
   "tables": [
     {
-      "table_fragment": [
+      "table_fragments": [
         {
-          "rows": {
+          "rows": [{
             "authors": "Doe, J.; Smith, A.; Li, K.",
             "year": "2025",
             "journal": "Journal of Imaginary Conservation Studies",
@@ -12,13 +12,13 @@
             "pages": "45-78",
             "doi": "10.1234/jics.2025.5678",
             "publisher": "Fictional Academic Press"
-          },
+          }],
           "page": 2
         }
       ]
     },
     {
-      "table_fragment": [
+      "table_fragments": [
         {
           "rows": [
             {
@@ -96,7 +96,7 @@
       ]
     },
     {
-      "table_fragment": [
+      "table_fragments": [
         {
           "rows": [
             {

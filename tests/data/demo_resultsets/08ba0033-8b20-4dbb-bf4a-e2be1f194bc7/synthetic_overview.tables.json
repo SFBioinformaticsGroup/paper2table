@@ -1,7 +1,7 @@
 {
   "tables": [
     {
-      "table_fragment": [
+      "table_fragments": [
         {
           "rows": [
             {
@@ -124,7 +124,7 @@
       ]
     },
     {
-      "table_fragment": [
+      "table_fragments": [
         {
           "rows": [
             {
