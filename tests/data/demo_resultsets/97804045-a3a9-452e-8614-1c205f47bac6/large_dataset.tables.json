@@ -1,0 +1,299 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "scientific_name": "Psittacus azureus",
+              "common_name": "Blue Parrot",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "7,050"
+            },
+            {
+              "scientific_name": "Testudo magnus",
+              "common_name": "Great Tortoise",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "145"
+            },
+            {
+              "scientific_name": "Chiroptera gigantea",
+              "common_name": "Giant Bat",
+              "endangered_level": "Critically Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "295"
+            },
+            {
+              "scientific_name": "Aquila flamma",
+              "common_name": "Flame Eagle",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,070"
+            },
+            {
+              "scientific_name": "Felis tenebris",
+              "common_name": "Shadow Cat",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "3,420"
+            },
+            {
+              "scientific_name": "Delphinus minor",
+              "common_name": "Lesser Dolphin",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "8,850"
+            },
+            {
+              "scientific_name": "Lepus arcticus",
+              "common_name": "Ice Hare",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,180"
+            },
+            {
+              "scientific_name": "Vulpes marinus",
+              "common_name": "Sea Fox",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,970"
+            },
+            {
+              "scientific_name": "Ursus nebulosus",
+              "common_name": "Cloud Bear",
+              "endangered_level": "Critically Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "220"
+            },
+            {
+              "scientific_name": "Anura ignis",
+              "common_name": "Fire Toad",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,430"
+            },
+            {
+              "scientific_name": "Columba viridis",
+              "common_name": "Green Dove",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,640"
+            },
+            {
+              "scientific_name": "Capra silvestris",
+              "common_name": "Forest Goat",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,690"
+            },
+            {
+              "scientific_name": "Canis lunaris",
+              "common_name": "Moon Wolf",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,760"
+            },
+            {
+              "scientific_name": "Rana crystalis",
+              "common_name": "Crystal Frog",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "6,360"
+            },
+            {
+              "scientific_name": "Mustela obscura",
+              "common_name": "Shadow Weasel",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,290"
+            },
+            {
+              "scientific_name": "Equus borealis",
+              "common_name": "Northern Horse",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "4,490"
+            },
+            {
+              "scientific_name": "Lutra stellaris",
+              "common_name": "Star Otter",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,590"
+            },
+            {
+              "scientific_name": "Panthera ficta",
+              "common_name": "Imaginary Tiger",
+              "endangered_level": "Critically Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "460"
+            },
+            {
+              "scientific_name": "Ovis deserti",
+              "common_name": "Desert Sheep",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "4,250"
+            },
+            {
+              "scientific_name": "Amphibia lucida",
+              "common_name": "Shining Salamander",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "6,100"
+            }
+          ],
+          "page": 10
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Serpens aurea",
+              "common_name": "Golden Snake",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "910"
+            },
+            {
+              "scientific_name": "Chelonia obscurus",
+              "common_name": "Dark Turtle",
+              "endangered_level": "Critically Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "115"
+            },
+            {
+              "scientific_name": "Strigidae alba",
+              "common_name": "White Owl",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "3,120"
+            },
+            {
+              "scientific_name": "Felis aurora",
+              "common_name": "Dawn Cat",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,090"
+            },
+            {
+              "scientific_name": "Reptilia rubra",
+              "common_name": "Red Serpent",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "3,420"
+            },
+            {
+              "scientific_name": "Piscis argentum",
+              "common_name": "Silverfish",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "9,480"
+            },
+            {
+              "scientific_name": "Cervus noctis",
+              "common_name": "Night Deer",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "5,820"
+            },
+            {
+              "scientific_name": "Ursus nebulosus minor",
+              "common_name": "Lesser Cloud Bear",
+              "endangered_level": "Critically Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "180"
+            },
+            {
+              "scientific_name": "Equus ignotus",
+              "common_name": "Hidden Horse",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "980"
+            },
+            {
+              "scientific_name": "Rana luminis",
+              "common_name": "Glow Frog",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "2,200"
+            },
+            {
+              "scientific_name": "Avia aurantia",
+              "common_name": "Golden Finch",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "4,300"
+            },
+            {
+              "scientific_name": "Bovina obscurus",
+              "common_name": "Shadow Ox",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "720"
+            },
+            {
+              "scientific_name": "Pistris caeruleus",
+              "common_name": "Blue Shark",
+              "endangered_level": "Near Threatened",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "6,500"
+            },
+            {
+              "scientific_name": "Lacerta flammea",
+              "common_name": "Fire Lizard",
+              "endangered_level": "Vulnerable",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "3,050"
+            },
+            {
+              "scientific_name": "Apus borealis",
+              "common_name": "Northern Swift",
+              "endangered_level": "Endangered",
+              "distribution": "",
+              "notes": "",
+              "estimated_population": "1,430"
+            }
+          ],
+          "page": 11
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., Li, K., & Ramos, P. (2024). Large synthetic dataset of endangered species. Journal of Constructed Ecology, 14(2), 88-145. https://doi.org/10.9876/jce.2024.1234"
+}

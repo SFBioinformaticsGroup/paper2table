@@ -1,0 +1,264 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "0": "1. Blue Parrot (Psittacus azureus)",
+              "1": "South America",
+              "2": "Vulnerable",
+              "3": "Deforestation and habitat fragmentation",
+              "4": 7050
+            },
+            {
+              "0": "2. Great Tortoise (Testudo magnus)",
+              "1": "Oceania",
+              "2": "Endangered",
+              "3": "Slow reproduction and poaching",
+              "4": 145
+            },
+            {
+              "0": "3. Giant Bat (Chiroptera gigantea)",
+              "1": "Asia",
+              "2": "Critically Endangered",
+              "3": "Habitat destruction and disease",
+              "4": 295
+            },
+            {
+              "0": "4. Flame Eagle (Aquila flamma)",
+              "1": "Asia",
+              "2": "Endangered",
+              "3": "Loss of nesting sites",
+              "4": 1070
+            },
+            {
+              "0": "5. Shadow Cat (Felis tenebris)",
+              "1": "South America",
+              "2": "Near Threatened",
+              "3": "Habitat encroachment",
+              "4": 3420
+            },
+            {
+              "0": "6. Lesser Dolphin (Delphinus minor)",
+              "1": "Oceania",
+              "2": "Endangered",
+              "3": "Bycatch and marine pollution",
+              "4": 8850
+            },
+            {
+              "0": "7. Ice Hare (Lepus arcticus)",
+              "1": "North America, Europe",
+              "2": "Endangered",
+              "3": "Climate change",
+              "4": 2180
+            },
+            {
+              "0": "8. Sea Fox (Vulpes marinus)",
+              "1": "Europe",
+              "2": "Near Threatened",
+              "3": "Overfishing reducing food sources",
+              "4": 2970
+            },
+            {
+              "0": "9. Cloud Bear (Ursus nebulosus)",
+              "1": "Asia",
+              "2": "Critically Endangered",
+              "3": "Habitat loss",
+              "4": 220
+            },
+            {
+              "0": "10. Fire Toad (Anura ignis)",
+              "1": "Asia",
+              "2": "Vulnerable",
+              "3": "Restricted habitat",
+              "4": 2430
+            },
+            {
+              "0": "11. Green Dove (Columba viridis)",
+              "1": "Africa",
+              "2": "Endangered",
+              "3": "Habitat fragmentation",
+              "4": 2640
+            },
+            {
+              "0": "12. Forest Goat (Capra silvestris)",
+              "1": "Europe, Asia",
+              "2": "Endangered",
+              "3": "Poaching and competition for grazing",
+              "4": 1690
+            },
+            {
+              "0": "13. Moon Wolf (Canis lunaris)",
+              "1": "Asia",
+              "2": "Endangered",
+              "3": "Decline of prey species",
+              "4": 2760
+            },
+            {
+              "0": "14. Crystal Frog (Rana crystalis)",
+              "1": "South America",
+              "2": "Vulnerable",
+              "3": "Water pollution",
+              "4": 6360
+            },
+            {
+              "0": "15. Shadow Weasel (Mustela obscura)",
+              "1": "Europe",
+              "2": "Near Threatened",
+              "3": "Loss of woodland habitats",
+              "4": 1290
+            },
+            {
+              "0": "16. Northern Horse (Equus borealis)",
+              "1": "North America, Europe",
+              "2": "Near Threatened",
+              "3": "Climate-driven migration changes",
+              "4": 4490
+            },
+            {
+              "0": "17. Star Otter (Lutra stellaris)",
+              "1": "Asia",
+              "2": "Endangered",
+              "3": "Dependence on fish stocks",
+              "4": 1590
+            },
+            {
+              "0": "18. Imaginary Tiger (Panthera ficta)",
+              "1": "Asia",
+              "2": "Critically Endangered",
+              "3": "Severe habitat loss",
+              "4": 460
+            },
+            {
+              "0": "19. Desert Sheep (Ovis deserti)",
+              "1": "Africa",
+              "2": "Near Threatened",
+              "3": "Water scarcity",
+              "4": 4250
+            },
+            {
+              "0": "20. Shining Salamander (Amphibia lucida)",
+              "1": "Europe",
+              "2": "Vulnerable",
+              "3": "Pollution in wetland habitats",
+              "4": 6100
+            }
+          ],
+          "page": 10
+        },
+        {
+          "rows": [
+            {
+              "0": "21. Golden Snake (Serpens aurea)",
+              "1": "Asia",
+              "2": "Endangered",
+              "3": "Habitat loss near rivers",
+              "4": 910
+            },
+            {
+              "0": "22. Dark Turtle (Chelonia obscurus)",
+              "1": "Oceania",
+              "2": "Critically Endangered",
+              "3": "Egg predation",
+              "4": 115
+            },
+            {
+              "0": "23. White Owl (Strigidae alba)",
+              "1": "Europe",
+              "2": "Near Threatened",
+              "3": "Loss of nesting grounds",
+              "4": 3120
+            },
+            {
+              "0": "24. Dawn Cat (Felis aurora)",
+              "1": "South America",
+              "2": "Endangered",
+              "3": "Low reproductive rate",
+              "4": 1090
+            },
+            {
+              "0": "25. Red Serpent (Reptilia rubra)",
+              "1": "Asia",
+              "2": "Vulnerable",
+              "3": "Habitat loss",
+              "4": 3420
+            },
+            {
+              "0": "26. Silverfish (Piscis argentum)",
+              "1": "Oceania",
+              "2": "Endangered",
+              "3": "Water pollution",
+              "4": 9480
+            },
+            {
+              "0": "27. Night Deer (Cervus noctis)",
+              "1": "Asia",
+              "2": "Vulnerable",
+              "3": "Hunting and forest loss",
+              "4": 5820
+            },
+            {
+              "0": "28. Lesser Cloud Bear (Ursus nebulosus minor)",
+              "1": "Asia",
+              "2": "Critically Endangered",
+              "3": "Severe habitat fragmentation",
+              "4": 180
+            },
+            {
+              "0": "29. Hidden Horse (Equus ignotus)",
+              "1": "Europe",
+              "2": "Endangered",
+              "3": "Narrow distribution range",
+              "4": 980
+            },
+            {
+              "0": "30. Glow Frog (Rana luminis)",
+              "1": "South America",
+              "2": "Near Threatened",
+              "3": "Water contamination",
+              "4": 2200
+            },
+            {
+              "0": "31. Golden Finch (Avia aurantia)",
+              "1": "Africa",
+              "2": "Vulnerable",
+              "3": "Habitat loss in forests",
+              "4": 4300
+            },
+            {
+              "0": "32. Shadow Ox (Bovina obscurus)",
+              "1": "Asia",
+              "2": "Endangered",
+              "3": "Poaching pressure",
+              "4": 720
+            },
+            {
+              "0": "33. Blue Shark (Pistris caeruleus)",
+              "1": "Oceania",
+              "2": "Near Threatened",
+              "3": "Overfishing",
+              "4": 6500
+            },
+            {
+              "0": "34. Fire Lizard (Lacerta flammea)",
+              "1": "Europe",
+              "2": "Vulnerable",
+              "3": "Forest fires and loss of rocky habitats",
+              "4": 3050
+            },
+            {
+              "0": "35. Northern Swift (Apus borealis)",
+              "1": "North America, Europe",
+              "2": "Endangered",
+              "3": "Climate change affecting migration",
+              "4": 1430
+            }
+          ],
+          "page": 11
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., Li, K., & Ramos, P. (2024). Large synthetic dataset of endangered species. Journal of Constructed Ecology, 14(2), 88-145. https://doi.org/10.9876/jce.2024.1234"
+}

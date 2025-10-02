@@ -1,0 +1,178 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": {
+            "authors": "Doe, J.; Smith, A.; Li, K.",
+            "year": "2025",
+            "journal": "Journal of Imaginary Conservation Studies",
+            "volume": "12",
+            "issue": "4",
+            "pages": "45-78",
+            "doi": "10.1234/jics.2025.5678",
+            "publisher": "Fictional Academic Press"
+          },
+          "page": 2
+        }
+      ]
+    },
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "scientific_name": "Psittacus azureus",
+              "common_name": "Blue Parrot",
+              "endangered_level": "Vulnerable",
+              "distribution": "Rainforest canopy",
+              "notes": "This species is heavily impacted by deforestation, with fragmented habitats making survival more difficult. Conservation programs are focusing on reforestation and community involvement.",
+              "estimated_population": "7,100"
+            },
+            {
+              "scientific_name": "Testudo magnus",
+              "common_name": "Great Tortoise",
+              "endangered_level": "Endangered",
+              "distribution": "Island ecosystems",
+              "notes": "",
+              "estimated_population": "140"
+            },
+            {
+              "scientific_name": "Chiroptera gigantea",
+              "common_name": "Giant Bat",
+              "endangered_level": "Critically Endangered",
+              "distribution": "Cave systems",
+              "notes": "Drastic reduction in colony sizes has been observed due to habitat destruction and disease outbreaks spreading quickly in confined populations.",
+              "estimated_population": "280"
+            },
+            {
+              "scientific_name": "Aquila flamma",
+              "common_name": "Flame Eagle",
+              "endangered_level": "Endangered",
+              "distribution": "Volcanic mountain ranges",
+              "notes": "",
+              "estimated_population": "1,060"
+            },
+            {
+              "scientific_name": "Felis tenebris",
+              "common_name": "Shadow Cat",
+              "endangered_level": "Near Threatened",
+              "distribution": "Dense undergrowth of tropical forests",
+              "notes": "Rarely spotted and difficult to track. Its survival depends on preservation of the dense foliage it uses for camouflage.",
+              "estimated_population": "3,400"
+            }
+          ],
+          "page": 5
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Delphinus minor",
+              "common_name": "Lesser Dolphin",
+              "endangered_level": "Endangered",
+              "distribution": "Tropical seas",
+              "notes": "Bycatch in commercial fishing continues to be a major threat, alongside plastic pollution that affects food sources and causes injuries.",
+              "estimated_population": "8,800"
+            },
+            {
+              "scientific_name": "Lepus arcticus",
+              "common_name": "Ice Hare",
+              "endangered_level": "Endangered",
+              "distribution": "Frozen tundras",
+              "notes": "",
+              "estimated_population": "2,150"
+            },
+            {
+              "scientific_name": "Vulpes marinus",
+              "common_name": "Sea Fox",
+              "endangered_level": "Near Threatened",
+              "distribution": "Cliffs along northern coasts",
+              "notes": "Their numbers fluctuate with fish stock availability, and overfishing remains a long-term concern for sustainability.",
+              "estimated_population": "2,950"
+            }
+          ],
+          "page": 6
+        }
+      ]
+    },
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "scientific_name": "Ursus nebulosus",
+              "common_name": "Cloud Bear",
+              "endangered_level": "Critically Endangered",
+              "distribution": "High mountain forests",
+              "notes": "",
+              "estimated_population": "225"
+            },
+            {
+              "scientific_name": "Anura ignis",
+              "common_name": "Fire Toad",
+              "endangered_level": "Vulnerable",
+              "distribution": "Geothermal hot springs",
+              "notes": "This species has an exceptionally small geographic range, making it highly susceptible to any ecological disruptions, including geothermal energy projects.",
+              "estimated_population": "2,420"
+            },
+            {
+              "scientific_name": "Columba viridis",
+              "common_name": "Green Dove",
+              "endangered_level": "Endangered",
+              "distribution": "Tropical jungles",
+              "notes": "",
+              "estimated_population": "2,650"
+            },
+            {
+              "scientific_name": "Capra silvestris",
+              "common_name": "Forest Goat",
+              "endangered_level": "Endangered",
+              "distribution": "High mountain ranges",
+              "notes": "Poaching and competition for grazing areas are significant threats. Limited breeding populations reduce genetic diversity.",
+              "estimated_population": "1,680"
+            },
+            {
+              "scientific_name": "Canis lunaris",
+              "common_name": "Moon Wolf",
+              "endangered_level": "Endangered",
+              "distribution": "Highland steppes",
+              "notes": "",
+              "estimated_population": "2,750"
+            }
+          ],
+          "page": 15
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Rana crystalis",
+              "common_name": "Crystal Frog",
+              "endangered_level": "Vulnerable",
+              "distribution": "Wetlands",
+              "notes": "This amphibian requires pristine water quality, and its decline is closely tied to increasing agricultural runoff and industrial waste.",
+              "estimated_population": "6,350"
+            },
+            {
+              "scientific_name": "Mustela obscura",
+              "common_name": "Shadow Weasel",
+              "endangered_level": "Near Threatened",
+              "distribution": "Darkwood forests",
+              "notes": "",
+              "estimated_population": "1,280"
+            },
+            {
+              "scientific_name": "Equus borealis",
+              "common_name": "Northern Horse",
+              "endangered_level": "Near Threatened",
+              "distribution": "Arctic plains",
+              "notes": "While still relatively widespread, this species faces mounting pressure from climate change, which alters grazing cycles and migration patterns.",
+              "estimated_population": "4,480"
+            }
+          ],
+          "page": 16
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., Smith, A., & Li, K. (2025). Extended synthetic overview of endangered species. Journal of Imaginary Conservation Studies, 13(1), 1-39. https://doi.org/10.1234/jics.2025.7890"
+}

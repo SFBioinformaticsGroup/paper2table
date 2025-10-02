@@ -1,0 +1,178 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": {
+            "authors": "Doe, J.; Smith, A.; Li, K.",
+            "year": "2023",
+            "journal": "Journal of Imaginary Conservation Studies",
+            "volume": "12",
+            "issue": "4",
+            "pages": "45-78",
+            "doi": "10.1234/jics.2023.5678",
+            "publisher": "Fictional Academic Press"
+          },
+          "page": 2
+        }
+      ]
+    },
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "0": "Psittacus azureus",
+              "1": "Blue Parrot",
+              "2": "Vulnerable",
+              "3": "Rainforest canopy",
+              "4": "7,100",
+              "5": "This species is heavily impacted by deforestation, with fragmented habitats making survival more difficult. Conservation programs are focusing on reforestation and community involvement."
+            },
+            {
+              "0": "Testudo magnus",
+              "1": "Great Tortoise",
+              "2": "Endangered",
+              "3": "Island ecosystems",
+              "4": "140",
+              "5": ""
+            },
+            {
+              "0": "Chiroptera gigantea",
+              "1": "Giant Bat",
+              "2": "Critically Endangered",
+              "3": "Cave systems",
+              "4": "280",
+              "5": "Drastic reduction in colony sizes has been observed due to habitat destruction and disease outbreaks spreading quickly in confined populations."
+            },
+            {
+              "0": "Aquila flamma",
+              "1": "Flame Eagle",
+              "2": "Endangered",
+              "3": "Volcanic mountain ranges",
+              "4": "1,060",
+              "5": ""
+            },
+            {
+              "0": "Felis tenebris",
+              "1": "Shadow Cat",
+              "2": "Near Threatened",
+              "3": "Dense undergrowth of tropical forests",
+              "4": "3,400",
+              "5": "Rarely spotted and difficult to track. Its survival depends on preservation of the dense foliage it uses for camouflage."
+            }
+          ],
+          "page": 5
+        },
+        {
+          "rows": [
+            {
+              "0": "Delphinus minor",
+              "1": "Lesser Dolphin",
+              "2": "Endangered",
+              "3": "Tropical seas",
+              "4": "8,800",
+              "5": "Bycatch in commercial fishing continues to be a major threat, alongside plastic pollution that affects food sources and causes injuries."
+            },
+            {
+              "0": "Lepus arcticus",
+              "1": "Ice Hare",
+              "2": "Endangered",
+              "3": "Frozen tundras",
+              "4": "2,150",
+              "5": ""
+            },
+            {
+              "0": "Vulpes marinus",
+              "1": "Sea Fox",
+              "2": "Near Threatened",
+              "3": "Cliffs along northern coasts",
+              "4": "2,950",
+              "5": "Their numbers fluctuate with fish stock availability, and overfishing remains a long-term concern for sustainability."
+            }
+          ],
+          "page": 6
+        }
+      ]
+    },
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "0": "Ursus nebulosus",
+              "1": "Cloud Bear",
+              "2": "Critically Endangered",
+              "3": "High mountain forests",
+              "4": "225",
+              "5": ""
+            },
+            {
+              "0": "Anura ignis",
+              "1": "Fire Toad",
+              "2": "Vulnerable",
+              "3": "Geothermal hot springs",
+              "4": "2,420",
+              "5": "This species has an exceptionally small geographic range, making it highly susceptible to any ecological disruptions, including geothermal energy projects."
+            },
+            {
+              "0": "Columba viridis",
+              "1": "Green Dove",
+              "2": "Endangered",
+              "3": "Tropical jungles",
+              "4": "2,650",
+              "5": ""
+            },
+            {
+              "0": "Capra silvestris",
+              "1": "Forest Goat",
+              "2": "Endangered",
+              "3": "High mountain ranges",
+              "4": "1,680",
+              "5": "Poaching and competition for grazing areas are significant threats. Limited breeding populations reduce genetic diversity."
+            },
+            {
+              "0": "Canis lunaris",
+              "1": "Moon Wolf",
+              "2": "Endangered",
+              "3": "Highland steppes",
+              "4": "2,750",
+              "5": ""
+            }
+          ],
+          "page": 15
+        },
+        {
+          "rows": [
+            {
+              "0": "Rana crystalis",
+              "1": "Crystal Frog",
+              "2": "Vulnerable",
+              "3": "Wetlands",
+              "4": "6,350",
+              "5": "This amphibian requires pristine water quality, and its decline is closely tied to increasing agricultural runoff and industrial waste."
+            },
+            {
+              "0": "Mustela obscura",
+              "1": "Shadow Weasel",
+              "2": "Near Threatened",
+              "3": "Darkwood forests",
+              "4": "1,280",
+              "5": ""
+            },
+            {
+              "0": "Equus borealis",
+              "1": "Northern Horse",
+              "2": "Near Threatened",
+              "3": "Arctic plains",
+              "4": "4,480",
+              "5": "While still relatively widespread, this species faces mounting pressure from climate change, which alters grazing cycles and migration patterns."
+            }
+          ],
+          "page": 16
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., Smith, A., & Li, K. (2023). Extended synthetic overview of endangered species. Journal of Imaginary Conservation Studies, 13(1), 1-39. https://doi.org/10.1234/jics.2023.7890"
+}

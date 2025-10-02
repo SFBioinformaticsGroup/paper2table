@@ -1,0 +1,264 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "usual_and_scientific_names": "1. Blue Parrot (Psittacus azureus)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 7050,
+              "endangered_reason": "Deforestation and habitat fragmentation",
+              "continents_with_presence": "South America"
+            },
+            {
+              "usual_and_scientific_names": "2. Great Tortoise (Testudo magnus)",
+              "endangered_level": "Endangered",
+              "estimated_population": 145,
+              "endangered_reason": "Slow reproduction and poaching",
+              "continents_with_presence": "Oceania"
+            },
+            {
+              "usual_and_scientific_names": "3. Giant Bat (Chiroptera gigantea)",
+              "endangered_level": "Critically Endangered",
+              "estimated_population": 295,
+              "endangered_reason": "Habitat destruction and disease",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "4. Flame Eagle (Aquila flamma)",
+              "endangered_level": "Endangered",
+              "estimated_population": 1070,
+              "endangered_reason": "Loss of nesting sites",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "5. Shadow Cat (Felis tenebris)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 3420,
+              "endangered_reason": "Habitat encroachment",
+              "continents_with_presence": "South America"
+            },
+            {
+              "usual_and_scientific_names": "6. Lesser Dolphin (Delphinus minor)",
+              "endangered_level": "Endangered",
+              "estimated_population": 8850,
+              "endangered_reason": "Bycatch and marine pollution",
+              "continents_with_presence": "Oceania"
+            },
+            {
+              "usual_and_scientific_names": "7. Ice Hare (Lepus arcticus)",
+              "endangered_level": "Endangered",
+              "estimated_population": 2180,
+              "endangered_reason": "Climate change",
+              "continents_with_presence": "North America, Europe"
+            },
+            {
+              "usual_and_scientific_names": "8. Sea Fox (Vulpes marinus)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 2970,
+              "endangered_reason": "Overfishing reducing food sources",
+              "continents_with_presence": "Europe"
+            },
+            {
+              "usual_and_scientific_names": "9. Cloud Bear (Ursus nebulosus)",
+              "endangered_level": "Critically Endangered",
+              "estimated_population": 220,
+              "endangered_reason": "Habitat loss",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "10. Fire Toad (Anura ignis)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 2430,
+              "endangered_reason": "Restricted habitat",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "11. Green Dove (Columba viridis)",
+              "endangered_level": "Endangered",
+              "estimated_population": 2640,
+              "endangered_reason": "Habitat fragmentation",
+              "continents_with_presence": "Africa"
+            },
+            {
+              "usual_and_scientific_names": "12. Forest Goat (Capra silvestris)",
+              "endangered_level": "Endangered",
+              "estimated_population": 1690,
+              "endangered_reason": "Poaching and competition for grazing",
+              "continents_with_presence": "Europe, Asia"
+            },
+            {
+              "usual_and_scientific_names": "13. Moon Wolf (Canis lunaris)",
+              "endangered_level": "Endangered",
+              "estimated_population": 2760,
+              "endangered_reason": "Decline of prey species",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "14. Crystal Frog (Rana crystalis)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 6360,
+              "endangered_reason": "Water pollution",
+              "continents_with_presence": "South America"
+            },
+            {
+              "usual_and_scientific_names": "15. Shadow Weasel (Mustela obscura)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 1290,
+              "endangered_reason": "Loss of woodland habitats",
+              "continents_with_presence": "Europe"
+            },
+            {
+              "usual_and_scientific_names": "16. Northern Horse (Equus borealis)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 4490,
+              "endangered_reason": "Climate-driven migration changes",
+              "continents_with_presence": "North America, Europe"
+            },
+            {
+              "usual_and_scientific_names": "17. Star Otter (Lutra stellaris)",
+              "endangered_level": "Endangered",
+              "estimated_population": 1590,
+              "endangered_reason": "Dependence on fish stocks",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "18. Imaginary Tiger (Panthera ficta)",
+              "endangered_level": "Critically Endangered",
+              "estimated_population": 460,
+              "endangered_reason": "Severe habitat loss",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "19. Desert Sheep (Ovis deserti)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 4250,
+              "endangered_reason": "Water scarcity",
+              "continents_with_presence": "Africa"
+            },
+            {
+              "usual_and_scientific_names": "20. Shining Salamander (Amphibia lucida)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 6100,
+              "endangered_reason": "Pollution in wetland habitats",
+              "continents_with_presence": "Europe"
+            }
+          ],
+          "page": 10
+        },
+        {
+          "rows": [
+            {
+              "usual_and_scientific_names": "21. Golden Snake (Serpens aurea)",
+              "endangered_level": "Endangered",
+              "estimated_population": 910,
+              "endangered_reason": "Habitat loss near rivers",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "22. Dark Turtle (Chelonia obscurus)",
+              "endangered_level": "Critically Endangered",
+              "estimated_population": 115,
+              "endangered_reason": "Egg predation",
+              "continents_with_presence": "Oceania"
+            },
+            {
+              "usual_and_scientific_names": "23. White Owl (Strigidae alba)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 3120,
+              "endangered_reason": "Loss of nesting grounds",
+              "continents_with_presence": "Europe"
+            },
+            {
+              "usual_and_scientific_names": "24. Dawn Cat (Felis aurora)",
+              "endangered_level": "Endangered",
+              "estimated_population": 1090,
+              "endangered_reason": "Low reproductive rate",
+              "continents_with_presence": "South America"
+            },
+            {
+              "usual_and_scientific_names": "25. Red Serpent (Reptilia rubra)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 3420,
+              "endangered_reason": "Habitat loss",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "26. Silverfish (Piscis argentum)",
+              "endangered_level": "Endangered",
+              "estimated_population": 9480,
+              "endangered_reason": "Water pollution",
+              "continents_with_presence": "Oceania"
+            },
+            {
+              "usual_and_scientific_names": "27. Night Deer (Cervus noctis)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 5820,
+              "endangered_reason": "Hunting and forest loss",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "28. Lesser Cloud Bear (Ursus nebulosus minor)",
+              "endangered_level": "Critically Endangered",
+              "estimated_population": 180,
+              "endangered_reason": "Severe habitat fragmentation",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "29. Hidden Horse (Equus ignotus)",
+              "endangered_level": "Endangered",
+              "estimated_population": 980,
+              "endangered_reason": "Narrow distribution range",
+              "continents_with_presence": "Europe"
+            },
+            {
+              "usual_and_scientific_names": "30. Glow Frog (Rana luminis)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 2200,
+              "endangered_reason": "Water contamination",
+              "continents_with_presence": "South America"
+            },
+            {
+              "usual_and_scientific_names": "31. Golden Finch (Avia aurantia)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 4300,
+              "endangered_reason": "Habitat loss in forests",
+              "continents_with_presence": "Africa"
+            },
+            {
+              "usual_and_scientific_names": "32. Shadow Ox (Bovina obscurus)",
+              "endangered_level": "Endangered",
+              "estimated_population": 720,
+              "endangered_reason": "Poaching pressure",
+              "continents_with_presence": "Asia"
+            },
+            {
+              "usual_and_scientific_names": "33. Blue Shark (Pistris caeruleus)",
+              "endangered_level": "Near Threatened",
+              "estimated_population": 6500,
+              "endangered_reason": "Overfishing",
+              "continents_with_presence": "Oceania"
+            },
+            {
+              "usual_and_scientific_names": "34. Fire Lizard (Lacerta flammea)",
+              "endangered_level": "Vulnerable",
+              "estimated_population": 3050,
+              "endangered_reason": "Forest fires and loss of rocky habitats",
+              "continents_with_presence": "Europe"
+            },
+            {
+              "usual_and_scientific_names": "35. Northern Swift (Apus borealis)",
+              "endangered_level": "Endangered",
+              "estimated_population": 1430,
+              "endangered_reason": "Climate change affecting migration",
+              "continents_with_presence": "North America, Europe"
+            }
+          ],
+          "page": 11
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., Li, K., & Ramos, P. (2024). Large synthetic dataset of endangered species. Journal of Constructed Ecology, 14(2), 88-145. https://doi.org/10.9876/jce.2024.1234"
+}

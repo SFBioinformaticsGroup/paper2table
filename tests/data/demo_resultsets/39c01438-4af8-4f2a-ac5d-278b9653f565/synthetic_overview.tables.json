@@ -1,0 +1,251 @@
+{
+  "tables": [
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "scientific_name": "Aves mirabilis",
+              "common_name": "Spectral Bird",
+              "endangered_level": "Endangered",
+              "distribution": "Northern Isles",
+              "notes": "Nocturnal behavior observed.",
+              "estimated_population": "1,200"
+            },
+            {
+              "scientific_name": "Reptilia rubra",
+              "common_name": "Red Serpent",
+              "endangered_level": "Vulnerable",
+              "distribution": "Eastern deserts",
+              "notes": "Population decline linked to habitat loss.",
+              "estimated_population": "3,400"
+            },
+            {
+              "scientific_name": "Canis lunaris",
+              "common_name": "Moon Wolf",
+              "endangered_level": "Near Threatened",
+              "distribution": "Highland steppes",
+              "notes": "Pack numbers decreasing.",
+              "estimated_population": "2,800"
+            },
+            {
+              "scientific_name": "Piscis argentum",
+              "common_name": "Silverfish",
+              "endangered_level": "Endangered",
+              "distribution": "Coastal waters",
+              "notes": "Sensitive to pollution.",
+              "estimated_population": "9,500"
+            },
+            {
+              "scientific_name": "Ursus nebulosus",
+              "common_name": "Cloud Bear",
+              "endangered_level": "Critically Endangered",
+              "distribution": "Mountain forests",
+              "notes": "Only scattered sightings remain.",
+              "estimated_population": "230"
+            }
+          ],
+          "page": 5
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Felis aurora",
+              "common_name": "Dawn Cat",
+              "endangered_level": "Endangered",
+              "distribution": "Southern savannas",
+              "notes": "Low reproductive rate.",
+              "estimated_population": "1,100"
+            },
+            {
+              "scientific_name": "Rana crystalis",
+              "common_name": "Crystal Frog",
+              "endangered_level": "Vulnerable",
+              "distribution": "Wetlands",
+              "notes": "Highly dependent on clean water.",
+              "estimated_population": "6,400"
+            },
+            {
+              "scientific_name": "Equus borealis",
+              "common_name": "Northern Horse",
+              "endangered_level": "Near Threatened",
+              "distribution": "Arctic plains",
+              "notes": "Adapted to cold climates.",
+              "estimated_population": "4,500"
+            },
+            {
+              "scientific_name": "Columba viridis",
+              "common_name": "Green Dove",
+              "endangered_level": "Endangered",
+              "distribution": "Tropical jungles",
+              "notes": "Population fragmented.",
+              "estimated_population": "2,700"
+            },
+            {
+              "scientific_name": "Testudo magnus",
+              "common_name": "Great Tortoise",
+              "endangered_level": "Critically Endangered",
+              "distribution": "Island ecosystems",
+              "notes": "Long lifespan but slow breeding.",
+              "estimated_population": "150"
+            }
+          ],
+          "page": 6
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Mustela obscura",
+              "common_name": "Shadow Weasel",
+              "endangered_level": "Endangered",
+              "distribution": "Darkwood forests",
+              "notes": "Elusive and nocturnal.",
+              "estimated_population": "1,300"
+            },
+            {
+              "scientific_name": "Delphinus minor",
+              "common_name": "Lesser Dolphin",
+              "endangered_level": "Vulnerable",
+              "distribution": "Tropical seas",
+              "notes": "Threatened by bycatch.",
+              "estimated_population": "8,900"
+            },
+            {
+              "scientific_name": "Strigidae alba",
+              "common_name": "White Owl",
+              "endangered_level": "Near Threatened",
+              "distribution": "Snowy regions",
+              "notes": "Declining nesting grounds.",
+              "estimated_population": "3,100"
+            }
+          ],
+          "page": 7
+        }
+      ]
+    },
+    {
+      "table_fragment": [
+        {
+          "rows": [
+            {
+              "scientific_name": "Lepus arcticus",
+              "common_name": "Ice Hare",
+              "endangered_level": "Endangered",
+              "distribution": "Frozen tundras",
+              "notes": "Population sensitive to warming.",
+              "estimated_population": "2,200"
+            },
+            {
+              "scientific_name": "Cervus noctis",
+              "common_name": "Night Deer",
+              "endangered_level": "Vulnerable",
+              "distribution": "Dense forests",
+              "notes": "Dusk and dawn forager.",
+              "estimated_population": "5,800"
+            },
+            {
+              "scientific_name": "Serpens aurea",
+              "common_name": "Golden Snake",
+              "endangered_level": "Endangered",
+              "distribution": "Tropical rivers",
+              "notes": "Rarely observed in wild.",
+              "estimated_population": "900"
+            },
+            {
+              "scientific_name": "Vulpes marinus",
+              "common_name": "Sea Fox",
+              "endangered_level": "Near Threatened",
+              "distribution": "Coastal cliffs",
+              "notes": "Feeding impacted by overfishing.",
+              "estimated_population": "2,900"
+            },
+            {
+              "scientific_name": "Chiroptera gigantea",
+              "common_name": "Giant Bat",
+              "endangered_level": "Critically Endangered",
+              "distribution": "Cave systems",
+              "notes": "Colony size drastically reduced.",
+              "estimated_population": "300"
+            }
+          ],
+          "page": 15
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Capra silvestris",
+              "common_name": "Forest Goat",
+              "endangered_level": "Endangered",
+              "distribution": "High mountains",
+              "notes": "Poaching pressure high.",
+              "estimated_population": "1,700"
+            },
+            {
+              "scientific_name": "Amphibia lucida",
+              "common_name": "Shining Salamander",
+              "endangered_level": "Vulnerable",
+              "distribution": "Caves and wetlands",
+              "notes": "Sensitive to toxins.",
+              "estimated_population": "6,000"
+            },
+            {
+              "scientific_name": "Aquila flamma",
+              "common_name": "Flame Eagle",
+              "endangered_level": "Endangered",
+              "distribution": "Volcanic ranges",
+              "notes": "Nest sites destroyed by eruptions.",
+              "estimated_population": "1,050"
+            },
+            {
+              "scientific_name": "Ovis deserti",
+              "common_name": "Desert Sheep",
+              "endangered_level": "Near Threatened",
+              "distribution": "Dry plateaus",
+              "notes": "Water scarcity major factor.",
+              "estimated_population": "4,200"
+            },
+            {
+              "scientific_name": "Chelonia obscurus",
+              "common_name": "Dark Turtle",
+              "endangered_level": "Critically Endangered",
+              "distribution": "Lagoon ecosystems",
+              "notes": "Egg predation high.",
+              "estimated_population": "120"
+            }
+          ],
+          "page": 16
+        },
+        {
+          "rows": [
+            {
+              "scientific_name": "Lutra stellaris",
+              "common_name": "Star Otter",
+              "endangered_level": "Endangered",
+              "distribution": "River deltas",
+              "notes": "Dependence on fish stocks.",
+              "estimated_population": "1,600"
+            },
+            {
+              "scientific_name": "Anura ignis",
+              "common_name": "Fire Toad",
+              "endangered_level": "Vulnerable",
+              "distribution": "Hot springs",
+              "notes": "Small geographic range.",
+              "estimated_population": "2,400"
+            },
+            {
+              "scientific_name": "Psittacus azureus",
+              "common_name": "Blue Parrot",
+              "endangered_level": "Near Threatened",
+              "distribution": "Rainforest canopy",
+              "notes": "Habitat fragmented.",
+              "estimated_population": "7,200"
+            }
+          ],
+          "page": 17
+        }
+      ]
+    }
+  ],
+  "citation": "Doe, J., & Smith, A. (2023). Synthetic overview of endangered species. Journal of Imaginary Conservation Studies, 12(4), 45-78. https://doi.org/10.1234/jics.2023.5678"
+}
