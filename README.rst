@@ -100,7 +100,7 @@ After doing this, you can merge tables like this:
 
 .. code-block:: bash
 
-    $ python -m tablemerge -o tests/data/merges tests/data/tables/*
+    $ python -m tablemerge -o tests/data/merges tests/data/demo_resultsets/*
 
 
 Generating stats
@@ -112,7 +112,7 @@ a ``paper2table`` run or the results of a ``tablemerge`` output.
 .. code-block:: bash
 
     # generate a json file with stats
-    python -m tablestats -o test/data/stats.json test/data/merges
+    python -m tablestats -o test/data/stats.json tests/data/demo_resultsets
 
     # pretty print stats to stdout
     # you can optionally sort results by number of extracted tables
@@ -150,7 +150,7 @@ Running tests
 
 .. code-block:: bash
 
-    python -m tablevalidate tests/data/tables/*
+    python -m tablevalidate tests/data/demo_resultsets/*
 
 
 The format is informally specified this way:
