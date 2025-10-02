@@ -112,15 +112,15 @@ a ``paper2table`` run or the results of a ``tablemerge`` output.
 .. code-block:: bash
 
     # generate a json file with stats
-    python -m tablestats -o test/data/stats.json tests/data/demo_resultsets
+    python -m tablestats -o tests/data/stats.json tests/data/demo_resultsets/08ba0033-8b20-4dbb-bf4a-e2be1f194bc7/
 
     # pretty print stats to stdout
     # you can optionally sort results by number of extracted tables
-    python -m tablestats --sort desc test/data/merges
+    python -m tablestats --sort desc tests/data/merges
 
     # if you only need to output empty files, use --empty
     # this is useful for debugging your results
-    python -m tablestats --empty test/data/merges
+    python -m tablestats --empty tests/data/merges
 
 Visualizing data
 ================
@@ -131,7 +131,7 @@ A tool ``table2html`` is provided for displaying a resultset:
 
     # it can be used both with the raw resultset of a paper2table run
     # or with the output of tablemerge
-    python -m table2html ../test/data/merges
+    python -m table2html tests/data/merges
 
 
 Running tests
@@ -150,7 +150,7 @@ Running tests
 
 .. code-block:: bash
 
-    python -m tablevalidate tests/data/demo_resultsets/*
+    python -m tablevalidate tests/data/demo_resultsets/*/*
 
 
 The format is informally specified this way:
