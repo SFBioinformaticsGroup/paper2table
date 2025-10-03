@@ -1,5 +1,5 @@
 import re
-
+from utils.table_fragments import get_table_fragments
 
 def normalize_value(value):
     return (
@@ -51,8 +51,9 @@ def merge_tables(tables_list):
         # TODO detect if we should convert multiple one-fragment tables
         # in just one table with multiple fragments
         for table in tables:
-            page = table.get("page")
-            pages.setdefault(page, []).append(table["rows"])
+            for fragment in get_table_fragments(table):
+                page = fragment.get("page")
+                pages.setdefault(page, []).append(fragment["rows"])
 
     merged_tables = []
     for page, rows_list in pages.items():
