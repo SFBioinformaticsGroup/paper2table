@@ -2,7 +2,7 @@
 
 # Manual Curator – paper2table
 
-An opinionated web interface to manually curate structured tabular data extracted with paper2table from scientific papers (multi‑file, row‑wise or cell‑wise) ensuring provenance, metadata awareness and export-ready curated outputs.
+An web interface to manually curate structured tabular data extracted with paper2table from scientific papers (multi‑file, row‑wise or cell‑wise) ensuring provenance, metadata awareness and export-ready curated outputs.
 
 </div>
 
@@ -124,31 +124,7 @@ server/
 public/                # (Ignored in this repo per .gitignore – adjust if needed)
 ```
 
-## 🛡 Limitations / Future Work
-- No authentication / multi-user isolation.
-- No streaming or pagination for extremely large tables.
-- No optimistic concurrency guard (last write wins).
-- Responsiveness improvements pending (see roadmap task).
 
-## 🧭 Roadmap Ideas
-- Responsive layout refinements (mobile & narrow widths).
-- Role-based access or session separation.
-- Bulk selection / keyboard shortcuts.
-- Metrics dashboard (curation speed, agreement distribution).
-
-## 🤝 Contributing
-1. Fork
-2. Create feature branch: `git checkout -b feat/your-feature`
-3. Commit with conventional messages
-4. Open PR with a concise summary + before/after screenshots if UI
-
-Please keep code comments and commit messages in English.
-
-## 📝 License
-MIT (proposed). Provide attribution where required. See `LICENSE` if added.
-
-## 🙋 Support / Questions
-Open an issue with reproduction steps and environment details (Node version, OS). Include small example JSON if relevant.
 
 ---
 Happy curating! 
