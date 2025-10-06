@@ -17,6 +17,7 @@ export default function CurrentTasksView({
   onResetSelections,
   onShuffleTaskRows,
   currentSelections,
+  onProgressUpdate,
   isDark,
   textColor,
 }) {
@@ -28,7 +29,18 @@ export default function CurrentTasksView({
   const [curatedCellsCount, setCuratedCellsCount] = useState(0);
   const [totalCellsCount, setTotalCellsCount] = useState(0);
   const [originalSummary, setOriginalSummary] = useState([]);
-  const [minAgreement, setMinAgreement] = useState(0); // threshold slider
+  const [progressLoaded, setProgressLoaded] = useState(false); // evita flicker al seleccionar tareas completas
+  // Persisted Minimum Agreement slider (no auto reset)
+  const [minAgreement, setMinAgreement] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('minAgreement');
+      if (saved !== null) {
+        const num = parseInt(saved, 10);
+        if (!isNaN(num)) return num;
+      }
+    }
+    return 0;
+  }); // threshold slider (sticky)
   const [isResetting, setIsResetting] = useState(false);
   const lastCuratedRef = React.useRef(0);
   const stableTotalRef = React.useRef(null);
@@ -39,6 +51,7 @@ export default function CurrentTasksView({
     if (currentTask?.path) {
       loadTaskLog();
       initializeTotalCells();
+      setProgressLoaded(false);
       calculateTaskProgress();
       loadOriginalSummary();
     }
@@ -51,7 +64,20 @@ export default function CurrentTasksView({
     setTaskProgress(0);
     setCuratedCellsCount(0);
     setTotalCellsCount(0);
+    lastCuratedRef.current = 0; // evitar arrastre de conteo de otra tarea
+    // Intentionally DO NOT reset minAgreement here (persistence requested)
   }, [currentTask?.path]);
+
+  // Persist minAgreement whenever it changes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('minAgreement', String(minAgreement));
+      }
+    } catch (e) {
+      console.warn('Could not persist minAgreement:', e);
+    }
+  }, [minAgreement]);
 
   const initializeTotalCells = () => {
     if (!currentTask || !currentTask.rows) return;
@@ -79,8 +105,13 @@ export default function CurrentTasksView({
 
   const calculateTaskProgress = async () => {
     if (!currentTask?.path) return;
+    const taskPathAtCall = currentTask.path; // capturar para evitar condiciones de carrera
     try {
       const { curatedCells, totalCells, progress } = await getProgress(currentTask.path);
+      // Si mientras esperábamos la respuesta cambió la tarea, descartar
+      if (currentTask?.path !== taskPathAtCall) {
+        return;
+      }
       if (curatedCells < lastCuratedRef.current) {
         console.warn('[Progress] curatedCells menor que previo (server). Manteniendo anterior.', { previous: lastCuratedRef.current, computed: curatedCells });
       } else {
@@ -89,9 +120,16 @@ export default function CurrentTasksView({
       setCuratedCellsCount(Math.max(curatedCells, lastCuratedRef.current));
       setTotalCellsCount(totalCells);
       setTaskProgress(progress);
+      if (totalCells > 0 && curatedCells >= totalCells) {
+        // Marcar terminado inmediatamente para que no aparezcan controles de curación
+        setIsTaskFinished(true);
+      }
+      if (onProgressUpdate) onProgressUpdate(Math.max(curatedCells, lastCuratedRef.current), totalCells);
       console.log('[Progress] Server =>', { curatedCells, totalCells, progress });
     } catch (err) {
       console.error('Error fetching server progress:', err);
+    } finally {
+      setProgressLoaded(true);
     }
   };
 
@@ -150,6 +188,28 @@ export default function CurrentTasksView({
   const columns = Object.keys(currentRow).filter(key => key !== '_metadata');
   const totalCells = columns.length;
   const isTaskComplete = totalCellsCount > 0 && curatedCellsCount >= totalCellsCount;
+
+  // Derivar cellsCount por archivo usando las filas actuales si el backend no lo proporcionó
+  let enrichedOriginalSummary = originalSummary;
+  try {
+    if (originalSummary.length && currentTask?.rows?.length) {
+      const cellsPerFile = {};
+      for (const row of currentTask.rows) {
+        if (!row || !row._metadata || !row._metadata.sourceFile) continue;
+        const src = row._metadata.sourceFile;
+        if (!cellsPerFile[src]) cellsPerFile[src] = 0;
+        cellsPerFile[src] += Object.keys(row).filter(k => k !== '_metadata').length;
+      }
+      enrichedOriginalSummary = originalSummary.map(f => {
+        if (f && f.filename && cellsPerFile[f.filename] !== undefined && f.cellsCount === undefined) {
+          return { ...f, cellsCount: cellsPerFile[f.filename] };
+        }
+        return f;
+      });
+    }
+  } catch (e) {
+    console.warn('Error deriving cellsCount locally:', e);
+  }
 
   // Auto marcar finalización cuando todas las celdas están curadas
   useEffect(() => {
@@ -283,8 +343,16 @@ export default function CurrentTasksView({
 
   // Ya no se reemplaza toda la vista al terminar; se muestra banner inline
 
+  if (!progressLoaded) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-soft)', fontSize: 13 }}>
+        Loading progress...
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       {/* Task header removed (now in sidebar).*/}
 
       {/* Progress / Summary Panel */}
@@ -294,7 +362,7 @@ export default function CurrentTasksView({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '1px', color: 'var(--color-text-faint)' }}>SOURCE FILES</div>
             <div style={{ display: 'grid', gap: 'var(--space-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-              {originalSummary.map(file => {
+              {enrichedOriginalSummary.map(file => {
                 const meta = Array.isArray(file.metadataRows) && file.metadataRows.length ? file.metadataRows[0] : null;
                 return (
                 <div key={file.filename} style={{
@@ -326,13 +394,18 @@ export default function CurrentTasksView({
                     <div style={{ fontSize: '11px', lineHeight: 1.35, color: 'var(--color-text-soft)', maxHeight: 56, overflow: 'hidden' }}>{file.citation}</div>
                   )}
                   {(file.tablesCount !== undefined || file.rowsCount !== undefined) && (
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'flex', gap: 12 }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                        <strong style={{ fontWeight: 600 }}>T:</strong>{file.tablesCount ?? 0}
+                        <strong style={{ fontWeight: 600 }}>Tables:</strong>{file.tablesCount ?? 0}
                       </span>
                       <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                        <strong style={{ fontWeight: 600 }}>R:</strong>{file.rowsCount ?? 0}
+                        <strong style={{ fontWeight: 600 }}>Rows:</strong>{file.rowsCount ?? 0}
                       </span>
+                      {file.cellsCount !== undefined && (
+                        <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                          <strong style={{ fontWeight: 600 }}>Cells:</strong>{file.cellsCount}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -343,31 +416,45 @@ export default function CurrentTasksView({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '.5px', color: 'var(--color-text-soft)' }}>PROGRESS</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{taskProgress.toFixed(1)}% <span style={{ color: 'var(--color-text-faint)', fontWeight: 500 }}>({curatedCellsCount}/{totalCellsCount})</span></span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{taskProgress.toFixed(1)}% <span style={{ color: 'var(--color-text-faint)', fontWeight: 500 }}>({curatedCellsCount}/{totalCellsCount} cells)</span></span>
           </div>
           <div style={{ position: 'relative', width: '100%', height: 10, background: 'var(--color-surface-alt)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
             <div style={{
               width: `${taskProgress}%`,
               height: '100%',
-              background: taskProgress === 100 ? 'linear-gradient(90deg,#24d453,#1eba48)' : 'linear-gradient(90deg,#3b82f6,#2563eb)',
+              // Always use green gradient to reflect curation progress consistently
+              background: 'linear-gradient(90deg,#24d453,#1eba48)',
               boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)',
               transition: 'width var(--transition-med)'
             }} />
           </div>
         </div>
         {isTaskFinished && (
-          <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', alignItems: 'flex-start' }}>
-            <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--color-surface-alt)', padding: '16px 18px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '.5px', color: 'var(--color-text-soft)' }}>TASK COMPLETED</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.25, color: 'var(--color-text)' }}>{totalCellsCount} cells curated.</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>Export results or reset to start again.</div>
+          <div style={{
+            marginTop: 'var(--space-5)',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 32,
+            flexWrap: 'wrap',
+            width: '100%',
+            background: 'linear-gradient(90deg, rgba(36,212,83,0.14), rgba(36,212,83,0.07))',
+            border: '1px solid rgba(36,212,83,0.55)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '20px 24px',
+            boxShadow: '0 2px 6px -1px rgba(0,0,0,0.10), 0 6px 14px -4px rgba(0,0,0,0.08)'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 240, flex: '1 1 auto' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.75px', color: '#0d7934', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 10, height: 10, background: '#24d453', borderRadius: '50%', boxShadow: '0 0 0 4px rgba(36,212,83,0.30)' }} />
+                TASK COMPLETED
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text)', letterSpacing: '-.4px', lineHeight: 1.15 }}>{totalCellsCount} cells curated</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-soft)', lineHeight: 1.45, maxWidth: 560 }}>You can export the curated data or reset the task to start again.</div>
             </div>
-            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center' }}>
-              <button onClick={handleResetTask} className="btn-primary" style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 600 }}>Reset</button>
-              <ExportButton
-                label="Export curated"
-                isDark={isDark}
-                textColor={textColor}
+            <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', flex: '0 0 auto' }}>
+              <button
                 onClick={async () => {
                   try {
                     if (!currentTask?.path) return;
@@ -393,7 +480,26 @@ export default function CurrentTasksView({
                     alert('Export failed: ' + err.message);
                   }
                 }}
-              />
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  background: 'linear-gradient(90deg,#24d453,#1eba48)',
+                  padding: '0 28px',
+                  borderRadius: 16,
+                  cursor: 'pointer',
+                  border: '1px solid #16a240',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  letterSpacing: '.5px',
+                  lineHeight: 1,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.18)',
+                  height: 56,
+                  minWidth: 160
+                }}
+              >Export curated</button>
             </div>
           </div>
         )}
@@ -418,16 +524,19 @@ export default function CurrentTasksView({
               }}
             >{mode === 'row' ? 'Row by Row' : 'Cell by Cell'}</button>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 16px', background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', position: 'relative' }}>
-            <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: 'var(--color-text-soft)' }}>MIN AGREEMENT</label>
-            <div style={{ position: 'relative', flex: '1 1 160px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 18px', background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-pill)', border: '1px solid var(--color-border)', position: 'relative', minWidth: 'max-content' }}>
+            <label style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '.6px', color: 'var(--color-text-soft)', whiteSpace: 'nowrap' }}>Minimum agreement</label>
+            <div style={{ position: 'relative', flex: '1 1 160px', display: 'flex', alignItems: 'center', minWidth: '160px' }}>
               <input
                 type="range"
                 min={0}
                 max={100}
                 step={1}
                 value={minAgreement}
-                onChange={(e) => setMinAgreement(parseInt(e.target.value, 10) || 0)}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setMinAgreement(isNaN(val) ? 0 : val);
+                }}
                 style={{
                   WebkitAppearance: 'none',
                   appearance: 'none',
@@ -451,7 +560,7 @@ export default function CurrentTasksView({
 
       {/* Navigation panel with file/table info and controls */}
   {!isTaskFinished && (
-  <div className="panel" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+  <div className="panel" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         {/* Navigation controls */}
         <div style={{
           display: 'flex',
@@ -551,6 +660,78 @@ export default function CurrentTasksView({
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* Delete Task Banner moved to bottom */}
+      {currentTask && (
+        <div style={{
+          marginTop: 'var(--space-6)',
+          padding: '14px 18px',
+          background: 'linear-gradient(90deg, rgba(220,53,69,0.10), rgba(220,53,69,0.05))',
+          border: '1px solid var(--color-danger)',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          boxShadow: 'var(--shadow-xs)'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: 'var(--color-danger)' }}>DELETE TASK</span>
+            <span style={{ fontSize: 11, color: 'var(--color-text-soft)', maxWidth: 460, lineHeight: 1.4 }}>Permanently remove this task and all its curated progress. This action cannot be undone.</span>
+          </div>
+          <button
+            onClick={() => {
+              if (!currentTask) return;
+              if (onDeleteTask) onDeleteTask();
+            }}
+            style={{
+              padding: '10px 18px',
+              background: 'var(--color-danger)',
+              color: '#fff',
+              border: '1px solid var(--color-danger)',
+              fontSize: 12,
+              fontWeight: 600,
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              letterSpacing: '.3px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.15)'
+            }}
+          >Delete</button>
+        </div>
+      )}
+      {currentTask && isTaskFinished && (
+        <div style={{
+          marginTop: 'var(--space-4)',
+          padding: '12px 18px',
+          background: 'linear-gradient(90deg, rgba(255,176,32,0.18), rgba(255,176,32,0.08))',
+          border: '1px solid rgba(255,176,32,0.55)',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          boxShadow: 'var(--shadow-xs)'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: 'var(--color-warning)' }}>RESET TASK</span>
+            <span style={{ fontSize: 11, color: 'var(--color-text-soft)', maxWidth: 480, lineHeight: 1.4 }}>Clear curated data and start over if you need to re-evaluate the source content.</span>
+          </div>
+          <button
+            onClick={() => { if (!currentTask) return; handleResetTask(); }}
+            style={{
+              padding: '10px 22px',
+              background: 'var(--color-warning)',
+              color: '#222',
+              border: '1px solid rgba(0,0,0,0.08)',
+              fontSize: 12,
+              fontWeight: 700,
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              letterSpacing: '.4px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.18)'
+            }}
+          >Reset</button>
         </div>
       )}
     </div>

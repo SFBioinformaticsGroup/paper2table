@@ -6,7 +6,7 @@ import CurrentTasksView from './components/CurrentTasksView';
 import useHeader from './hooks/useHeader';
 import useTheme from './hooks/useTheme';
 import { createTaskFromImported } from './utils/taskUtils';
-import { createTask, getTasks, updateCuratedFile, deleteTask } from './utils/api';
+import { createTask, getTasks, updateCuratedFile, deleteTask, getProgress } from './utils/api';
 
 export default function App() {
   const [tasks, setTasks] = useState([]);
@@ -14,6 +14,10 @@ export default function App() {
   const [currentRowIdx, setCurrentRowIdx] = useState(0);
   const [selections, setSelections] = useState({});
   const [selectedTab, setSelectedTab] = useState('create');
+  // Lifted progress (cells) for sidebar display
+  const [curatedCellsSidebar, setCuratedCellsSidebar] = useState(0);
+  const [totalCellsSidebar, setTotalCellsSidebar] = useState(0);
+  const [taskProgressMap, setTaskProgressMap] = useState({}); // { taskPath: { curatedCells, totalCells, progress } }
 
   const [taskTitle, setTaskTitle] = useState('');
   const [importedTables, setImportedTables] = useState(null);
@@ -30,6 +34,8 @@ export default function App() {
           return { name, rows: shuffledRows, path, originalFiles };
         });
         setTasks(processedTasks);
+        // After setting tasks, fetch progress for each
+        setTimeout(() => fetchAllTaskProgress(processedTasks), 50);
       })
       .catch(console.error);
   }, []);
@@ -41,6 +47,37 @@ export default function App() {
     // Only update curated files when task changes, not when selections change
     // Selections will be updated manually when user presses Next
   }, [currentTaskIdx, tasks]);
+
+  // Fetch progress for all tasks
+  async function fetchAllTaskProgress(taskList = tasks) {
+    const entries = await Promise.all(taskList.map(async (t) => {
+      if (!t.path) return [t.path, null];
+      try {
+        const pr = await getProgress(t.path);
+        return [t.path, pr];
+      } catch (e) {
+        console.warn('Could not fetch progress for task', t.path, e);
+        return [t.path, null];
+      }
+    }));
+    const map = {};
+    for (const [k, v] of entries) {
+      if (k && v) map[k] = v; // v: { curatedCells, totalCells, progress }
+    }
+    setTaskProgressMap(map);
+  }
+
+  // Update single task progress (e.g., after curation update)
+  async function refreshTaskProgress(task) {
+    if (!task?.path) return;
+    try {
+      const pr = await getProgress(task.path);
+      setTaskProgressMap(prev => ({ ...prev, [task.path]: pr }));
+    } catch (e) {
+      console.warn('Failed refreshing progress for', task.path, e);
+    }
+  }
+
 
   function handleImportTablesFile(e) {
     const files = Array.from(e.target.files || []);
@@ -131,6 +168,8 @@ export default function App() {
       setImportedTables(null);
       setTaskTitle('');
       setSelectedTab('current');
+  // Refresh progress map (new task starts at 0)
+  setTimeout(() => fetchAllTaskProgress(processedTasks), 100);
       
       console.log('Task created successfully, tasks reloaded');
     } catch (err) {
@@ -159,6 +198,8 @@ export default function App() {
         return { name, rows: shuffledRows, path, originalFiles };
       });
       setTasks(processedTasks);
+  // Refresh progress after deletion
+  setTimeout(() => fetchAllTaskProgress(processedTasks), 100);
 
       // Si la tarea eliminada era la actual, limpiar la selección y volver a la pestaña create
       if (currentTaskIdx === taskIndex) {
@@ -266,10 +307,12 @@ export default function App() {
       <header ref={headerRef} style={{ width: '100%', boxSizing: 'border-box', padding: '40px clamp(24px,4vw,64px) 28px', position: 'relative' }}>
         <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 48, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 480px', minWidth: 320 }}>
-            <h1 className="title-display" style={{ marginBottom: 12 }}>Manual Curator<span style={{ color: 'var(--color-text-faint)', fontWeight: 600 }}> – paper2table</span></h1>
-            <p style={{ margin: 0, maxWidth: 640, fontSize: '15px', lineHeight: 1.5, color: 'var(--color-text-soft)', fontWeight: 400 }}>
-              A focused interface to curate tabular extractions from research papers. Import JSON files with tables, review rows, and progressively build high-quality curated datasets with confidence.
-            </p>
+            <h1 className="title-display" style={{ marginBottom: (tasks.length === 0 ? 12 : 4) }}>Manual Curator<span style={{ color: 'var(--color-text-faint)', fontWeight: 600 }}> – paper2table</span></h1>
+            {tasks.length === 0 && (
+              <p style={{ margin: 0, maxWidth: 640, fontSize: '15px', lineHeight: 1.5, color: 'var(--color-text-soft)', fontWeight: 400 }}>
+                A focused interface to curate tabular extractions from research papers. Import JSON files with tables, review rows, and progressively build high-quality curated datasets with confidence.
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
             <ControlsPanel
@@ -284,10 +327,18 @@ export default function App() {
         <LeftSidebar
           tasks={tasks}
           selectedTab={selectedTab}
-          onTabChange={setSelectedTab}
+          onTabChange={(tab) => {
+            if (tab === 'create') {
+              // Clear current selection when user wants to create a new task
+              setCurrentTaskIdx(null);
+              setCurrentRowIdx(0);
+            }
+            setSelectedTab(tab);
+          }}
           currentTaskIdx={currentTaskIdx}
           currentRowIdx={currentRowIdx}
           totalRows={totalRows}
+          taskProgressMap={taskProgressMap}
           onStart={(i) => {
             console.log('Starting task at index:', i, 'Task data:', tasks[i]);
             if (tasks[i] && tasks[i].rows && tasks[i].rows.length > 0) {
@@ -299,7 +350,6 @@ export default function App() {
               alert('Error: Task data is invalid. Please try reloading the page.');
             }
           }}
-          onDeleteTask={handleDeleteTask}
           isDark={isDark}
           textColor={textColor}
         />
@@ -343,6 +393,19 @@ export default function App() {
                 const originalIndex = currentRow._metadata?.originalIndex ?? currentRowIdx;
                 return selections[currentTaskIdx]?.[sourceFile]?.[originalIndex] || {};
               })()}
+              onProgressUpdate={(curated, total) => {
+                setCuratedCellsSidebar(curated);
+                setTotalCellsSidebar(total);
+                if (currentTask) {
+                  const progress = total > 0 ? Math.round((curated / total) * 100) : 0;
+                  // optimistic map update
+                  setTaskProgressMap(prev => ({
+                    ...prev,
+                    [currentTask.path]: { curatedCells: curated, totalCells: total, progress }
+                  }));
+                  setTimeout(() => refreshTaskProgress(currentTask), 400);
+                }
+              }}
               // Pasar mapping extra si se necesitara en el futuro
               isDark={isDark}
               textColor={textColor}

@@ -1,166 +1,119 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-export default function LeftSidebar({ tasks = [], selectedTab = 'create', onTabChange, currentTaskIdx, currentRowIdx, totalRows, onStart, onDeleteTask, isDark, textColor }) {
-  const [isTasksOpen, setIsTasksOpen] = useState(false);
-
-  const handleTaskClick = (index) => {
-    if (onStart) {
-      onStart(index);
-    }
-  };
+export default function LeftSidebar({
+  tasks = [],
+  selectedTab = 'create',
+  onTabChange,
+  currentTaskIdx,
+  onStart,
+  taskProgressMap = {},
+}) {
+  const handleTaskClick = (index) => { if (onStart) onStart(index); };
 
   return (
     <aside style={{
       width: 240,
-      padding: 'var(--space-7) var(--space-5)',
-      boxSizing: 'border-box',
-      border: `1px solid var(--color-border)`,
-      background: 'var(--color-surface)',
-      borderRadius: 'var(--radius-lg)',
+      padding: '0 2px 0 0',
       marginRight: 'var(--space-8)',
-      height: 'fit-content',
-      alignSelf: 'flex-start',
-      boxShadow: 'var(--shadow-sm)',
       position: 'sticky',
       top: '32px',
-      maxHeight: 'calc(100vh - 280px)',
-      overflow: 'hidden'
+      alignSelf: 'flex-start',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '14px'
     }}>
-      {/* Current Tasks dropdown button */}
-      <button
-        onClick={() => setIsTasksOpen(!isTasksOpen)}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--color-surface-alt)',
-          color: 'var(--color-text)',
-          border: '1px solid var(--color-border)',
-          textAlign: 'left',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 'var(--space-5)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 600,
-          letterSpacing: '-0.2px'
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Tasks</span>
-        <span style={{
-          transition: 'transform var(--transition-fast)',
-          transform: `rotate(${isTasksOpen ? '180deg' : '0deg'})`,
-          fontSize: 14,
-          color: 'var(--color-text-soft)'
-        }}>▾</span>
-      </button>
-
-      {/* Tasks dropdown */}
       <div style={{
-        maxHeight: isTasksOpen ? `${Math.min(tasks.length * 52, 300)}px` : '0',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        transition: 'max-height var(--transition-med)',
-        marginBottom: 'var(--space-6)',
-        paddingRight: isTasksOpen ? 4 : 0
+        border: '1px solid var(--color-border)',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        padding: '16px 14px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        maxHeight: 'calc(100vh - 340px)'
       }}>
-        {tasks.map((t, i) => (
-          <div key={i} style={{ marginBottom: 4 }}>
-            {/* Task item */}
-            <div
-              onClick={() => handleTaskClick(i)}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
-                background: currentTaskIdx === i
-                  ? 'linear-gradient(90deg, rgba(36,212,83,0.18), rgba(36,212,83,0.08))'
-                  : 'var(--color-surface-alt)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                transition: 'background var(--transition-fast), box-shadow var(--transition-fast)',
-                border: currentTaskIdx === i
-                  ? '1px solid var(--color-accent)'
-                  : '1px solid var(--color-border)',
-                boxShadow: currentTaskIdx === i ? '0 0 0 1px rgba(36,212,83,0.35), var(--shadow-xs)' : 'var(--shadow-xs)'
-              }}
-            >
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)', letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{
-                  width: 8,
-                  height: 8,
-                  background: currentTaskIdx === i ? 'var(--color-accent)' : 'var(--color-border-strong)',
-                  borderRadius: '50%',
-                  boxShadow: currentTaskIdx === i ? '0 0 0 3px rgba(36,212,83,0.25)' : 'none'
-                }} />
-                {t.name}
-              </div>
-              <div style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: 'var(--color-text-soft)',
-                background: 'var(--color-surface)',
-                padding: '2px 6px',
-                borderRadius: 'var(--radius-pill)',
-                border: '1px solid var(--color-border)'
-              }}>
-                {(t.rows || []).length} rows
-              </div>
-            </div>
-          </div>
-        ))}
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1px', color: 'var(--color-text-faint)', padding: '0 2px' }}>CURRENT TASKS</div>
+  <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', maxHeight: 320, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {tasks.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--color-text-soft)', padding: '4px 2px' }}>No tasks yet</div>
+          )}
+          {tasks.map((t, i) => {
+            const isActive = currentTaskIdx === i;
+            const progressObj = t.path ? taskProgressMap[t.path] : null;
+            const curated = progressObj ? progressObj.curatedCells : 0;
+            const total = progressObj ? progressObj.totalCells : 0;
+            const safeTotal = total > 0 ? total : (t.rows ? t.rows.reduce((acc, row) => acc + Object.keys(row || {}).filter(k => k !== '_metadata').length, 0) : 0);
+            const percentage = safeTotal > 0 ? (curated / safeTotal) * 100 : 0;
+            return (
+              <button
+                key={i}
+                onClick={() => handleTaskClick(i)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '10px 12px 10px',
+                  borderRadius: 'var(--radius-md)',
+                  background: isActive ? 'linear-gradient(90deg, rgba(36,212,83,0.18), rgba(36,212,83,0.08))' : 'var(--color-surface-alt)',
+                  border: isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'stretch',
+                  gap: 8,
+                  boxShadow: isActive ? '0 0 0 1px rgba(36,212,83,0.35), var(--shadow-xs)' : 'var(--shadow-xs)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 8, height: 8, background: isActive ? 'var(--color-accent)' : 'var(--color-border-strong)', borderRadius: '50%', boxShadow: isActive ? '0 0 0 3px rgba(36,212,83,0.25)' : 'none', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.2px', color: 'var(--color-text)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{t.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-soft)', background: 'var(--color-surface)', padding: '2px 6px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--color-border)' }}>
+                    {curated}/{safeTotal}
+                  </span>
+                </div>
+                <div style={{ position: 'relative', height: 5, borderRadius: 3, background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${percentage}%`, background: 'var(--color-accent)', borderRadius: 2, transition: 'width 0.35s ease' }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Create task button */}
-      <button
-        onClick={() => onTabChange && onTabChange('create')}
-        className={selectedTab === 'create' ? 'btn-primary' : ''}
-        style={{
-          width: '100%',
-          padding: '12px 14px',
-          fontSize: 'var(--text-sm)',
-          justifyContent: 'center',
-          fontWeight: 600,
-          letterSpacing: '-0.2px'
-        }}
-      >Create task</button>
-
-      {/* Current task info block (moved from main view) */}
-      {currentTaskIdx != null && tasks[currentTaskIdx] && (
-        <div style={{
-          marginTop: 'var(--space-6)',
-          padding: '12px 14px 14px',
-          background: 'var(--color-surface-alt)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-0.3px', color: 'var(--color-text)' }}>
-            {tasks[currentTaskIdx].name}
-          </div>
-          {typeof currentRowIdx === 'number' && typeof totalRows === 'number' && totalRows > 0 && (
-            <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--color-text-soft)', letterSpacing: '.3px' }}>
-              Row {currentRowIdx + 1} of {totalRows}
-            </div>
-          )}
-          <button
-            onClick={() => onDeleteTask && onDeleteTask(currentTaskIdx)}
-            style={{
-              background: 'var(--color-danger)',
-              color: '#fff',
-              border: '1px solid var(--color-danger)',
-              padding: '8px 10px',
-              fontSize: '11px',
-              fontWeight: 600,
-              borderRadius: 'var(--radius-md)'
-            }}
-          >Delete Task</button>
-        </div>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button
+          onClick={() => onTabChange && onTabChange('create')}
+          className={selectedTab === 'create' ? 'btn-primary' : ''}
+          style={{
+            width: '100%',
+            padding: '12px 14px',
+            fontSize: '13px',
+            fontWeight: 600,
+            letterSpacing: '-0.2px',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12
+          }}
+        >
+          <span style={{ flex: 1, textAlign: 'left' }}>Create new task</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            fontSize: 16,
+            fontWeight: 600,
+            background: selectedTab === 'create' ? 'rgba(255,255,255,0.2)' : 'var(--color-surface)',
+            color: selectedTab === 'create' ? '#fff' : 'var(--color-text-soft)',
+            boxShadow: 'inset 0 0 0 1px var(--color-border)'
+          }}>+</span>
+        </button>
+      </div>
     </aside>
   );
 }
+// Simplified; removed progress & tips per new spec; delete button moved into task view banner.

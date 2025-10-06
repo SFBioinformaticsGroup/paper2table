@@ -222,7 +222,10 @@ input.min-agreement-slider::-moz-range-thumb:hover { transform: scale(1.08); }
 input.min-agreement-slider::-moz-range-thumb:active { transform: scale(0.95); }
 input.min-agreement-slider:focus-visible::-webkit-slider-thumb { outline: none; box-shadow: 0 0 0 3px rgba(255,176,32,0.35); }
 
-.panel + .panel { margin-top: var(--space-8); }
+/* Removed global spacing between consecutive panels (.panel + .panel) to allow
+  tighter stacking specifically for the navigation + cells layout. If you need
+  contextual spacing elsewhere, add a wrapper utility, e.g.:
+  .panel-stack > .panel + .panel { margin-top: var(--space-6); } */
 
 .muted { color: var(--color-text-soft); }
 .faint { color: var(--color-text-faint); }

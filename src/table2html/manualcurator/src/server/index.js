@@ -157,6 +157,15 @@ app.get('/api/tasks', async (req, res) => {
         const stat = await fs.stat(taskPath);
         if (!stat.isDirectory()) continue;
       } catch { continue; }
+      // Intentar leer nombre original (con tildes) desde meta.json
+      let originalName = null;
+      try {
+        const metaRaw = await fs.readFile(join(taskPath, 'meta.json'), 'utf-8');
+        const meta = JSON.parse(metaRaw);
+        if (meta && typeof meta.originalName === 'string' && meta.originalName.trim()) {
+          originalName = meta.originalName.trim();
+        }
+      } catch {}
 
       const originalFiles = await listOriginalFiles(taskPath);
       let allRows = [];
@@ -212,7 +221,7 @@ app.get('/api/tasks', async (req, res) => {
         }
       }
       tasksData.push({
-        name: dirName.replace(/_/g, ' '),
+        name: originalName || dirName.replace(/_/g, ' '),
         path: dirName,
         rows: allRows,
         originalFiles
@@ -438,6 +447,39 @@ app.get('/api/tasks/:taskName/original-summary', async (req, res) => {
         const raw = await fs.readFile(filePath, 'utf-8');
         const json = JSON.parse(raw);
         const { tablesCount, rowsCount } = countTablesAndRows(json, { treatFirstTableAsMetadata: true });
+        // Derive cellsCount: iterate through all non-metadata tables and sum cell counts per row (excluding _metadata key per cell value object)
+        let cellsCount = 0;
+        try {
+          if (Array.isArray(json?.tables) && json.tables.length) {
+            const tables = (json.tables.length > 1 ? json.tables.slice(1) : json.tables); // metadata skip already handled conceptually
+            tables.forEach(tbl => {
+              const rowObjs = (tbl.table_fragments ? (tbl.table_fragments.flatMap(f => Array.isArray(f.rows) ? f.rows : [])) : (Array.isArray(tbl.rows) ? tbl.rows : [])) || [];
+              rowObjs.forEach(r => {
+                if (r && typeof r === 'object') {
+                  cellsCount += Object.keys(r).filter(k => k !== '_metadata').length;
+                }
+              });
+            });
+          } else if (Array.isArray(json?.tasks) && json.tasks.length) {
+            json.tasks.forEach(t => {
+              const rowObjs = Array.isArray(t.rows) ? t.rows : [];
+              rowObjs.forEach(r => {
+                if (r && typeof r === 'object') {
+                  cellsCount += Object.keys(r).filter(k => k !== '_metadata').length;
+                }
+              });
+            });
+          } else {
+            const rowObjs = (json && typeof json === 'object') ? ((json.table_fragments ? (json.table_fragments.flatMap(f => Array.isArray(f.rows) ? f.rows : [])) : (Array.isArray(json.rows) ? json.rows : [])) || []) : [];
+            rowObjs.forEach(r => {
+              if (r && typeof r === 'object') {
+                cellsCount += Object.keys(r).filter(k => k !== '_metadata').length;
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Error computing cellsCount for', file, e.message);
+        }
         let metadataRows = null;
         if (Array.isArray(json?.tables) && json.tables.length > 1) {
           // Extraer filas (flatten) de la tabla de metadata (índice 0)
@@ -448,7 +490,7 @@ app.get('/api/tasks/:taskName/original-summary', async (req, res) => {
             metadataRows = metaTbl.rows;
           }
         }
-        summaries.push({ filename: file, citation: json.citation || null, tablesCount, rowsCount, metadataRows });
+  summaries.push({ filename: file, citation: json.citation || null, tablesCount, rowsCount, cellsCount, metadataRows });
       } catch (err) {
         console.error('Error building original summary for', file, err.message);
       }

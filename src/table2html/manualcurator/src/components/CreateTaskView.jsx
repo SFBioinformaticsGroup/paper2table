@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 
 export default function CreateTaskView({ 
   taskTitle, 
@@ -10,6 +10,17 @@ export default function CreateTaskView({
   textColor 
 }) {
   const importInputRef = useRef(null);
+
+  // Compute total cells across all imported rows (exclude _metadata keys)
+  const totalCells = useMemo(() => {
+    if (!importedTables?.rows) return 0;
+    let count = 0;
+    for (const row of importedTables.rows) {
+      if (!row || typeof row !== 'object') continue;
+      count += Object.keys(row).filter(k => k !== '_metadata').length;
+    }
+    return count;
+  }, [importedTables]);
 
   const isCreateDisabled = !taskTitle || !importedTables || !importedTables.files || importedTables.files.length === 0;
 
@@ -43,9 +54,8 @@ export default function CreateTaskView({
             </button>
             <div style={{ fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : '#444' }}>
               {importedTables ? 
-                `(${importedTables.files.length} files, ${importedTables.tables.length} tables, ${importedTables.rows.length} rows)` : 
-                '(no files)'
-              }
+                `(${importedTables.files.length} files, ${importedTables.tables.length} tables, ${importedTables.rows.length} rows, ${totalCells} cells)` : 
+                '(no files)'}
             </div>
           </div>
 
@@ -61,7 +71,7 @@ export default function CreateTaskView({
         </div>
 
         <div style={{ marginTop: 8, fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : '#444' }}>
-          Use Import to load table(s) JSON; CREATE will generate a task from the imported rows.
+          Use Import to load table(s) JSON; CREATE will generate a task from the imported files.
         </div>
 
         <div style={{ marginTop: 16 }}>
