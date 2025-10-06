@@ -1,5 +1,5 @@
 import re
-
+from utils.table_fragments import get_table_fragments
 
 def normalize_value(value):
     return (
@@ -40,18 +40,25 @@ def intercalate_rows(list_of_rows):
 
 
 def merge_tables(tables_list):
+
+
     if not len(tables_list):
       raise ValueError("Must pass at least one element")
 
     # TODO prevent duplicate values in the same input table
     pages = {}
     for tables in tables_list:
-        for t in tables:
-            page = t.get("page")
-            pages.setdefault(page, []).append(t["rows"])
+        # TODO detect if we should convert multiple one-fragment tables
+        # in just one table with multiple fragments
+        for table in tables:
+            for fragment in get_table_fragments(table):
+                page = fragment.get("page")
+                pages.setdefault(page, []).append(fragment["rows"])
 
     merged_tables = []
     for page, rows_list in pages.items():
+        # TODO detect if we should convert multiple one-fragment tables
+        # in just one table with multiple fragments
         merged_rows = intercalate_rows(rows_list)
         table = {"rows": merged_rows}
         if page is not None:
