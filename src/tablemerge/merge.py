@@ -1,5 +1,6 @@
 import re
 from utils.table_fragments import get_table_fragments
+from paper2table.tables_protocol import TablesProtocol
 
 def normalize_value(value):
     return (
@@ -39,11 +40,12 @@ def intercalate_rows(list_of_rows):
     return merged
 
 
-def merge_tables(tables_list):
-
-
+def merge_tables_list(tables_list: list[list[dict]]):
+    """
+    Process one or more "tables" elements
+    """
     if not len(tables_list):
-      raise ValueError("Must pass at least one element")
+      raise ValueError("Must pass at least TablesFile element")
 
     # TODO prevent duplicate values in the same input table
     pages = {}
