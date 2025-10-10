@@ -40,16 +40,47 @@ def intercalate_rows(list_of_rows):
     return merged
 
 
+def preprocess_tables_list(tables_list):
+    new_tables_list = []
+    for tables in tables_list:
+        new_tables = []
+        new_tables_list.append(new_tables)
+
+        previous_page = None
+        previous_fragments_count = None
+        for table in tables:
+            fragments = get_table_fragments(table)
+            if (
+                previous_page  # not first page
+                and len(fragments) == 1  # only one fragment
+                and fragments[0]["page"] - 1 == previous_page  # correlative pages
+                and (
+                    previous_fragments_count == 1
+                )  # also only one fragment in previous page
+            ):
+                new_tables[-1]["table_fragments"].append(fragments)
+            else:
+                new_tables.append({"table_fragments": fragments})
+
+            previous_page = fragments[-1]["page"]
+            previous_fragments_count = len(fragments)
+
+    return new_tables
+
+
 def merge_tables_list(tables_list: list[list[dict]]):
     """
     Process one or more "tables" elements
     """
     if not len(tables_list):
-      raise ValueError("Must pass at least TablesFile element")
+        raise ValueError("Must pass at least TablesFile element")
+
+    preprocessed_tables_list = preprocess_tables_list(tables_list)
+    #print(preprocess_tables_list)
 
     # TODO prevent duplicate values in the same input table
     pages = {}
-    for tables in tables_list:
+    for tables in preprocessed_tables_list:
         # TODO detect if we should convert multiple one-fragment tables
         # in just one table with multiple fragments
         for table in tables:

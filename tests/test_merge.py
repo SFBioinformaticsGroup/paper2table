@@ -63,9 +63,52 @@ def test_three_tables():
     table_2 = [{"family": "Rosaceae", "scientific_name": "Rosa canina L."}]
     table_3 = [{"family": "Lamiaceae", "scientific_name": "Mentha spicata L."}]
 
-    result = merge_tables([wrap_table(table_1), wrap_table(table_2), wrap_table(table_3)])
+    result = merge_tables_list(
+        [wrap_table(table_1), wrap_table(table_2), wrap_table(table_3)]
+    )
     assert result[0]["rows"] == [
         {"family": "apiaceae", "scientific_name": "ammi majus l."},
         {"family": "rosaceae", "scientific_name": "rosa canina l."},
         {"family": "lamiaceae", "scientific_name": "mentha spicata l."},
+    ]
+
+
+def test_merges_table_fragments_in_singleton_tables():
+    tablesfile = [
+        {
+            "table_fragments": [
+                {
+                    "rows": [
+                        {"family": " Apiaceae ", "scientific_name": "Ammi majus L."}
+                    ],
+                    "page": 10,
+                }
+            ]
+        },
+        {
+            "table_fragments": [
+                {
+                    "rows": [{"family": " Lamiaceae ", "scientific_name": "Mentha spicata l."}],
+                    "page": 11,
+                }
+            ]
+        },
+    ]
+    result = merge_tables_list([tablesfile])
+    assert len(result) == 1
+    assert result[0] == [
+        {
+            "table_fragments": [
+                {
+                    "rows": [
+                        {"family": " Apiaceae ", "scientific_name": "Ammi majus L."}
+                    ],
+                    "page": 10,
+                },
+                {
+                    "rows": [{"family": " Lamiaceae ", "scientific_name": "Mentha spicata l."}],
+                    "page": 11,
+                },
+            ]
+        },
     ]
