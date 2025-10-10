@@ -60,8 +60,8 @@ def merge_tables(tables_list):
         # TODO detect if we should convert multiple one-fragment tables
         # in just one table with multiple fragments
         merged_rows = intercalate_rows(rows_list)
-        table = {"rows": merged_rows}
+        fragment = {"rows": merged_rows}
         if page is not None:
-            table["page"] = page
-        merged_tables.append(table)
+            fragment["page"] = page
+        merged_tables.append(fragment)
     return merged_tables
