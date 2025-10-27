@@ -22,7 +22,7 @@ class Row(BaseModel):
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {
             k: v
-            for k, v in self.__dict__.items()
+            for k, v in self.model_dump().items()
             if k not in {"agreement_level", "$agreement_level"}
         }
 

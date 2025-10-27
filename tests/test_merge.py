@@ -21,7 +21,7 @@ def test_single_table_returns_normalized():
     table = [Row(family=" Apiaceae ", scientific_name="Ammi majus L.")]
 
     result = merge_tablesfiles([wrap(table)])
-    assert len(result) == 1
+    assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.")
     ]
@@ -31,7 +31,7 @@ def test_two_identical_tables():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
     result = merge_tablesfiles([wrap(table), wrap(table)])
-    assert len(result) == 1
+    assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.")
     ]
