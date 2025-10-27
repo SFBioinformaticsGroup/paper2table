@@ -1,7 +1,6 @@
 import re
-from utils.table_fragments import get_table_fragments
-from paper2table.tables_protocol import TablesProtocol
 from itertools import zip_longest
+from tablevalidate.schema import TablesFile, Table, TableFragment, get_table_fragments
 
 
 def normalize_value(value):
@@ -25,22 +24,32 @@ def merge_rows_unique(rows, seen):
     return merged
 
 
-def same_row(): False
+def same_row():
+    False
 
 
-def merge_tables_list(tables_list: list[list[dict]]):
+def merge_tablesfiles(tablesfiles: list[TablesFile]) -> TablesFile:
+    # merged_data = {"tables": merged_tablesfile, "citation": citation or ""}
+    # # TODO pick longest citation
+    # citation = None
+    # citation = data.get("citation", citation)
+
     """
     Process one or more "tables" elements
     """
-    if not len(tables_list):
+    if not len(tablesfiles):
         raise ValueError("Must pass at least TablesFile element")
 
     merged_tables = []
 
-    tables_clusters = zip_longest(*tables_list)
+    tables_clusters: list[tuple[Table]] = zip_longest(
+        *map(lambda t: t.tables, tablesfiles)
+    )
     for tables_cluster in tables_clusters:
         merged_fragments = []
-        fragments_clusters = zip_longest(*tables_cluster)
+        fragments_clusters: list[tuple[TableFragment]] = zip_longest(
+            *map(get_table_fragments, tables_cluster)
+        )
         for fragments_cluster in fragments_clusters:
             merged_rows = []
 
@@ -48,11 +57,11 @@ def merge_tables_list(tables_list: list[list[dict]]):
                 left_fragment = fragments_cluster[index]
                 right_fragment = fragments_cluster[index + 1]
 
-                if left_fragment["page"] != right_fragment["page"]:
+                if left_fragment.page != right_fragment.page:
                     raise ValueError("Pages don't match")
 
-                left_rows = left_fragment["rows"]
-                right_rows = right_fragment["rows"]
+                left_rows = left_fragment.rows
+                right_rows = right_fragment.rows
 
                 start_right_index = 0
 

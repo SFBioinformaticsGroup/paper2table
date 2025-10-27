@@ -57,3 +57,7 @@ class TablesFile(BaseModel):
     tables: List[Table]
     citation: Citation
     metadata: Optional[Metadata] = None
+
+
+def get_table_fragments(table: Table) -> list[TableFragment]:
+    return table.table_fragments if hasattr(table, "table_fragments") else [table]
