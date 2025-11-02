@@ -38,7 +38,9 @@ def merge_rows(left: Row, right: Row) -> Row:
     return normalize_row(left)
 
 
-def merge_tablesfiles(tablesfiles: list[TablesFile]) -> TablesFile:
+def merge_tablesfiles(
+    tablesfiles: list[TablesFile], with_row_agreement=False, with_column_agreement=False
+) -> TablesFile:
     """
     Process one or more "tables" elements
     """
@@ -72,6 +74,7 @@ def merge_tablesfiles(tablesfiles: list[TablesFile]) -> TablesFile:
             # Combine rows of the same fragment
             # =================================
 
+            # TODO sort first so longest cluster is the first one
             left_fragment = fragments_cluster[0]
             merged_rows: list[Row] = list(map(normalize_row, left_fragment.rows))
 
@@ -82,21 +85,46 @@ def merge_tablesfiles(tablesfiles: list[TablesFile]) -> TablesFile:
 
                 right_rows = right_fragment.rows
                 left_rows = list(merged_rows)
+                merged_rows = []
                 start_right_index = 0
 
                 for left_row in left_rows:
+                    found = False
                     for right_index in range(start_right_index, len(right_rows)):
                         if same_row(left_row, right_rows[right_index]):
+                            # add all right rows that are before
+                            # the matching row
                             for skipped_row in right_rows[
                                 start_right_index:right_index
                             ]:
                                 merged_rows.append(normalize_row(skipped_row))
+
+                            # merge and add found row
                             merged_rows.append(
                                 merge_rows(left_row, right_rows[right_index])
                             )
-                            start_right_index = right_index
+                            # update right index so that
+                            # new left rows are matched only to rows that
+                            # are after the one found
+                            start_right_index = right_index + 1
+                            found = True
                             break
-                    merged_rows.append(normalize_row(left_row))
+
+                    if not found:
+                        # row was not found in the right table
+                        # add it as is, unless it was added as part of
+                        # an skipped range
+                        if not any(
+                            same_row(merged_row, left_row) for merged_row in merged_rows
+                        ):
+                            merged_rows.append(normalize_row(left_row))
+                        else:
+                            # TODO merge existing and not found
+                            # and replace it
+                            pass
+
+                for skipped_row in right_rows[start_right_index:]:
+                    merged_rows.append(normalize_row(skipped_row))
 
             merged_fragments.append(
                 TableFragment(rows=merged_rows, page=fragments_cluster[0].page)
