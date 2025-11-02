@@ -20,11 +20,14 @@ def validate_file(path: Path) -> Optional[ValueError]:
 
 def validate_files(paths: List[Path], mode: Literal["quiet", "all", "valid"]) -> int:
     for path in paths:
+        if path.name == "tables.metadata.json":
+            continue
         error = validate_file(path)
 
         if mode == "quiet":
             if error:
                 return 1
+
         elif mode == "all":
             status = "INVALID" if error else "VALID"
             print(f"{path}: {status}")
