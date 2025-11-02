@@ -1,69 +1,138 @@
 import re
-from utils.table_fragments import get_table_fragments
-from paper2table.tables_protocol import TablesProtocol
+from itertools import zip_longest
+from tablevalidate.schema import (
+    TablesFile,
+    Table,
+    TableFragment,
+    TableWithFragments,
+    ValueWithAgreement,
+    Row,
+    get_table_fragments,
+)
 
-def normalize_value(value):
+
+def normalize_value(value: str | list[ValueWithAgreement]) -> str:
+    # TODO handle valueWithAgreement
     return (
         re.sub(r"\s+", " ", value.strip()).lower() if isinstance(value, str) else value
     )
 
 
-def normalize_row(row):
-    return {column: normalize_value(value) for column, value in row.items()}
+def normalize_row(row: Row) -> Row:
+    return Row(
+        **{
+            column: normalize_value(value)
+            for column, value in row.get_columns().items()
+        }
+    )
 
 
-def merge_rows_unique(rows, seen):
-    merged = []
-    for row in rows:
-        normalized = normalize_row(row)
-        row_tuple = tuple(sorted(normalized.items()))
-        if row_tuple not in seen:
-            seen.add(row_tuple)
-            merged.append(normalized)
-    return merged
+def same_row(left: Row, right: Row) -> bool:
+    # TODO compare using a broader similarity criteria
+    return normalize_row(left).get_columns() == normalize_row(right).get_columns()
 
 
-def intercalate_rows(list_of_rows):
-    merged = []
-    seen = set()
-    iterators = [iter(rows) for rows in list_of_rows]
-    finished = False
-    while not finished:
-        finished = True
-        for it in iterators:
-            try:
-                row = next(it)
-                merged.extend(merge_rows_unique([row], seen))
-                finished = False
-            except StopIteration:
-                continue
-    return merged
+def merge_rows(left: Row, right: Row) -> Row:
+    # TODO merge it fully
+    # and optionally normalize values
+    return normalize_row(left)
 
 
-def merge_tables_list(tables_list: list[list[dict]]):
+def merge_tablesfiles(
+    tablesfiles: list[TablesFile], with_row_agreement=False, with_column_agreement=False
+) -> TablesFile:
     """
     Process one or more "tables" elements
     """
-    if not len(tables_list):
-      raise ValueError("Must pass at least TablesFile element")
+    if not len(tablesfiles):
+        raise ValueError("Must pass at least TablesFile element")
 
-    # TODO prevent duplicate values in the same input table
-    pages = {}
-    for tables in tables_list:
-        # TODO detect if we should convert multiple one-fragment tables
-        # in just one table with multiple fragments
-        for table in tables:
-            for fragment in get_table_fragments(table):
-                page = fragment.get("page")
-                pages.setdefault(page, []).append(fragment["rows"])
+    merged_tables: list[Table] = []
 
-    merged_tables = []
-    for page, rows_list in pages.items():
-        # TODO detect if we should convert multiple one-fragment tables
-        # in just one table with multiple fragments
-        merged_rows = intercalate_rows(rows_list)
-        fragment = {"rows": merged_rows}
-        if page is not None:
-            fragment["page"] = page
-        merged_tables.append(fragment)
-    return merged_tables
+    # ============================
+    # Zip tables of the same page
+    # ============================
+
+    tables_clusters: list[tuple[Table]] = zip_longest(
+        *map(lambda t: t.tables, tablesfiles)
+    )
+    for tables_cluster in tables_clusters:
+        # TODO validate all the fragments in the cluster
+        # start in the same page
+
+        # ==============================
+        # Zip fragments of the same page
+        # ==============================
+
+        merged_fragments: list[TableFragment] = []
+        fragments_clusters: list[tuple[TableFragment]] = zip_longest(
+            *map(get_table_fragments, tables_cluster)
+        )
+        for fragments_cluster in fragments_clusters:
+
+            # =================================
+            # Combine rows of the same fragment
+            # =================================
+
+            # TODO sort first so longest cluster is the first one
+            left_fragment = fragments_cluster[0]
+            merged_rows: list[Row] = list(map(normalize_row, left_fragment.rows))
+
+            for right_fragment in fragments_cluster[1:]:
+
+                if left_fragment.page != right_fragment.page:
+                    raise ValueError("Pages don't match")
+
+                right_rows = right_fragment.rows
+                left_rows = list(merged_rows)
+                merged_rows = []
+                start_right_index = 0
+
+                for left_row in left_rows:
+                    found = False
+                    for right_index in range(start_right_index, len(right_rows)):
+                        if same_row(left_row, right_rows[right_index]):
+                            # add all right rows that are before
+                            # the matching row
+                            for skipped_row in right_rows[
+                                start_right_index:right_index
+                            ]:
+                                merged_rows.append(normalize_row(skipped_row))
+
+                            # merge and add found row
+                            merged_rows.append(
+                                merge_rows(left_row, right_rows[right_index])
+                            )
+                            # update right index so that
+                            # new left rows are matched only to rows that
+                            # are after the one found
+                            start_right_index = right_index + 1
+                            found = True
+                            break
+
+                    if not found:
+                        # row was not found in the right table
+                        # add it as is, unless it was added as part of
+                        # an skipped range
+                        if not any(
+                            same_row(merged_row, left_row) for merged_row in merged_rows
+                        ):
+                            merged_rows.append(normalize_row(left_row))
+                        else:
+                            # TODO merge existing and not found
+                            # and replace it
+                            pass
+
+                for skipped_row in right_rows[start_right_index:]:
+                    merged_rows.append(normalize_row(skipped_row))
+
+            merged_fragments.append(
+                TableFragment(rows=merged_rows, page=fragments_cluster[0].page)
+            )
+
+        merged_tables.append(TableWithFragments(table_fragments=merged_fragments))
+
+    # # TODO pick all citations
+    citation = tablesfiles[0].citation
+
+    return TablesFile(tables=merged_tables, citation=citation)

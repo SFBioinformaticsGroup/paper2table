@@ -11,9 +11,8 @@ ColumnValue = Union[str, List[ValueWithAgreement]]
 
 
 class Row(BaseModel):
-    agreement_level: Optional[int] = Field(None, alias="$agreement_level")
+    agreement_level_: Optional[int] = Field(None)
 
-    # allow arbitrary columns but forbid unknown fixed fields
     model_config = ConfigDict(extra="allow")
 
     def __getitem__(self, item: str) -> ColumnValue:
@@ -22,8 +21,8 @@ class Row(BaseModel):
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {
             k: v
-            for k, v in self.__dict__.items()
-            if k not in {"agreement_level", "$agreement_level"}
+            for k, v in self.model_dump().items()
+            if k  != "agreement_level_"
         }
 
 
@@ -57,3 +56,7 @@ class TablesFile(BaseModel):
     tables: List[Table]
     citation: Citation
     metadata: Optional[Metadata] = None
+
+
+def get_table_fragments(table: Table) -> list[TableFragment]:
+    return table.table_fragments if hasattr(table, "table_fragments") else [table]

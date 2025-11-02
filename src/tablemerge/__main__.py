@@ -2,31 +2,30 @@ import argparse
 import json
 from pathlib import Path
 
-from .merge import merge_tables_list
+from .merge import merge_tablesfiles
+
+from tablevalidate.schema import TablesFile
 
 
-def merge_tablesfiles(basename, resultset_dirs, output_path):
+def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
     """
     Merge all the TablesFile of the same basename
     in the given resultset directories
     """
-    tables_list = []
-    # TODO pick longest citation
-    citation = None
+    tablesfiles: list[TablesFile] = []
     for resultset_dir in resultset_dirs:
         tables_path = Path(resultset_dir) / basename
         if tables_path.exists():
             with open(tables_path, "r", encoding="utf-8") as tablesfile:
                 data = json.load(tablesfile)
-                tables_list.append(data["tables"])
-                citation = data.get("citation", citation)
+                tablesfile = TablesFile.model_validate(data)
+                tablesfiles.append(tablesfile)
+
 
     # TODO add uuids to each row sources
-    merged_tables = merge_tables_list(tables_list)
-    merged_data = {"tables": merged_tables, "citation": citation or ""}
-
+    merged_tablesfile = merge_tablesfiles(tablesfiles)
     with open(output_path / basename, "w", encoding="utf-8") as outfile:
-        json.dump(merged_data, outfile, ensure_ascii=False)
+        json.dump(merge_tablesfiles.model_dump(), outfile, ensure_ascii=False)
 
 
 def merge_resultsets(resultset_dirs: list[str], output_dir: str):
@@ -39,7 +38,7 @@ def merge_resultsets(resultset_dirs: list[str], output_dir: str):
             tablesfiles_basenames.add(tablesfile.name)
 
     for basename in tablesfiles_basenames:
-        merge_tablesfiles(basename, resultset_dirs, output_path)
+        merge_tablesfiles_paths(basename, resultset_dirs, output_path)
 
     # TODO
     # merge_metadata(input_dirs, output_path)
