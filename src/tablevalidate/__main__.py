@@ -1,22 +1,9 @@
 import argparse
-import json
 import sys
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import List, Literal
 
-from pydantic import ValidationError
-
-from .schema import TablesFile
-
-
-def validate_file(path: Path) -> Optional[ValueError]:
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        TablesFile.model_validate(data)
-    except (json.JSONDecodeError, ValidationError) as e:
-        return e
-
+from .validate import validate_file
 
 def validate_files(paths: List[Path], mode: Literal["quiet", "all", "valid"]) -> int:
     for path in paths:
