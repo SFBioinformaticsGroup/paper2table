@@ -57,7 +57,7 @@ def compute_paper_stats(paper_data) -> PaperStats:
         for fragment in get_table_fragments(table)
     )
     rows_with_agreement = sum(
-        sum(1 for row in fragment.get("rows", []) if row.get("_agreement_level", 0) > 1)
+        sum(1 for row in fragment.get("rows", []) if row.get("agreement_level_", 0) > 1)
         for table in tables
         for fragment in get_table_fragments(table)
     )

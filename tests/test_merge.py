@@ -221,11 +221,11 @@ def xtest_three_tables_with_conflicting_values_with_row_agreement_level():
         [wrap(table_1), wrap(table_2), wrap(table_3)], with_row_agreement=True
     )
     assert result.tables[0].table_fragments[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", _agreement_level=2),
-        Row(family="apiaceae", scientific_name="ammi", _agreement_level=1),
-        Row(family="rosaceae", scientific_name="rosa canina l.", _agreement_level=2),
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
+        Row(family="apiaceae", scientific_name="ammi", agreement_level_=1),
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
         Row(
-            family="lamiaceae", scientific_name="mentha spicata l.", _agreement_level=2
+            family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=2
         ),
     ]
 
