@@ -5,6 +5,7 @@ import os
 from utils.normalize_name import normalize_name
 from utils.handle_sigint import handle_sigint
 
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("files", nargs="+", help="List of files to process")
@@ -25,7 +26,7 @@ def md5sum(path):
     return h.hexdigest()
 
 
-def plan_actions(files):
+def plan_actions(files: list[str]):
     checksums = {}
     duplicates = {}
     for file in files:
@@ -33,8 +34,18 @@ def plan_actions(files):
         if md5 not in checksums:
             checksums[md5] = file
         else:
-            keep = min([checksums[md5], file], key=len)
-            drop = [ff for ff in [checksums[md5], file] if ff != keep]
+            new = file
+            old = checksums[md5]
+            new_basename, _ = os.path.splitext(os.path.basename(new))
+            old_basename, _ = os.path.splitext(os.path.basename(old))
+
+            if normalize_name(new_basename) == old_basename:
+                keep = old
+            elif normalize_name(old_basename) == new_basename:
+                keep = new
+            else:
+                keep = min([old, new], key=len)
+            drop = [ff for ff in [old, new] if ff != keep]
             checksums[md5] = keep
             duplicates.setdefault(md5, []).extend(drop)
 
