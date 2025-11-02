@@ -68,7 +68,7 @@ def build_html(metadata, papers):
                 )
 
                 for row in rows:
-                    row_agreement_level = row.get("$agreement_level", 0)
+                    row_agreement_level = row.get("_agreement_level", 0)
                     css_class = (
                         "low"
                         if row_agreement_level <= 1

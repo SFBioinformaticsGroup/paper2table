@@ -119,10 +119,10 @@
     "row": {
       "type": "object",
       "patternProperties": {
-        "^(?!\\$agreement_level).*$": {
+        "^(?!_agreement_level).*$": {
           "$ref": "#/$defs/columnValue"
         },
-        "^\\$agreement_level$": {
+        "^_agreement_level$": {
           "type": "integer"
         }
       },

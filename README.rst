@@ -165,7 +165,7 @@ The format is informally specified this way:
               "COLUMN_NAME_1": string | [{ "value": string, "agreement_level": integer }],
               "COLUMN_NAME_2": string | [{ "value": string, "agreement_level": integer }],
               "COLUMN_NAME_3": string | [{ "value": string, "agreement_level": integer }],
-              "$agreement_level": integer // this is optional
+              "_agreement_level": integer // this is optional
             }
           ],
           "page": integer,

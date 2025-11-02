@@ -11,7 +11,7 @@ ColumnValue = Union[str, List[ValueWithAgreement]]
 
 
 class Row(BaseModel):
-    agreement_level: Optional[int] = Field(None, alias="$agreement_level")
+    agreement_level: Optional[int] = Field(None, alias="_agreement_level")
 
     # allow arbitrary columns but forbid unknown fixed fields
     model_config = ConfigDict(extra="allow")
@@ -23,7 +23,7 @@ class Row(BaseModel):
         return {
             k: v
             for k, v in self.model_dump().items()
-            if k not in {"agreement_level", "$agreement_level"}
+            if k not in {"agreement_level", "_agreement_level"}
         }
 
 
