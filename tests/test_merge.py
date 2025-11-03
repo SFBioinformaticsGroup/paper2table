@@ -203,7 +203,7 @@ def test_three_tables_with_conflicting_values_and_wrong_in_the_middle_without_ro
     ]
 
 
-def xtest_three_tables_with_conflicting_values_with_row_agreement_level():
+def test_three_tables_with_conflicting_values_with_row_agreement_level():
     table_1 = [
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
     ]
@@ -225,7 +225,7 @@ def xtest_three_tables_with_conflicting_values_with_row_agreement_level():
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1),
         Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
         Row(
-            family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=2
+            family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1
         ),
     ]
 

@@ -19,11 +19,10 @@ class Row(BaseModel):
         return self.__dict__[item]
 
     def get_columns(self) -> Dict[str, ColumnValue]:
-        return {
-            k: v
-            for k, v in self
-            if k  != "agreement_level_"
-        }
+        return {k: v for k, v in self if k != "agreement_level_"}
+
+    def get_agreement_level(self):
+        return 1 if self.agreement_level_ is None else self.agreement_level_
 
 
 class TableFragment(BaseModel):

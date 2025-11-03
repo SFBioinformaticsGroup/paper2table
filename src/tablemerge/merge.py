@@ -45,10 +45,18 @@ def same_row(left: Row, right: Row) -> bool:
     return normalize_row(left).get_columns() == normalize_row(right).get_columns()
 
 
-def merge_rows(left: Row, right: Row) -> Row:
-    # TODO merge it fully
-    # and optionally normalize values
-    return normalize_row(left)
+def merge_rows(left: Row, right: Row, with_row_agreement=False) -> Row:
+    agreement_level = (
+        left.get_agreement_level() + right.get_agreement_level()
+        if with_row_agreement
+        else None
+    )
+    # TODO compute columns agreement
+    columns = {
+        **normalize_row(left).get_columns(),
+        **normalize_row(right).get_columns(),
+    }
+    return Row(agreement_level_=agreement_level, **columns)
 
 
 def merge_tablesfiles(
@@ -89,7 +97,9 @@ def merge_tablesfiles(
 
             # TODO sort first so longest cluster is the first one
             left_fragment = fragments_cluster[0]
-            merged_rows: list[Row] = list(map(normalize_row, left_fragment.rows))
+            table_fragment_builder = TableFragmentBuilder(
+                left_fragment, with_row_agreement
+            )
 
             for right_fragment in fragments_cluster[1:]:
 
@@ -97,8 +107,7 @@ def merge_tablesfiles(
                     raise ValueError("Pages don't match")
 
                 right_rows = right_fragment.rows
-                left_rows = list(merged_rows)
-                merged_rows = []
+                left_rows = table_fragment_builder.next_left_rows()
                 start_right_index = 0
 
                 for left_row in left_rows:
@@ -107,14 +116,13 @@ def merge_tablesfiles(
                         if same_row(left_row, right_rows[right_index]):
                             # add all right rows that are before
                             # the matching row
-                            for skipped_row in right_rows[
-                                start_right_index:right_index
-                            ]:
-                                merged_rows.append(normalize_row(skipped_row))
+                            table_fragment_builder.append_skipped(
+                                right_rows[start_right_index:right_index]
+                            )
 
-                            # merge and add found row
-                            merged_rows.append(
-                                merge_rows(left_row, right_rows[right_index])
+                            table_fragment_builder.merge_and_append(
+                                left_row,
+                                right_rows[right_index],
                             )
                             # update right index so that
                             # new left rows are matched only to rows that
@@ -124,24 +132,11 @@ def merge_tablesfiles(
                             break
 
                     if not found:
-                        # row was not found in the right table
-                        # add it as is, unless it was added as part of
-                        # an skipped range
-                        if not any(
-                            same_row(merged_row, left_row) for merged_row in merged_rows
-                        ):
-                            merged_rows.append(normalize_row(left_row))
-                        else:
-                            # TODO merge existing and not found
-                            # and replace it
-                            pass
+                        table_fragment_builder.append_unmatched(left_row)
 
-                for skipped_row in right_rows[start_right_index:]:
-                    merged_rows.append(normalize_row(skipped_row))
+                table_fragment_builder.append_skipped(right_rows[start_right_index:])
 
-            merged_fragments.append(
-                TableFragment(rows=merged_rows, page=fragments_cluster[0].page)
-            )
+            merged_fragments.append(table_fragment_builder.build())
 
         merged_tables.append(TableWithFragments(table_fragments=merged_fragments))
 
@@ -149,3 +144,54 @@ def merge_tablesfiles(
     citation = tablesfiles[0].citation
 
     return TablesFile(tables=merged_tables, citation=citation)
+
+
+class TableFragmentBuilder:
+    rows: list[Row]
+    page: int
+    with_row_agreement: bool
+
+    def __init__(self, initial_fragment: TableFragment, with_row_agreement: bool):
+        self.rows = list(map(normalize_row, initial_fragment.rows))
+        self.page = initial_fragment.page
+        self.with_row_agreement = with_row_agreement
+
+    def next_left_rows(self):
+        rows = self.rows
+        self.rows = []
+        return list(rows)
+
+    def _append(self, row: Row):
+        new = normalize_row(row)
+        if self.with_row_agreement:
+            new.agreement_level_ = new.get_agreement_level()
+        self.rows.append(new)
+
+    def append_skipped(self, rows: list[Row]):
+        """
+        Append a range of rows, without processing them
+        """
+        for skipped_row in rows:
+            self._append(skipped_row)
+
+    def append_unmatched(self, row: Row):
+        """
+        Append a row that was not found in the right table
+        add it as is, unless it was added as part of
+        an skipped range
+        """
+        if not any(same_row(merged_row, row) for merged_row in self.rows):
+            self._append(row)
+        else:
+            # TODO merge existing and not found
+            # and replace it
+            pass
+
+    def merge_and_append(self, left: Row, right: Row):
+        """
+        Merge and add found row
+        """
+        self._append(merge_rows(left, right, self.with_row_agreement))
+
+    def build(self):
+        return TableFragment(rows=self.rows, page=self.page)
