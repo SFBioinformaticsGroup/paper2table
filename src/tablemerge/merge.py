@@ -11,11 +11,23 @@ from tablevalidate.schema import (
 )
 
 
+def normalize_str_value(value: str):
+    return re.sub(r"\s+", " ", value.strip()).lower()
+
+
 def normalize_value(value: str | list[ValueWithAgreement]) -> str:
-    # TODO handle valueWithAgreement
-    return (
-        re.sub(r"\s+", " ", value.strip()).lower() if isinstance(value, str) else value
-    )
+    if isinstance(value, str):
+        return normalize_str_value(value)
+    elif isinstance(value, list):
+        return [
+            ValueWithAgreement(
+                value=normalize_str_value(value_with_agreement.value),
+                agreement_level=value_with_agreement.agreement_level,
+            )
+            for value_with_agreement in value
+        ]
+    else:
+        return value
 
 
 def normalize_row(row: Row) -> Row:
@@ -23,7 +35,8 @@ def normalize_row(row: Row) -> Row:
         **{
             column: normalize_value(value)
             for column, value in row.get_columns().items()
-        }
+        },
+        agreement_level_=row.agreement_level_
     )
 
 

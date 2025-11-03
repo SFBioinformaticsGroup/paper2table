@@ -21,7 +21,7 @@ class Row(BaseModel):
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {
             k: v
-            for k, v in self.model_dump().items()
+            for k, v in self
             if k  != "agreement_level_"
         }
 
