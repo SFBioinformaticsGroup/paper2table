@@ -22,10 +22,13 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
                 tablesfiles.append(tablesfile)
 
     # TODO add uuids to each row sources
-    merged_tablesfile = merge_tablesfiles(tablesfiles, with_row_agreement=True)
-    with open(output_path / basename, "w", encoding="utf-8") as outfile:
-        json.dump(merged_tablesfile.model_dump(), outfile, ensure_ascii=False)
-
+    print("Merging", len(tablesfiles), "versions of", basename, "...")
+    try:
+        merged_tablesfile = merge_tablesfiles(tablesfiles, with_row_agreement=True)
+        with open(output_path / basename, "w", encoding="utf-8") as outfile:
+            json.dump(merged_tablesfile.model_dump(), outfile, ensure_ascii=False)
+    except ValueError as e:
+        print("  Merge failed", str(e))
 
 def merge_resultsets(resultset_dirs: list[str], output_dir: str):
     output_path = Path(output_dir)
