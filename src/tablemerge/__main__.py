@@ -39,7 +39,7 @@ def merge_resultsets(resultset_dirs: list[str], output_dir: str):
         for tablesfile in Path(resultset_dir).glob("*.tables.json"):
             tablesfiles_basenames.add(tablesfile.name)
 
-    for basename in tablesfiles_basenames:
+    for basename in sorted(list(tablesfiles_basenames)):
         merge_tablesfiles_paths(basename, resultset_dirs, output_path)
 
     # TODO
