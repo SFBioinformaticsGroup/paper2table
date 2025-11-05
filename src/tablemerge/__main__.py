@@ -24,22 +24,21 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
     # TODO add uuids to each row sources
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
-    if (any(size > 0 for size in sizes)):
-        print("Merging", len(tablesfiles), "versions of", basename, "...")
-    else:
-        print("Skipping fully empty", basename)
+    if not any(size > 0 for size in sizes):
+        print(
+            f"{basename}: MERGE SKIPPED: All tables are empty",
+        )
         return
 
-    print("> Merging tables of sizes", *sizes)
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
             tablesfiles, with_row_agreement=True
         )
-        print("> Merged", len(merged_tablesfile.tables), "tables")
+        print(f"{basename}: MERGED: {len(tablesfiles)} files into {len(merged_tablesfile.tables)} tables")
         with open(output_path / basename, "w", encoding="utf-8") as outfile:
             json.dump(merged_tablesfile.model_dump(), outfile, ensure_ascii=False)
     except MergeError as e:
-        print("> Merge failed", str(e))
+        print(f"{basename}: MERGE FAILED:", str(e))
 
 
 def merge_resultsets(resultset_dirs: list[str], output_dir: str):
