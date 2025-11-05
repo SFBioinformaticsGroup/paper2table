@@ -66,6 +66,25 @@ def test_two_tables_with_different_values():
     ]
 
 
+def test_two_tablesfiles_with_different_pages():
+    table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    table_2 = [
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+
+    result = merge_tablesfiles([wrap(table_1, page=1), wrap(table_2, page=2)])
+    assert len(result.tables) == 1
+
+    assert result.tables[0].table_fragments[0].page == 1
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+    ]
+
+    assert result.tables[0].table_fragments[1].page == 2
+    assert result.tables[0].table_fragments[1].rows == [
+        Row(family="rosaceae", scientific_name="rosa canina l."),
+    ]
+
 def test_two_tables_with_mixed_values():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [

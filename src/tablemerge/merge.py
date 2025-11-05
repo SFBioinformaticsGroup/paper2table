@@ -10,8 +10,10 @@ from tablevalidate.schema import (
     get_table_fragments,
 )
 
+
 class MergeError(ValueError):
     pass
+
 
 def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
@@ -38,7 +40,7 @@ def normalize_row(row: Row) -> Row:
             column: normalize_value(value)
             for column, value in row.get_columns().items()
         },
-        agreement_level_=row.agreement_level_
+        agreement_level_=row.agreement_level_,
     )
 
 
@@ -80,18 +82,19 @@ def merge_tablesfiles(
         *map(lambda t: t.tables, tablesfiles)
     )
     for tables_cluster in tables_clusters:
-        # TODO validate all the fragments in the cluster
-        # start in the same page
+        fragments = [get_table_fragments(table) for table in tables_cluster]
 
         # ==============================
         # Zip fragments of the same page
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters: list[tuple[TableFragment]] = zip_longest(
-            *map(get_table_fragments, tables_cluster)
-        )
-        for fragments_cluster in fragments_clusters:
+        fragments_clusters: dict[int, list[TableFragment]] = {}
+        for fs in fragments:
+            for f in fs:
+                fragments_clusters.setdefault(f.page, []).append(f)
+
+        for fragments_cluster in fragments_clusters.values():
 
             # =================================
             # Combine rows of the same fragment
@@ -106,7 +109,7 @@ def merge_tablesfiles(
                 left_fragment, with_row_agreement
             )
 
-            for right_fragment in (fragments_cluster[1:]):
+            for right_fragment in fragments_cluster[1:]:
                 if not right_fragment:
                     break
 
