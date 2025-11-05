@@ -58,4 +58,9 @@ class TablesFile(BaseModel):
 
 
 def get_table_fragments(table: Table) -> list[TableFragment]:
-    return table.table_fragments if hasattr(table, "table_fragments") else [table]
+    if hasattr(table, "rows") and table.rows:
+        return [table]
+    if hasattr(table, "table_fragments") and table.table_fragments:
+        return table.table_fragments
+    else:
+        return []
