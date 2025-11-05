@@ -82,17 +82,12 @@ def merge_tablesfiles(
         *map(lambda t: t.tables, tablesfiles)
     )
     for tables_cluster in tables_clusters:
-        fragments = [get_table_fragments(table) for table in tables_cluster]
-
         # ==============================
         # Zip fragments of the same page
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters: dict[int, list[TableFragment]] = {}
-        for fs in fragments:
-            for f in fs:
-                fragments_clusters.setdefault(f.page, []).append(f)
+        fragments_clusters = make_fragments_clusters(tables_cluster)
 
         for fragments_cluster in fragments_clusters.values():
 
@@ -156,6 +151,14 @@ def merge_tablesfiles(
     citation = tablesfiles[0].citation
 
     return TablesFile(tables=merged_tables, citation=citation)
+
+
+def make_fragments_clusters(tables_cluster: list[Table]):
+    fragments_clusters: dict[int, list[TableFragment]] = {}
+    for table in tables_cluster:
+        for fragment in get_table_fragments(table):
+            fragments_clusters.setdefault(fragment.page, []).append(fragment)
+    return fragments_clusters
 
 
 class TableFragmentBuilder:
