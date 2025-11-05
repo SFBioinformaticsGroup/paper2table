@@ -10,6 +10,8 @@ from tablevalidate.schema import (
     get_table_fragments,
 )
 
+class MergeError(ValueError):
+    pass
 
 def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
@@ -66,7 +68,7 @@ def merge_tablesfiles(
     Process one or more "tables" elements
     """
     if not len(tablesfiles):
-        raise ValueError("Must pass at least TablesFile element")
+        raise MergeError("Must pass at least TablesFile element")
 
     merged_tables: list[Table] = []
 
@@ -97,14 +99,21 @@ def merge_tablesfiles(
 
             # TODO sort first so longest cluster is the first one
             left_fragment = fragments_cluster[0]
+            if not left_fragment:
+                raise MergeError(f"no left fragment in {fragments_cluster}")
+
             table_fragment_builder = TableFragmentBuilder(
                 left_fragment, with_row_agreement
             )
 
-            for right_fragment in fragments_cluster[1:]:
+            for right_fragment in (fragments_cluster[1:]):
+                if not right_fragment:
+                    break
 
                 if left_fragment.page != right_fragment.page:
-                    raise ValueError("Pages don't match")
+                    raise MergeError(
+                        f"Pages don't match: {left_fragment.page} != {right_fragment.page}"
+                    )
 
                 right_rows = right_fragment.rows
                 left_rows = table_fragment_builder.next_left_rows()
