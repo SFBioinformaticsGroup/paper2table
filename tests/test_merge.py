@@ -33,6 +33,16 @@ def test_single_table_returns_normalized():
     ]
 
 
+def test_single_table_with_row_agreement():
+    table = [Row(family=" Apiaceae ", scientific_name="Ammi majus L.")]
+
+    result = merge_tablesfiles([wrap(table)], with_row_agreement=True)
+    assert len(result.tables) == 1
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
+
+
 def test_two_identical_tables():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
@@ -40,6 +50,16 @@ def test_two_identical_tables():
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.")
+    ]
+
+
+def test_two_identical_tables_with_row_agreement():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+
+    result = merge_tablesfiles([wrap(table), wrap(table)], with_row_agreement=True)
+    assert len(result.tables) == 1
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
     ]
 
 
@@ -84,6 +104,7 @@ def test_two_tablesfiles_with_different_pages():
     assert result.tables[0].table_fragments[1].rows == [
         Row(family="rosaceae", scientific_name="rosa canina l."),
     ]
+
 
 def test_two_tables_with_mixed_values():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]

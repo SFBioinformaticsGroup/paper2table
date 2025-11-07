@@ -34,13 +34,15 @@ def normalize_value(value: str | list[ValueWithAgreement]) -> str:
         return value
 
 
-def normalize_row(row: Row) -> Row:
+def normalize_row(row: Row, with_row_agreement: bool = False) -> Row:
     return Row(
         **{
             column: normalize_value(value)
             for column, value in row.get_columns().items()
         },
-        agreement_level_=row.agreement_level_,
+        agreement_level_=(
+            row.get_agreement_level() if with_row_agreement else row.agreement_level_
+        ),
     )
 
 
@@ -167,7 +169,12 @@ class TableFragmentBuilder:
     with_row_agreement: bool
 
     def __init__(self, initial_fragment: TableFragment, with_row_agreement: bool):
-        self.rows = list(map(normalize_row, initial_fragment.rows))
+        self.rows = list(
+            map(
+                lambda row: normalize_row(row, with_row_agreement),
+                initial_fragment.rows,
+            )
+        )
         self.page = initial_fragment.page
         self.with_row_agreement = with_row_agreement
 
@@ -177,9 +184,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row)
-        if self.with_row_agreement:
-            new.agreement_level_ = new.get_agreement_level()
+        new = normalize_row(row, self.with_row_agreement)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row]):
