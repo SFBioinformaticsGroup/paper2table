@@ -73,6 +73,28 @@ def test_two_tables_with_non_normalized_columns():
     ]
 
 
+def test_two_tables_with_different_column_names():
+    table_1 = [Row(family=" Apiaceae ", scientific_name=" Ammi majus L. ")]
+    table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
+
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+        Row(**{"0": "apiaceae", "1": "ammi majus l."}),
+    ]
+
+
+def test_two_tables_with_different_column_names_and_row_agreement():
+    table_1 = [Row(family=" Apiaceae ", scientific_name=" Ammi majus L. ")]
+    table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
+
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], with_row_agreement=True)
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
+        Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
+    ]
+
+
 def test_two_tables_with_different_values():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [
