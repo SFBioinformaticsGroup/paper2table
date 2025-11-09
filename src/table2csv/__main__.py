@@ -38,7 +38,7 @@ def save_csv(dataframe, output_file: Path):
     dataframe.to_csv(output_file, index=False)
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(description="Export paper2table tables to csvs")
     parser.add_argument(
         "input_dir", help="Directory with tables.metadata.json and *.tables.json"
@@ -46,7 +46,11 @@ def main():
     parser.add_argument(
         "-o", "--output-directory", default=".", help="Output directory (default: .)"
     )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
 
     papers = load_papers(Path(args.input_dir))
     Path(args.output_directory).mkdir(parents=True, exist_ok=True)

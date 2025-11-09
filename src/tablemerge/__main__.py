@@ -57,7 +57,7 @@ def merge_resultsets(resultset_dirs: list[str], output_dir: str):
     # merge_metadata(input_dirs, output_path)
 
 
-def parse_arguments():
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Merge JSON tables from multiple directories."
     )
@@ -75,7 +75,7 @@ def parse_arguments():
 
 
 def main():
-    args = parse_arguments()
+    args = parse_args()
     merge_resultsets(args.paths, args.output_directory)
 
 

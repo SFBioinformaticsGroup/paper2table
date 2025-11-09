@@ -7,15 +7,15 @@ from utils.handle_sigint import handle_sigint
 
 
 def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("files", nargs="+", help="List of files to process")
-    p.add_argument(
+    parser = argparse.ArgumentParser()
+    parser.add_argument("files", nargs="+", help="List of files to process")
+    parser.add_argument(
         "-y", "--yes", action="store_true", help="Do not ask for confirmation"
     )
-    p.add_argument(
+    parser.add_argument(
         "-q", "--quiet", action="store_true", help="Don't explain actions performed"
     )
-    return p.parse_args()
+    return parser.parse_args()
 
 
 def md5sum(path):

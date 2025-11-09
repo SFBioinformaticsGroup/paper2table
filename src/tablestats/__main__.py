@@ -40,7 +40,7 @@ def write_stats(stats: GlobalStats, output_file):
         json.dump(stats.to_dict(), f, ensure_ascii=False)
 
 
-def parse_arguments():
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Compute stats for JSON tables directory."
     )
@@ -87,7 +87,7 @@ def format_stats(stats: GlobalStats) -> str:
 
 
 def main():
-    args = parse_arguments()
+    args = parse_args()
     stats = compute_papers_stats(args.path)
     sort_stats(stats, args.sort)
 

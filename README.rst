@@ -48,10 +48,10 @@ is provided that will remove duplicate files and normalize filenames.
 
     # normalize all the given files
     # will ask for confirmation before each change
-    python -m filenorm -q PATH [PATH ...]
+    filenorm -q PATH [PATH ...]
 
     # don't ask for confirmation. a log with each change will be printed
-    python -m filenorm -y PATH [PATH ...]
+    filenorm -y PATH [PATH ...]
 
 Running
 =======
@@ -65,24 +65,24 @@ Running
 .. code-block:: bash
 
     # basic usage
-    $ python -m paper2table -p SCHEMA PATH [PATH ...]
+    $ paper2table -p SCHEMA PATH [PATH ...]
 
     # e.g. use the default pdfplumber reader backend
-    $ python -m paper2table -q tests/data/demo_table.pdf
+    $ paper2table -q tests/data/demo_table.pdf
 
     # e.g. use the pdfplumber reader specifying column name hints
-    python -m paper2table -r pdfplumber -c tests/data/demo_column_hints.txt  tests/data/demo_table.pdf
+    paper2table -r pdfplumber -c tests/data/demo_column_hints.txt  tests/data/demo_table.pdf
 
     # e.g. use the camelot reader backend
-    $ python -m paper2table -r camelot -q tests/data/demo_table.pdf
+    $ paper2table -r camelot -q tests/data/demo_table.pdf
 
     # by default paper2table outputs data to stdout
     # but you can specify an output directory
-    $ python -m paper2table -o .  tests/data/demo_table.pdf
+    $ paper2table -o .  tests/data/demo_table.pdf
     # result will be stored in demo_table.tables.json
 
     # e.g. use the agent backend with the Gemini API
-    $ GEMINI_API_KEY=... python -m paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
+    $ GEMINI_API_KEY=... paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
 
 Merging
 =======
@@ -94,13 +94,13 @@ same ``paper2table`` command:
 
     # this command will create a new directory with the resultset, adding a metadata file
     # suitable for use with tablemerge command
-    $ python -m paper2table -t -o tests/data/tables tests/data/demo_table.pdf
+    $ paper2table -t -o tests/data/tables tests/data/demo_table.pdf
 
 After doing this, you can merge tables like this:
 
 .. code-block:: bash
 
-    $ python -m tablemerge -o tests/data/merges tests/data/demo_resultsets/*
+    $ tablemerge -o tests/data/merges tests/data/demo_resultsets/*
 
 
 Generating stats
@@ -112,15 +112,15 @@ a ``paper2table`` run or the results of a ``tablemerge`` output.
 .. code-block:: bash
 
     # generate a json file with stats
-    python -m tablestats -o tests/data/stats.json tests/data/demo_resultsets/08ba0033-8b20-4dbb-bf4a-e2be1f194bc7/
+    tablestats -o tests/data/stats.json tests/data/demo_resultsets/08ba0033-8b20-4dbb-bf4a-e2be1f194bc7/
 
     # pretty print stats to stdout
     # you can optionally sort results by number of extracted tables
-    python -m tablestats --sort desc tests/data/merges
+    tablestats --sort desc tests/data/merges
 
     # if you only need to output empty files, use --empty
     # this is useful for debugging your results
-    python -m tablestats --empty tests/data/merges
+    tablestats --empty tests/data/merges
 
 Visualizing data
 ================
@@ -131,7 +131,7 @@ A tool ``table2html`` is provided for displaying a resultset:
 
     # it can be used both with the raw resultset of a paper2table run
     # or with the output of tablemerge
-    python -m table2html tests/data/merges
+    table2html tests/data/merges
 
 
 Running tests
@@ -150,7 +150,7 @@ Running tests
 
 .. code-block:: bash
 
-    python -m tablevalidate tests/data/demo_resultsets/*/*
+    tablevalidate tests/data/demo_resultsets/*/*
 
 
 The format is informally specified this way:

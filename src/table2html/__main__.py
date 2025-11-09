@@ -92,7 +92,7 @@ def save_html(html, output_file: Path):
         f.write(html)
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate static HTML viewer for paper2tables results"
     )
@@ -102,7 +102,11 @@ def main():
     parser.add_argument(
         "--out", default="viewer.html", help="Output HTML file (default: viewer.html)"
     )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
 
     metadata, papers = load_papers(Path(args.input_dir))
     html = build_html(metadata, papers)
@@ -110,7 +114,6 @@ def main():
 
     print(f"Viewer generated: {args.out}")
     webbrowser.open_new_tab(str(Path(args.out).absolute()))
-
 
 if __name__ == "__main__":
     main()

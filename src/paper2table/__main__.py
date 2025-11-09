@@ -20,7 +20,7 @@ __license__ = "MIT"
 _logger = logging.getLogger(__name__)
 
 
-def parse_args(args):
+def parse_args():
     parser = argparse.ArgumentParser(description="Extract a table from any paper")
     parser.add_argument(
         dest="paths",
@@ -101,7 +101,7 @@ def parse_args(args):
         action="version",
         version=f"paper2table {__version__}",
     )
-    return parser.parse_args(args)
+    return parser.parse_args()
 
 
 def setup_logging(loglevel):
@@ -188,10 +188,10 @@ def get_paper_paths(args):
     return args.paths if args.quiet else tqdm(args.paths)
 
 
-def main(args):
+def main():
     handle_sigint()
 
-    args = parse_args(args)
+    args = parse_args()
     setup_logging(args.loglevel)
 
     read_tables = get_tables_reader(args)
@@ -209,7 +209,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    #
-    #     python -m paper2table <path>
-    #
-    main(sys.argv[1:])
+    main()
