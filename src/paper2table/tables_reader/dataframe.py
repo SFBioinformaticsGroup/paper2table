@@ -3,7 +3,7 @@ from typing import Optional
 from pandas import DataFrame
 
 
-class Table:
+class DataFrameTableReader:
     def __init__(self, page: int, dataframe: DataFrame, title: Optional[str] = None):
         self.page = page
         self.df = dataframe
@@ -17,8 +17,8 @@ class Table:
         }
 
 
-class Tables:
-    def __init__(self, pdf_path: str, tables: list[Table]):
+class DataFrameTablesReader:
+    def __init__(self, pdf_path: str, tables: list[DataFrameTableReader]):
         self.pdf_path = pdf_path
         self.filename = os.path.basename(pdf_path)
         self.tables = tables

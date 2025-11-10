@@ -1,7 +1,7 @@
 from typing import Protocol
 
 
-class TableProtocol(Protocol):
+class TableReader(Protocol):
     @property
     def rows(self) -> any: ...
 
@@ -10,9 +10,15 @@ class TableProtocol(Protocol):
 
     def to_dict(self) -> dict: ...
 
-class TablesProtocol(Protocol):
+
+class TablesReader(Protocol):
+    """
+    A protocol for reading tables
+    from different sources
+    """
+
     @property
-    def tables(self) -> list[TableProtocol]: ...
+    def tables(self) -> list[TableReader]: ...
 
     @property
     def citation(self) -> str: ...

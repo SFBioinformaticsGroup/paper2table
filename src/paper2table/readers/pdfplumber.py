@@ -7,8 +7,8 @@ import pdfplumber
 from utils.normalize_name import normalize_name
 from utils.tokenize_schema import tokenize_schema
 
-from ..tables import Table, Tables
-from ..tables_protocol import TablesProtocol
+from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
+from ..tables_reader import TablesReader
 
 _logger = logging.getLogger(__name__)
 
@@ -33,12 +33,12 @@ def read_tables(
     pdf_path: str,
     column_names_hints: Optional[str] = None,
     schema: Optional[TablesSchema] = None,
-) -> TablesProtocol:
+) -> TablesReader:
     try:
         pdf = pdfplumber.open(pdf_path)
     except Exception as e:
         _logger.warning(f"Error reading {pdf_path}: {e}")
-        return Tables(pdf_path, [])
+        return DataFrameTablesReader(pdf_path, [])
 
     tables = []
     if schema:
@@ -51,7 +51,9 @@ def read_tables(
                         column_mappings=table_schema.column_mappings,
                     )
                     tables.append(
-                        Table(title=table_schema.title, page=page, dataframe=dataframe)
+                        DataFrameTableReader(
+                            title=table_schema.title, page=page, dataframe=dataframe
+                        )
                     )
                 except Exception as e:
                     _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
@@ -67,13 +69,13 @@ def read_tables(
                         table_fragment if table_fragment else [],
                         column_names_hints=parsed_hints,
                     )
-                    tables.append(Table(page.page_number, dataframe))
+                    tables.append(DataFrameTableReader(page.page_number, dataframe))
             except Exception as e:
                 _logger.warning(
                     f"Error reading page {page.page_number} of {pdf_path}: {e}"
                 )
 
-    return Tables(pdf_path, tables)
+    return DataFrameTablesReader(pdf_path, tables)
 
 
 def parse_column_names_hints(hints: str) -> list[str]:
