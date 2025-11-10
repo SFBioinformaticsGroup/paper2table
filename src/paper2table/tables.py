@@ -23,10 +23,14 @@ class Tables:
         self.filename = os.path.basename(pdf_path)
         self.tables = tables
 
+    @property
+    def citation(self):
+        return None
+
     def to_dict(self):
         return {
             "tables": [{"table_fragments": [table.to_dict()]} for table in self.tables],
-            "citation": None,
+            "citation": self.citation,
             "metadata": {
                 "filename": self.filename,
             },

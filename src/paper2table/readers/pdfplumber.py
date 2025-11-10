@@ -30,7 +30,9 @@ class TablesSchema:
 
 
 def read_tables(
-    pdf_path: str, column_names_hints: str, schema: Optional[TablesSchema]
+    pdf_path: str,
+    column_names_hints: Optional[str] = None,
+    schema: Optional[TablesSchema] = None,
 ) -> TablesProtocol:
     try:
         pdf = pdfplumber.open(pdf_path)
@@ -54,7 +56,9 @@ def read_tables(
                 except Exception as e:
                     _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
     else:
-        parsed_hints = parse_column_names_hints(column_names_hints)
+        parsed_hints = (
+            parse_column_names_hints(column_names_hints) if column_names_hints else []
+        )
         for page in pdf.pages:
             try:
                 table_fragments = page.extract_tables()
@@ -94,7 +98,7 @@ def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
 def read_table(
     table_fragment: TableFragment,
     column_names_hints: list[str],
-    column_mappings=Optional[ColumnMappings],
+    column_mappings: Optional[ColumnMappings] = None,
 ) -> pd.DataFrame:
     dataframe = to_dataframe(table_fragment, column_names_hints)
 
