@@ -155,8 +155,8 @@ def test_read_table_with_schema_that_matches_page():
             tables=[
                 TableSchema(
                     title="Plants",
-                    first_page=0,
-                    last_page=0,
+                    first_page=1,
+                    last_page=1,
                     column_mappings={
                         "0": "vernacular_name",
                         "1": "scientific_name",

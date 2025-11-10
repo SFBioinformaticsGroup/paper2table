@@ -19,10 +19,27 @@ type ColumnMappings = dict[int, str]
 
 
 class TableSchema(BaseModel):
+    """
+    Instructions for read_table
+    about how to read a table.
+    """
+
     title: str
     first_page: int
+    """
+    1-based first page number where table is allocated
+    """
+
     last_page: int
+    """
+    1-based last page number where table is allocated
+    """
+
     column_mappings: ColumnMappings
+    """
+    Mappings that go from original column number
+    to desired column name
+    """
 
 
 class TablesSchema(BaseModel):
@@ -42,7 +59,7 @@ def read_tables(
         return DataFrameTablesReader(pdf_path, [])
 
     if schema:
-        tables = read_tables_with_schema(pdf_path, schema, pdf)
+        tables = read_schema_tables(pdf_path, schema, pdf)
     else:
         tables = read_all_tables(pdf_path, column_names_hints, pdf)
 
@@ -72,17 +89,20 @@ def read_all_tables(
     return tables
 
 
-def read_tables_with_schema(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF):
+def read_schema_tables(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF):
+    """
+    Reads the tables described by schema
+    """
     tables = []
     for table_schema in schema.tables:
         for page in range(table_schema.first_page, table_schema.last_page + 1):
-            if page >= len(pdf.pages):
+            if page > len(pdf.pages):
                 _logger.warning(
                     f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
                 )
                 break
 
-            table_fragment = pdf.pages[page].extract_tables()[-1]
+            table_fragment = pdf.pages[page - 1].extract_tables()[-1]
             try:
                 dataframe = read_table(
                     table_fragment if table_fragment else [],
@@ -119,7 +139,7 @@ def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
 
 def read_table(
     table_fragment: TableFragment,
-    column_names_hints: list[str],
+    column_names_hints: list[str] = [],
     column_mappings: Optional[ColumnMappings] = None,
 ) -> pd.DataFrame:
     dataframe = to_dataframe(table_fragment, column_names_hints)
