@@ -27,14 +27,17 @@ class DataFrameTablesReader:
     that is designed to work with a pandas dataframe
     as a backend
     """
-    def __init__(self, pdf_path: str, tables: list[DataFrameTableReader]):
+
+    def __init__(
+        self,
+        pdf_path: str,
+        tables: list[DataFrameTableReader],
+        citation: Optional[str] = None,
+    ):
         self.pdf_path = pdf_path
         self.filename = os.path.basename(pdf_path)
         self.tables = tables
-
-    @property
-    def citation(self):
-        return None
+        self.citation = citation
 
     def to_dict(self):
         return {

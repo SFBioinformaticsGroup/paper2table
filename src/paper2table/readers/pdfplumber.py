@@ -41,48 +41,61 @@ def read_tables(
         _logger.warning(f"Error reading {pdf_path}: {e}")
         return DataFrameTablesReader(pdf_path, [])
 
-    tables = []
     if schema:
-        for table_schema in schema.tables:
-            for page in range(table_schema.first_page, table_schema.last_page + 1):
-                if page >= len(pdf.pages):
-                    _logger.warning(
-                        f"Page {page} in schema is out of bonds of {pdf_path}. Stopping processing"
-                    )
-                    break
-
-                table_fragment = pdf.pages[page].extract_tables()[-1]
-                try:
-                    dataframe = read_table(
-                        table_fragment if table_fragment else [],
-                        column_mappings=table_schema.column_mappings,
-                    )
-                    tables.append(
-                        DataFrameTableReader(
-                            title=table_schema.title, page=page, dataframe=dataframe
-                        )
-                    )
-                except Exception as e:
-                    _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
+        tables = read_tables_with_schema(pdf_path, schema, pdf)
     else:
-        parsed_hints = (
-            parse_column_names_hints(column_names_hints) if column_names_hints else []
-        )
-        for page in pdf.pages:
-            try:
-                table_fragments = page.extract_tables()
-                for table_fragment in table_fragments:
-                    dataframe = read_table(
-                        table_fragment if table_fragment else [],
-                        column_names_hints=parsed_hints,
-                    )
-                    tables.append(DataFrameTableReader(page.page_number, dataframe))
-            except Exception as e:
-                _logger.warning(
-                    f"Error reading page {page.page_number} of {pdf_path}: {e}"
-                )
+        tables = read_all_tables(pdf_path, column_names_hints, pdf)
 
-    return DataFrameTablesReader(pdf_path, tables)
+    return DataFrameTablesReader(
+        pdf_path, tables, citation=schema.citation if schema else None
+    )
+
+
+def read_all_tables(
+    pdf_path: str, column_names_hints: Optional[str], pdf: pdfplumber.PDF
+):
+    tables = []
+    parsed_hints = (
+        parse_column_names_hints(column_names_hints) if column_names_hints else []
+    )
+    for page in pdf.pages:
+        try:
+            table_fragments = page.extract_tables()
+            for table_fragment in table_fragments:
+                dataframe = read_table(
+                    table_fragment if table_fragment else [],
+                    column_names_hints=parsed_hints,
+                )
+                tables.append(DataFrameTableReader(page.page_number, dataframe))
+        except Exception as e:
+            _logger.warning(f"Error reading page {page.page_number} of {pdf_path}: {e}")
+    return tables
+
+
+def read_tables_with_schema(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF):
+    tables = []
+    for table_schema in schema.tables:
+        for page in range(table_schema.first_page, table_schema.last_page + 1):
+            if page >= len(pdf.pages):
+                _logger.warning(
+                    f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
+                )
+                break
+
+            table_fragment = pdf.pages[page].extract_tables()[-1]
+            try:
+                dataframe = read_table(
+                    table_fragment if table_fragment else [],
+                    column_mappings=table_schema.column_mappings,
+                )
+                tables.append(
+                    DataFrameTableReader(
+                        title=table_schema.title, page=page, dataframe=dataframe
+                    )
+                )
+            except Exception as e:
+                _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
+    return tables
 
 
 def parse_column_names_hints(hints: str) -> list[str]:

@@ -167,7 +167,7 @@ def test_read_table_with_schema_that_matches_page():
         ),
     )
 
-    # TODO assert result.citation == "A citation"
+    assert result.citation == "A citation"
     assert len(result.tables) == 1
     assert result.tables[0].title == "Plants"
     assert result.tables[0].page == 1
