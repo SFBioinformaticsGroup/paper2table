@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 import pandas as pd
 import pdfplumber
@@ -25,6 +25,9 @@ class TableSchema(BaseModel):
     """
 
     title: str
+
+    header_mode: Literal["all_pages", "first_page_only", "none"]
+
     first_page: int
     """
     1-based first page number where table is allocated
@@ -106,7 +109,8 @@ def read_schema_tables(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF)
             try:
                 dataframe = read_table(
                     table_fragment if table_fragment else [],
-                    column_mappings=table_schema.column_mappings,
+                    table_schema=table_schema,
+                    page=page,
                 )
                 tables.append(
                     DataFrameTableReader(
@@ -140,14 +144,22 @@ def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
 def read_table(
     table_fragment: TableFragment,
     column_names_hints: list[str] = [],
-    column_mappings: Optional[ColumnMappings] = None,
+    table_schema: Optional[TableSchema] = None,
+    page: Optional[int] = None,
 ) -> pd.DataFrame:
     dataframe = to_dataframe(table_fragment, column_names_hints)
 
-    if column_mappings is not None:
-        dataframe = dataframe[column_mappings.keys()].rename(column_mappings)
+    if table_schema is not None:
+        selected_column_names = list(table_schema.column_mappings.keys())
+        renamer = {(key): value for key, value in table_schema.column_mappings.items()}
+        dataframe = dataframe[selected_column_names].rename(columns=renamer)
+        if table_schema.header_mode == "all_pages" or (
+            table_schema.header_mode == "first_page_only"
+            and page == table_schema.first_page
+        ):
+            dataframe.drop([0], inplace=True)
 
-    dataframe = dataframe.rename(columns=lambda column: normalize_name(str(column)))
+    dataframe.rename(columns=lambda column: normalize_name(str(column)), inplace=True)
     dataframe = dataframe.apply(
         lambda row: list(
             map(lambda v: v.replace("\n", " ") if type(v) == str else v, row)

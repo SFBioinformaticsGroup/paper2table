@@ -155,11 +155,12 @@ def test_read_table_with_schema_that_matches_page():
             tables=[
                 TableSchema(
                     title="Plants",
+                    header_mode="all_pages",
                     first_page=1,
                     last_page=1,
                     column_mappings={
-                        "0": "vernacular_name",
-                        "1": "scientific_name",
+                        0: "vernacular_name",
+                        1: "scientific_name",
                     },
                 )
             ],
@@ -216,3 +217,102 @@ def test_read_table_with_schema_that_matches_page():
     result_dict = result.to_dict()
     assert result_dict["metadata"] == {"filename": "demo_table.pdf"}
     assert len(result_dict["tables"][0]["table_fragments"]) == 1
+
+
+def test_read_table_with_schema_without_headers():
+    result = read_tables(
+        "./tests/data/demo_table.pdf",
+        schema=TablesSchema(
+            tables=[
+                TableSchema(
+                    title="Plants",
+                    header_mode="none",
+                    first_page=1,
+                    last_page=1,
+                    column_mappings={
+                        0: "vernacular_name",
+                        1: "scientific_name",
+                    },
+                )
+            ],
+            citation="A citation",
+        ),
+    )
+
+    assert result.citation == "A citation"
+    assert len(result.tables) == 1
+    assert result.tables[0].title == "Plants"
+    assert result.tables[0].page == 1
+    assert result.tables[0].rows == [
+        {
+            "scientific_name": "scienti\x00c_name",
+            "vernacular_name": "common_name",
+        },
+        {
+            "vernacular_name": "Sun\x00ower",
+            "scientific_name": "Helianthus annuus",
+        },
+        {
+            "vernacular_name": "Rose",
+            "scientific_name": "Rosa gallica",
+        },
+        {
+            "vernacular_name": "Tulip",
+            "scientific_name": "Tulipa gesneriana",
+        },
+        {
+            "vernacular_name": "Lavender",
+            "scientific_name": "Lavandula angustifolia",
+        },
+        {
+            "vernacular_name": "Oak",
+            "scientific_name": "Quercus robur",
+        },
+        {
+            "vernacular_name": "Maple",
+            "scientific_name": "Acer saccharum",
+        },
+        {
+            "vernacular_name": "Dandelion",
+            "scientific_name": "Taraxacum o\x00cinale",
+        },
+        {
+            "vernacular_name": "Bamboo",
+            "scientific_name": "Bambusa vulgaris",
+        },
+        {
+            "vernacular_name": "Cactus (Prickly Pear)",
+            "scientific_name": "Opuntia \x00cus-indica",
+        },
+        {
+            "vernacular_name": "Coffee",
+            "scientific_name": "Coffea arabica",
+        },
+    ]
+    result_dict = result.to_dict()
+    assert result_dict["metadata"] == {"filename": "demo_table.pdf"}
+    assert len(result_dict["tables"][0]["table_fragments"]) == 1
+
+
+def test_read_table_with_schema_that_doesnt_matches_page():
+    result = read_tables(
+        "./tests/data/demo_table.pdf",
+        schema=TablesSchema(
+            tables=[
+                TableSchema(
+                    title="Plants",
+                    header_mode="all_pages",
+                    first_page=2,
+                    last_page=2,
+                    column_mappings={
+                        0: "vernacular_name",
+                        1: "scientific_name",
+                    },
+                )
+            ],
+            citation="A citation",
+        ),
+    )
+
+    assert result.citation == "A citation"
+    assert len(result.tables) == 0
