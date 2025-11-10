@@ -9,15 +9,24 @@ class DataFrameTableReader:
         self.df = dataframe
         self.title = title
 
+    @property
+    def rows(self):
+        return self.df.to_dict(orient="records")
+
     def to_dict(self):
         return {
-            "rows": self.df.to_dict(orient="records"),
+            "rows": self.rows,
             "page": self.page,
             **({"title": self.title} if self.title else {}),
         }
 
 
 class DataFrameTablesReader:
+    """
+    A TablesReader
+    that is designed to work with a pandas dataframe
+    as a backend
+    """
     def __init__(self, pdf_path: str, tables: list[DataFrameTableReader]):
         self.pdf_path = pdf_path
         self.filename = os.path.basename(pdf_path)

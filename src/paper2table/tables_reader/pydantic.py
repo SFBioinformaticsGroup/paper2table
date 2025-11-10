@@ -4,7 +4,10 @@ from . import TableReader
 
 
 class TablesModelWrapper:
-    """Wrapper for a TablesModel"""
+    """
+    Wrapper for a TablesModel that
+    satisfies TablesReader protocol
+    """
 
     def __init__(self, model: BaseModel):
         self.model = model

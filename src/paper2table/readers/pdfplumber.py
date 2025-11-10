@@ -3,6 +3,7 @@ from typing import Optional
 
 import pandas as pd
 import pdfplumber
+from pydantic import BaseModel
 
 from utils.normalize_name import normalize_name
 from utils.tokenize_schema import tokenize_schema
@@ -17,14 +18,14 @@ type TableFragment = list[list[str | None]]
 type ColumnMappings = dict[int, str]
 
 
-class TableSchema:
+class TableSchema(BaseModel):
     title: str
     first_page: int
     last_page: int
     column_mappings: ColumnMappings
 
 
-class TablesSchema:
+class TablesSchema(BaseModel):
     tables: list[TableSchema]
     citation: str
 
@@ -44,6 +45,12 @@ def read_tables(
     if schema:
         for table_schema in schema.tables:
             for page in range(table_schema.first_page, table_schema.last_page + 1):
+                if page >= len(pdf.pages):
+                    _logger.warning(
+                        f"Page {page} in schema is out of bonds of {pdf_path}. Stopping processing"
+                    )
+                    break
+
                 table_fragment = pdf.pages[page].extract_tables()[-1]
                 try:
                     dataframe = read_table(
