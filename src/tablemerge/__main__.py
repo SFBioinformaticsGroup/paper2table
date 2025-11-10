@@ -32,7 +32,7 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
 
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles, with_row_agreement=True
+            tablesfiles, row_agreement=True
         )
         print(f"{basename}: MERGED: {len(tablesfiles)} files into {len(merged_tablesfile.tables)} tables")
         with open(output_path / basename, "w", encoding="utf-8") as outfile:

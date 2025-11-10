@@ -1,5 +1,5 @@
 import pytest
-from tablemerge.merge import merge_tablesfiles
+from tablemerge.merge import merge_tablesfiles, merge_rows
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -36,7 +36,7 @@ def test_single_table_returns_normalized():
 def test_single_table_with_row_agreement():
     table = [Row(family=" Apiaceae ", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table)], with_row_agreement=True)
+    result = merge_tablesfiles([wrap(table)], row_agreement=True)
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
@@ -56,7 +56,7 @@ def test_two_identical_tables():
 def test_two_identical_tables_with_row_agreement():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table), wrap(table)], with_row_agreement=True)
+    result = merge_tablesfiles([wrap(table), wrap(table)], row_agreement=True)
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
@@ -280,7 +280,7 @@ def test_three_tables_with_conflicting_values_with_row_agreement_level():
     ]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2), wrap(table_3)], with_row_agreement=True
+        [wrap(table_1), wrap(table_2), wrap(table_3)], row_agreement=True
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
@@ -307,7 +307,7 @@ def xtest_three_tables_with_conflicting_values_with_column_agreement_level():
     ]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2), wrap(table_3)], with_column_agreement=True
+        [wrap(table_1), wrap(table_2), wrap(table_3)], column_agreement=True
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(
@@ -326,3 +326,42 @@ def xtest_three_tables_with_conflicting_values_with_column_agreement_level():
             scientific_name=[ValueWithAgreement("mentha spicata l.", 2)],
         ),
     ]
+
+
+def test_merge_same_rows_with_column_agreement():
+    assert merge_rows(
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina",
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina",
+        ),
+        column_agreement=True,
+    ) == Row(
+        family="rosaceae",
+        scientific_name=[
+            ValueWithAgreement("rosa canina", 2),
+        ],
+    )
+
+
+def test_merge_different_rows_with_column_agreement():
+    assert merge_rows(
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina",
+        ),
+        column_agreement=True,
+    ) == Row(
+        family="rosaceae",
+        scientific_name=[
+            ValueWithAgreement("rosa canina l.", 1),
+            ValueWithAgreement("rosa canina.", 1),
+        ],
+    )
