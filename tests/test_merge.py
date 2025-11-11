@@ -313,17 +313,21 @@ def xtest_three_tables_with_conflicting_values_with_column_agreement_level():
         Row(
             family="apiaceae",
             scientific_name=[
-                ValueWithAgreement("ammi majus l.", 2),
-                ValueWithAgreement("ammi", 1),
+                ValueWithAgreement(value="ammi majus l.", agreement_level=2),
+                ValueWithAgreement(value="ammi", agreement_level=1),
             ],
         ),
         Row(
             family="rosaceae",
-            scientific_name=[ValueWithAgreement("rosa canina l.", 2)],
+            scientific_name=[
+                ValueWithAgreement(value="rosa canina l.", agreement_level=2)
+            ],
         ),
         Row(
             family="lamiaceae",
-            scientific_name=[ValueWithAgreement("mentha spicata l.", 2)],
+            scientific_name=[
+                ValueWithAgreement(value="mentha spicata l.", agreement_level=2)
+            ],
         ),
     ]
 
@@ -340,9 +344,9 @@ def test_merge_same_rows_with_column_agreement():
         ),
         column_agreement=True,
     ) == Row(
-        family="rosaceae",
+        family=[ValueWithAgreement(value="rosaceae", agreement_level=2)],
         scientific_name=[
-            ValueWithAgreement("rosa canina", 2),
+            ValueWithAgreement(value="rosa canina", agreement_level=2),
         ],
     )
 
@@ -359,9 +363,32 @@ def test_merge_different_rows_with_column_agreement():
         ),
         column_agreement=True,
     ) == Row(
-        family="rosaceae",
+        family=[ValueWithAgreement(value="rosaceae", agreement_level=2)],
         scientific_name=[
-            ValueWithAgreement("rosa canina l.", 1),
-            ValueWithAgreement("rosa canina.", 1),
+            ValueWithAgreement(value="rosa canina l.", agreement_level=1),
+            ValueWithAgreement(value="rosa canina", agreement_level=1),
+        ],
+    )
+
+
+def test_merge_different_rows_that_already_have_agreement_with_column_agreement():
+    assert merge_rows(
+        Row(
+            family=[ValueWithAgreement(value="rosaceae", agreement_level=2)],
+            scientific_name=[
+                ValueWithAgreement(value="rosa canina l.", agreement_level=1),
+                ValueWithAgreement(value="rosa canina", agreement_level=1),
+            ],
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina",
+        ),
+        column_agreement=True,
+    ) == Row(
+        family=[ValueWithAgreement(value="rosaceae", agreement_level=3)],
+        scientific_name=[
+            ValueWithAgreement(value="rosa canina l.", agreement_level=1),
+            ValueWithAgreement(value="rosa canina", agreement_level=2),
         ],
     )

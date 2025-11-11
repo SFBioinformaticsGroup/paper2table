@@ -6,6 +6,7 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     ValueWithAgreement,
+    ColumnValue,
     Row,
     get_table_fragments,
 )
@@ -19,7 +20,7 @@ def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
 
 
-def normalize_value(value: str | list[ValueWithAgreement]) -> str:
+def normalize_value(value: ColumnValue) -> str:
     if isinstance(value, str):
         return normalize_str_value(value)
     elif isinstance(value, list):
@@ -59,11 +60,37 @@ def merge_rows(
         if row_agreement
         else None
     )
-    # TODO compute columns agreement
-    columns = {
-        **normalize_row(left).get_columns(),
-        **normalize_row(right).get_columns(),
-    }
+
+    if column_agreement:
+        column_values: dict[str, dict[str, int]] = {}
+        for row in [left, right]:
+            for column_name, column_value in normalize_row(row).get_columns().items():
+                values = column_values.setdefault(column_name, {})
+                values_with_agreement = (
+                    [ValueWithAgreement(value=column_value, agreement_level=1)]
+                    if isinstance(column_value, str)
+                    else column_value
+                )
+
+                for value_with_agreement in values_with_agreement:
+                    value = value_with_agreement.value
+                    if value in values:
+                        values[value] += value_with_agreement.agreement_level
+                    else:
+                        values[value] = value_with_agreement.agreement_level
+        columns = {
+            column_name: [
+                ValueWithAgreement(value=column_value, agreement_level=agreement_level)
+                for column_value, agreement_level in column_values.items()
+            ]
+            for column_name, column_values in column_values.items()
+        }
+
+    else:
+        columns = {
+            **normalize_row(left).get_columns(),
+            **normalize_row(right).get_columns(),
+        }
     return Row(agreement_level_=agreement_level, **columns)
 
 
