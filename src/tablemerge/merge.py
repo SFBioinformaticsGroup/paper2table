@@ -6,6 +6,7 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     ValueWithAgreement,
+    ColumnValue,
     Row,
     get_table_fragments,
 )
@@ -19,7 +20,7 @@ def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
 
 
-def normalize_value(value: str | list[ValueWithAgreement]) -> str:
+def normalize_value(value: ColumnValue) -> str:
     if isinstance(value, str):
         return normalize_str_value(value)
     elif isinstance(value, list):
@@ -34,14 +35,14 @@ def normalize_value(value: str | list[ValueWithAgreement]) -> str:
         return value
 
 
-def normalize_row(row: Row, with_row_agreement: bool = False) -> Row:
+def normalize_row(row: Row, row_agreement: bool = False) -> Row:
     return Row(
         **{
             column: normalize_value(value)
             for column, value in row.get_columns().items()
         },
         agreement_level_=(
-            row.get_agreement_level() if with_row_agreement else row.agreement_level_
+            row.get_agreement_level() if row_agreement else row.agreement_level_
         ),
     )
 
@@ -51,22 +52,61 @@ def same_row(left: Row, right: Row) -> bool:
     return normalize_row(left).get_columns() == normalize_row(right).get_columns()
 
 
-def merge_rows(left: Row, right: Row, with_row_agreement=False) -> Row:
+def merge_rows(
+    left: Row, right: Row, row_agreement=False, column_agreement=False
+) -> Row:
     agreement_level = (
         left.get_agreement_level() + right.get_agreement_level()
-        if with_row_agreement
+        if row_agreement
         else None
     )
-    # TODO compute columns agreement
-    columns = {
-        **normalize_row(left).get_columns(),
-        **normalize_row(right).get_columns(),
-    }
+
+    if column_agreement:
+        columns = merge_columns_with_agreement(left, right)
+    else:
+        columns = merge_columns_without_agreement(left, right)
     return Row(agreement_level_=agreement_level, **columns)
 
 
+def merge_columns_without_agreement(left: Row, right: Row):
+    return {
+        **normalize_row(left).get_columns(),
+        **normalize_row(right).get_columns(),
+    }
+
+
+def merge_columns_with_agreement(left: Row, right: Row):
+    column_values: dict[str, dict[str, int]] = {}
+    for row in [left, right]:
+        for column_name, column_value in normalize_row(row).get_columns().items():
+            values = column_values.setdefault(column_name, {})
+            values_with_agreement = to_values_with_agreement(column_value)
+
+            for value_with_agreement in values_with_agreement:
+                value = value_with_agreement.value
+                if value in values:
+                    values[value] += value_with_agreement.agreement_level
+                else:
+                    values[value] = value_with_agreement.agreement_level
+    return {
+        column_name: [
+            ValueWithAgreement(value=column_value, agreement_level=agreement_level)
+            for column_value, agreement_level in column_values.items()
+        ]
+        for column_name, column_values in column_values.items()
+    }
+
+
+def to_values_with_agreement(column_value: ColumnValue):
+    return (
+        [ValueWithAgreement(value=column_value, agreement_level=1)]
+        if isinstance(column_value, str)
+        else column_value
+    )
+
+
 def merge_tablesfiles(
-    tablesfiles: list[TablesFile], with_row_agreement=False, with_column_agreement=False
+    tablesfiles: list[TablesFile], row_agreement=False, column_agreement=False
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -103,7 +143,7 @@ def merge_tablesfiles(
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, with_row_agreement
+                left_fragment, row_agreement, column_agreement
             )
 
             for right_fragment in fragments_cluster[1:]:
@@ -166,17 +206,24 @@ def make_fragments_clusters(tables_cluster: list[Table]):
 class TableFragmentBuilder:
     rows: list[Row]
     page: int
-    with_row_agreement: bool
+    row_agreement: bool
+    column_agreement: bool
 
-    def __init__(self, initial_fragment: TableFragment, with_row_agreement: bool):
+    def __init__(
+        self,
+        initial_fragment: TableFragment,
+        row_agreement: bool,
+        column_agreement: bool,
+    ):
         self.rows = list(
             map(
-                lambda row: normalize_row(row, with_row_agreement),
+                lambda row: normalize_row(row, row_agreement),
                 initial_fragment.rows,
             )
         )
         self.page = initial_fragment.page
-        self.with_row_agreement = with_row_agreement
+        self.row_agreement = row_agreement
+        self.column_agreement = column_agreement
 
     def next_left_rows(self):
         rows = self.rows
@@ -184,7 +231,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.with_row_agreement)
+        new = normalize_row(row, self.row_agreement)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row]):
@@ -211,7 +258,14 @@ class TableFragmentBuilder:
         """
         Merge and add found row
         """
-        self._append(merge_rows(left, right, self.with_row_agreement))
+        self._append(
+            merge_rows(
+                left,
+                right,
+                row_agreement=self.row_agreement,
+                column_agreement=self.column_agreement,
+            )
+        )
 
     def build(self):
         return TableFragment(rows=self.rows, page=self.page)
