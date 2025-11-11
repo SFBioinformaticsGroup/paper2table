@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, create_model
+from pydantic import create_model
 from pydantic_ai import Agent, BinaryContent
 
 from utils.tokenize_schema import tokenize_schema
 
-from ..tables_protocol import TableProtocol, TablesProtocol
+from ..tables_reader import TablesReader
+from ..tables_reader.pydantic import TablesModelWrapper
 
 types_map: dict[str, Any] = {
     "str": str,
@@ -42,7 +43,9 @@ def build_table_model(schema: str):
     """
     fields = parse_schema(schema)
     RowModel = create_model("RowModel", **fields)
-    TableFragmentModel = create_model("TableFragment", rows=(list[RowModel], ...), page=(int, ...))
+    TableFragmentModel = create_model(
+        "TableFragment", rows=(list[RowModel], ...), page=(int, ...)
+    )
     return create_model("TableModel", table_fragments=(list[TableFragmentModel], ...))
 
 
@@ -74,31 +77,7 @@ instructions = (
 )
 
 
-class TableModelWrapper:
-    """Wrapper for a TableModel"""
-
-    def __init__(self, model: BaseModel):
-        self.model = model
-
-    def to_dict(self) -> str:
-        return self.model.model_dump()
-
-
-class TablesModelWrapper:
-    """Wrapper for a TablesModel"""
-
-    def __init__(self, model: BaseModel):
-        self.model = model
-
-    @property
-    def tables(self) -> list[TableProtocol]:
-        return self.model.tables
-
-    def to_dict(self) -> str:
-        return self.model.model_dump()
-
-
-def read_tables(path: str, model: str, schema: str) -> TablesProtocol:
+def read_tables(path: str, model: str, schema: str) -> TablesReader:
     paper_path = Path(path)
     agent = Agent(
         model,
@@ -110,4 +89,4 @@ def read_tables(path: str, model: str, schema: str) -> TablesProtocol:
             BinaryContent(data=paper_path.read_bytes(), media_type="application/pdf"),
         ]
     ).output
-    return TableModelWrapper(output)
+    return TablesModelWrapper(output)

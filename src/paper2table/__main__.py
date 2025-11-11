@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from paper2table import __version__
 from paper2table.readers import agent, camelot, pdfplumber
-from paper2table.tables_protocol import TablesProtocol
+from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
 from utils.handle_sigint import handle_sigint
@@ -161,7 +161,7 @@ def get_table_writer(args):
     if args.tablemerge:
         metadata = TablemergeMetadata(args.reader, args.model)
 
-        def write_tables(result: TablesProtocol, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):
             tablemerge.write_tables(
                 result,
                 paper_path,
@@ -171,14 +171,14 @@ def get_table_writer(args):
 
     elif args.output_directory:
 
-        def write_tables(result: TablesProtocol, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):
             file.write_tables(
                 result, paper_path, output_directory=args.output_directory
             )
 
     else:
 
-        def write_tables(result: TablesProtocol, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):
             stdout.write_tables(result)
 
     return write_tables
