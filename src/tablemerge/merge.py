@@ -62,36 +62,47 @@ def merge_rows(
     )
 
     if column_agreement:
-        column_values: dict[str, dict[str, int]] = {}
-        for row in [left, right]:
-            for column_name, column_value in normalize_row(row).get_columns().items():
-                values = column_values.setdefault(column_name, {})
-                values_with_agreement = (
-                    [ValueWithAgreement(value=column_value, agreement_level=1)]
-                    if isinstance(column_value, str)
-                    else column_value
-                )
-
-                for value_with_agreement in values_with_agreement:
-                    value = value_with_agreement.value
-                    if value in values:
-                        values[value] += value_with_agreement.agreement_level
-                    else:
-                        values[value] = value_with_agreement.agreement_level
-        columns = {
-            column_name: [
-                ValueWithAgreement(value=column_value, agreement_level=agreement_level)
-                for column_value, agreement_level in column_values.items()
-            ]
-            for column_name, column_values in column_values.items()
-        }
-
+        columns = merge_columns_with_agreement(left, right)
     else:
-        columns = {
-            **normalize_row(left).get_columns(),
-            **normalize_row(right).get_columns(),
-        }
+        columns = merge_columns_without_agreement(left, right)
     return Row(agreement_level_=agreement_level, **columns)
+
+
+def merge_columns_without_agreement(left: Row, right: Row):
+    return {
+        **normalize_row(left).get_columns(),
+        **normalize_row(right).get_columns(),
+    }
+
+
+def merge_columns_with_agreement(left: Row, right: Row):
+    column_values: dict[str, dict[str, int]] = {}
+    for row in [left, right]:
+        for column_name, column_value in normalize_row(row).get_columns().items():
+            values = column_values.setdefault(column_name, {})
+            values_with_agreement = to_values_with_agreement(column_value)
+
+            for value_with_agreement in values_with_agreement:
+                value = value_with_agreement.value
+                if value in values:
+                    values[value] += value_with_agreement.agreement_level
+                else:
+                    values[value] = value_with_agreement.agreement_level
+    return {
+        column_name: [
+            ValueWithAgreement(value=column_value, agreement_level=agreement_level)
+            for column_value, agreement_level in column_values.items()
+        ]
+        for column_name, column_values in column_values.items()
+    }
+
+
+def to_values_with_agreement(column_value: ColumnValue):
+    return (
+        [ValueWithAgreement(value=column_value, agreement_level=1)]
+        if isinstance(column_value, str)
+        else column_value
+    )
 
 
 def merge_tablesfiles(
