@@ -22,7 +22,6 @@ def build_dataframes(papers):
         csvs[basename] = []
         for table in tablesfile.get("tables", []):
             fragments = get_table_fragments(table)
-            csv_rows = []
             for fragment in fragments:
                 page = fragment.get("page", "")
                 rows = fragment.get("rows", [])

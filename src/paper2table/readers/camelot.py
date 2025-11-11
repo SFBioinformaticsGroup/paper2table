@@ -7,6 +7,7 @@ from ..tables_reader import TablesReader
 
 _logger = logging.getLogger(__name__)
 
+
 def read_tables(pdf_path: str) -> TablesReader:
     try:
         camelot_tables = camelot.read_pdf(

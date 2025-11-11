@@ -62,5 +62,4 @@ def get_table_fragments(table: Table) -> list[TableFragment]:
         return [table]
     if hasattr(table, "table_fragments") and table.table_fragments:
         return table.table_fragments
-    else:
-        return []
+    return []

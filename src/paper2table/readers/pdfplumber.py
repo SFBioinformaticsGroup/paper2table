@@ -137,8 +137,7 @@ def first_row_is_table_header(rows: TableFragment, column_names_hints: list[str]
 def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
     if first_row_is_table_header(rows, column_names_hints):
         return pd.DataFrame(rows[1:], columns=rows[0])
-    else:
-        return pd.DataFrame(rows)
+    return pd.DataFrame(rows)
 
 
 def read_table(
@@ -162,7 +161,7 @@ def read_table(
     dataframe.rename(columns=lambda column: normalize_name(str(column)), inplace=True)
     dataframe = dataframe.apply(
         lambda row: list(
-            map(lambda v: v.replace("\n", " ") if type(v) == str else v, row)
+            map(lambda v: v.replace("\n", " ") if isinstance(v, str) else v, row)
         )
     )
 

@@ -1,7 +1,8 @@
 import argparse
 import json
-from pathlib import Path
+import sys
 from collections import OrderedDict
+from pathlib import Path
 from typing import Literal
 
 from .stats import GlobalStats, update_papers_stats
@@ -14,7 +15,7 @@ def read_paper(paper_path):
 
 def compute_papers_stats(path: str) -> GlobalStats:
     input_path = Path(path)
-    stats = GlobalStats(papers=0, papers_stats=dict(), rows=0, tables=0)
+    stats = GlobalStats(papers=0, papers_stats={}, rows=0, tables=0)
 
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
@@ -94,7 +95,7 @@ def main():
     if args.empty:
         if args.out:
             print("--empty can't be used with --out")
-            exit(1)
+            sys.exit(1)
         print(
             *[
                 path.replace(".tables.json", ".pdf")

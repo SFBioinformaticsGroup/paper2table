@@ -121,7 +121,7 @@ def get_tables_reader(args):
         schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
         if not schema:
             print("Missing schema. Need to either pass --schema-path or --schema")
-            exit(1)
+            sys.exit(1)
 
         def read_tables(paper_path: str):
             time.sleep(args.model_sleep)
@@ -156,7 +156,7 @@ def get_tables_reader(args):
 def get_table_writer(args):
     if args.tablemerge and not args.output_directory:
         print("--tablemerge requires also --output-directory")
-        exit(1)
+        sys.exit(1)
 
     if args.tablemerge:
         metadata = TablemergeMetadata(args.reader, args.model)

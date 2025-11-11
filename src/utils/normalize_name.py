@@ -1,8 +1,9 @@
 import string
 import unicodedata
 
+
 def normalize_name(name: str | None):
-    if name == None:
+    if name is None:
         return None
 
     name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
