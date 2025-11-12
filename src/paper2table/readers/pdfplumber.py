@@ -6,7 +6,7 @@ import pdfplumber
 from pydantic import BaseModel
 
 from utils.normalize_name import normalize_name
-from utils.tokenize_schema import tokenize_schema
+from utils.columns_schema import tokenize_schema
 
 from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
 from ..tables_reader import TablesReader

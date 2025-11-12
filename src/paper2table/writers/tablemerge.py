@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID, uuid4
 from datetime import datetime as dt
 
@@ -10,7 +10,7 @@ from . import file
 
 
 class TablemergeMetadata:
-    reader: str
+    reader: Literal["agent", "hybrid", "pdfplumber", "camelot"]
     model: Optional[str]
     datetime: dt
     uuid: UUID
@@ -21,9 +21,16 @@ class TablemergeMetadata:
         self.uuid = uuid4()
         self.datetime = dt.now()
 
+    def get_reader(self):
+        if self.reader == "agent":
+            return self.model
+        elif self.reader == "hybrid":
+            return f"hybrid-pdfplumber-{self.model}"
+        return self.reader
+
     def to_dict(self):
         return {
-            "reader": self.model if self.reader == "agent" else self.reader,
+            "reader": self.get_reader(),
             "uuid": str(self.uuid),
             "datetime": self.datetime.isoformat(),
         }

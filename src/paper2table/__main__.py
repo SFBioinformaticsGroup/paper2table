@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from paper2table import __version__
-from paper2table.readers import agent, camelot, pdfplumber
+from paper2table.readers import agent, camelot, pdfplumber, hybrid
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument(
         "-r",
         "--reader",
-        choices=["pdfplumber", "camelot", "agent"],
+        choices=["pdfplumber", "camelot", "agent" ,"hybrid"],
         help="How tables are going to be extracted",
         default="pdfplumber",
     )
@@ -129,6 +129,19 @@ def get_tables_reader(args):
                 f"Processing paper {paper_path} with model {args.model} and {schema}..."
             )
             return agent.read_tables(paper_path, model=args.model, schema=schema)
+
+    elif args.reader == "hybrid":
+        schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
+        if not schema:
+            print("Missing schema. Need to either pass --schema-path or --schema")
+            sys.exit(1)
+
+        def read_tables(paper_path: str):
+            time.sleep(args.model_sleep)
+            _logger.debug(
+                f"Processing paper {paper_path} with hybrid pdfplumber-{args.model} model and {schema}..."
+            )
+            return hybrid.read_tables(paper_path, model=args.model, schema=schema)
 
     elif args.reader == "pdfplumber":
 

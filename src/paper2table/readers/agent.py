@@ -1,36 +1,12 @@
 from pathlib import Path
-from typing import Any
 
 from pydantic import create_model
 from pydantic_ai import Agent, BinaryContent
 
-from utils.tokenize_schema import tokenize_schema
+from utils.columns_schema import parse_schema
 
 from ..tables_reader import TablesReader
 from ..tables_reader.pydantic import TablesModelWrapper
-
-types_map: dict[str, Any] = {
-    "str": str,
-    "int": int,
-    "float": float,
-    "bool": bool,
-}
-
-
-def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
-    parts = tokenize_schema(schema_str)
-
-    fields: dict[str, tuple[Any, ...]] = {}
-    for part in parts:
-        if ":" not in part:
-            raise ValueError(f"Invalid field specifier: {part}")
-        name, type_str = part.split(":", 1)
-        if type_str not in types_map:
-            raise ValueError(f"Unsupported type: {type_str}")
-        fields[name] = (types_map[type_str], ...)
-
-    return fields
-
 
 def build_table_model(schema: str):
     """
