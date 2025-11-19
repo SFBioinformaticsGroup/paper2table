@@ -1,5 +1,10 @@
 import pytest
-from paper2table.readers.pdfplumber import read_tables, TableSchema, TablesSchema
+from paper2table.readers.pdfplumber import (
+    read_tables,
+    TableSchema,
+    TablesSchema,
+    ColumnMapping,
+)
 
 
 def test_read_table_without_options():
@@ -158,10 +163,14 @@ def test_read_table_with_schema_that_matches_page():
                     header_mode="all_pages",
                     first_page=1,
                     last_page=1,
-                    column_mappings={
-                        0: "vernacular_name",
-                        1: "scientific_name",
-                    },
+                    column_mappings=[
+                        ColumnMapping(
+                            from_column_number=0, to_column_name="vernacular_name"
+                        ),
+                        ColumnMapping(
+                            from_column_number=1, to_column_name="scientific_name"
+                        ),
+                    ],
                 )
             ],
             citation="A citation",
@@ -229,10 +238,14 @@ def test_read_table_with_schema_without_headers():
                     header_mode="none",
                     first_page=1,
                     last_page=1,
-                    column_mappings={
-                        0: "vernacular_name",
-                        1: "scientific_name",
-                    },
+                    column_mappings=[
+                        ColumnMapping(
+                            from_column_number=0, to_column_name="vernacular_name"
+                        ),
+                        ColumnMapping(
+                            from_column_number=1, to_column_name="scientific_name"
+                        ),
+                    ],
                 )
             ],
             citation="A citation",
@@ -304,10 +317,14 @@ def test_read_table_with_schema_that_doesnt_matches_page():
                     header_mode="all_pages",
                     first_page=2,
                     last_page=2,
-                    column_mappings={
-                        0: "vernacular_name",
-                        1: "scientific_name",
-                    },
+                    column_mappings=[
+                        ColumnMapping(
+                            from_column_number=0, to_column_name="vernacular_name"
+                        ),
+                        ColumnMapping(
+                            from_column_number=1, to_column_name="scientific_name"
+                        ),
+                    ],
                 )
             ],
             citation="A citation",

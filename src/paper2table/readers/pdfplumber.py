@@ -15,7 +15,17 @@ _logger = logging.getLogger(__name__)
 
 type TableFragment = list[list[str | None]]
 
-type ColumnMappings = dict[int, str]
+
+class ColumnMapping(BaseModel):
+    from_column_number: int
+    """
+    The original column number
+    """
+
+    to_column_name: str
+    """
+    The desired column name
+    """
 
 
 class TableSchema(BaseModel):
@@ -38,7 +48,7 @@ class TableSchema(BaseModel):
     1-based last page number where table is allocated
     """
 
-    column_mappings: ColumnMappings
+    column_mappings: list[ColumnMapping]
     """
     Mappings that go from original column number
     to desired column name
@@ -105,10 +115,14 @@ def read_schema_tables(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF)
                 )
                 break
 
-            table_fragment = pdf.pages[page - 1].extract_tables()[-1]
+            extracted_tables = pdf.pages[page - 1].extract_tables()
+            if not extracted_tables:
+                _logger.warning(f"Couldn't read tables in page {page} of {pdf_path}")
+                continue
+
             try:
                 dataframe = read_table(
-                    table_fragment if table_fragment else [],
+                    table_fragment=extracted_tables[-1],
                     table_schema=table_schema,
                     page=page,
                 )
@@ -149,8 +163,15 @@ def read_table(
     dataframe = to_dataframe(table_fragment, column_names_hints)
 
     if table_schema is not None:
-        selected_column_names = list(table_schema.column_mappings.keys())
-        renamer = {(key): value for key, value in table_schema.column_mappings.items()}
+        selected_column_names = list(
+            map(
+                lambda mapping: mapping.from_column_number, table_schema.column_mappings
+            )
+        )
+        renamer = {
+            mapping.from_column_number: mapping.to_column_name
+            for mapping in table_schema.column_mappings
+        }
         dataframe = dataframe[selected_column_names].rename(columns=renamer)
         if table_schema.header_mode == "all_pages" or (
             table_schema.header_mode == "first_page_only"

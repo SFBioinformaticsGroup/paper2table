@@ -10,7 +10,6 @@ from . import pdfplumber
 from .pdfplumber import TablesSchema
 
 from ..tables_reader import TablesReader
-from ..tables_reader.pydantic import TablesModelWrapper
 
 
 def build_instructions(schema):
@@ -54,7 +53,6 @@ def build_instructions(schema):
 
 
 def read_tables(path: str, model: str, schema: str) -> TablesReader:
-    print("\n".join(build_instructions(schema)))
     paper_path = Path(path)
     agent = Agent(
         model,
