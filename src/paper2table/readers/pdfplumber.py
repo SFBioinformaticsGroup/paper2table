@@ -28,7 +28,7 @@ class ColumnMapping(BaseModel):
     """
 
 
-class TableSchema(BaseModel):
+class TableMapping(BaseModel):
     """
     Instructions for read_table
     about how to read a table.
@@ -55,15 +55,15 @@ class TableSchema(BaseModel):
     """
 
 
-class TablesSchema(BaseModel):
-    tables: list[TableSchema]
+class TablesMapping(BaseModel):
+    tables: list[TableMapping]
     citation: str
 
 
 def read_tables(
     pdf_path: str,
     column_names_hints: Optional[str] = None,
-    schema: Optional[TablesSchema] = None,
+    mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
     try:
         pdf = pdfplumber.open(pdf_path)
@@ -71,13 +71,13 @@ def read_tables(
         _logger.warning(f"Error reading {pdf_path}: {e}")
         return DataFrameTablesReader(pdf_path, [])
 
-    if schema:
-        tables = read_schema_tables(pdf_path, schema, pdf)
+    if mapping:
+        tables = read_mapped_tables(pdf_path, mapping, pdf)
     else:
         tables = read_all_tables(pdf_path, column_names_hints, pdf)
 
     return DataFrameTablesReader(
-        pdf_path, tables, citation=schema.citation if schema else None
+        pdf_path, tables, citation=mapping.citation if mapping else None
     )
 
 
@@ -102,13 +102,13 @@ def read_all_tables(
     return tables
 
 
-def read_schema_tables(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF):
+def read_mapped_tables(pdf_path: str, mapping: TablesMapping, pdf: pdfplumber.PDF):
     """
     Reads the tables described by schema
     """
     tables = []
-    for table_schema in schema.tables:
-        for page in range(table_schema.first_page, table_schema.last_page + 1):
+    for table_mapping in mapping.tables:
+        for page in range(table_mapping.first_page, table_mapping.last_page + 1):
             if page > len(pdf.pages):
                 _logger.warning(
                     f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
@@ -123,12 +123,12 @@ def read_schema_tables(pdf_path: str, schema: TablesSchema, pdf: pdfplumber.PDF)
             try:
                 dataframe = read_table(
                     table_fragment=extracted_tables[-1],
-                    table_schema=table_schema,
+                    table_mapping=table_mapping,
                     page=page,
                 )
                 tables.append(
                     DataFrameTableReader(
-                        title=table_schema.title, page=page, dataframe=dataframe
+                        title=table_mapping.title, page=page, dataframe=dataframe
                     )
                 )
             except Exception as e:
@@ -157,25 +157,25 @@ def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
 def read_table(
     table_fragment: TableFragment,
     column_names_hints: list[str] = [],
-    table_schema: Optional[TableSchema] = None,
+    table_mapping: Optional[TableMapping] = None,
     page: Optional[int] = None,
 ) -> pd.DataFrame:
     dataframe = to_dataframe(table_fragment, column_names_hints)
 
-    if table_schema is not None:
+    if table_mapping is not None:
         selected_column_names = list(
             map(
-                lambda mapping: mapping.from_column_number, table_schema.column_mappings
+                lambda mapping: mapping.from_column_number, table_mapping.column_mappings
             )
         )
         renamer = {
             mapping.from_column_number: mapping.to_column_name
-            for mapping in table_schema.column_mappings
+            for mapping in table_mapping.column_mappings
         }
         dataframe = dataframe[selected_column_names].rename(columns=renamer)
-        if table_schema.header_mode == "all_pages" or (
-            table_schema.header_mode == "first_page_only"
-            and page == table_schema.first_page
+        if table_mapping.header_mode == "all_pages" or (
+            table_mapping.header_mode == "first_page_only"
+            and page == table_mapping.first_page
         ):
             dataframe.drop([0], inplace=True)
 

@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument(
         "-r",
         "--reader",
-        choices=["pdfplumber", "camelot", "agent" ,"hybrid"],
+        choices=["pdfplumber", "camelot", "agent", "hybrid"],
         help="How tables are going to be extracted",
         default="pdfplumber",
     )
@@ -61,7 +61,7 @@ def parse_args():
         "-s",
         "--schema",
         type=str,
-        help="set table schema in the form column:type. Only used by agent reader",
+        help="set table schema in the form column:type. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-p",
@@ -70,10 +70,16 @@ def parse_args():
         help="set table schema path. Only used by agent reader",
     )
     parser.add_argument(
+        "-M",
+        "--mappings-path",
+        type=str,
+        help="set tables mapping path. Only used by hybrid reader",
+    )
+    parser.add_argument(
         "-c",
         "--column-names-hints-path",
         type=str,
-        help="set table schema path. Only used by agent reader",
+        help="set table schema path. Only used by pdfplumber reader",
     )
     parser.add_argument(
         "-o",
@@ -131,6 +137,9 @@ def get_tables_reader(args):
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
     elif args.reader == "hybrid":
+        mappings_path = (
+            Path(args.mappings_path) if args.schema_path else Path("./mappings")
+        )
         schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
         if not schema:
             print("Missing schema. Need to either pass --schema-path or --schema")
@@ -141,7 +150,9 @@ def get_tables_reader(args):
             _logger.debug(
                 f"Processing paper {paper_path} with hybrid pdfplumber-{args.model} model and {schema}..."
             )
-            return hybrid.read_tables(paper_path, model=args.model, schema=schema)
+            return hybrid.read_tables(
+                paper_path, model=args.model, mappings_path=mappings_path, schema=schema
+            )
 
     elif args.reader == "pdfplumber":
 

@@ -1,15 +1,15 @@
+import logging
 from pathlib import Path
-from typing import Any
 
-from pydantic import create_model
 from pydantic_ai import Agent, BinaryContent
 
 from utils.columns_schema import parse_schema
 
-from . import pdfplumber
-from .pdfplumber import TablesSchema
-
 from ..tables_reader import TablesReader
+from . import pdfplumber
+from .pdfplumber import TablesMapping
+
+_logger = logging.getLogger(__name__)
 
 
 def build_instructions(schema):
@@ -52,17 +52,30 @@ def build_instructions(schema):
     )
 
 
-def read_tables(path: str, model: str, schema: str) -> TablesReader:
+def read_tables(
+    path: str, model: str, schema: str, mappings_path: Path
+) -> TablesReader:
     paper_path = Path(path)
-    agent = Agent(
-        model,
-        output_type=TablesSchema,
-        instructions=build_instructions(schema),
-    )
-    output = agent.run_sync(
-        [
-            BinaryContent(data=paper_path.read_bytes(), media_type="application/pdf"),
-        ]
-    ).output
-    print(output.model_dump_json())
-    return pdfplumber.read_tables(path, schema=output)
+    mapping_path = mappings_path / paper_path.name.replace(".pdf", ".mapping.json")
+    if mapping_path.exists():
+        _logger.debug("Using existing mapping for %s", paper_path)
+        mapping = TablesMapping.model_validate_json(mapping_path.read_text())
+    else:
+        _logger.debug(
+            "Mapping for %s doesn't exist. Generating it with model", paper_path
+        )
+        agent = Agent(
+            model,
+            output_type=TablesMapping,
+            instructions=build_instructions(schema),
+        )
+        mapping = agent.run_sync(
+            [
+                BinaryContent(
+                    data=paper_path.read_bytes(), media_type="application/pdf"
+                ),
+            ]
+        ).output
+        mappings_path.mkdir(parents=True, exist_ok=True)
+        mapping_path.write_text(mapping.model_dump_json())
+    return pdfplumber.read_tables(path, mapping=mapping)

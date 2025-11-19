@@ -1,8 +1,8 @@
 import pytest
 from paper2table.readers.pdfplumber import (
     read_tables,
-    TableSchema,
-    TablesSchema,
+    TableMapping,
+    TablesMapping,
     ColumnMapping,
 )
 
@@ -153,12 +153,12 @@ def test_read_table_with_hints():
     assert len(result_dict["tables"][0]["table_fragments"]) == 1
 
 
-def test_read_table_with_schema_that_matches_page():
+def test_read_table_with_mapping_that_matches_page():
     result = read_tables(
         "./tests/data/demo_table.pdf",
-        schema=TablesSchema(
+        mapping=TablesMapping(
             tables=[
-                TableSchema(
+                TableMapping(
                     title="Plants",
                     header_mode="all_pages",
                     first_page=1,
@@ -228,12 +228,12 @@ def test_read_table_with_schema_that_matches_page():
     assert len(result_dict["tables"][0]["table_fragments"]) == 1
 
 
-def test_read_table_with_schema_without_headers():
+def test_read_table_with_mapping_without_headers():
     result = read_tables(
         "./tests/data/demo_table.pdf",
-        schema=TablesSchema(
+        mapping=TablesMapping(
             tables=[
-                TableSchema(
+                TableMapping(
                     title="Plants",
                     header_mode="none",
                     first_page=1,
@@ -307,12 +307,12 @@ def test_read_table_with_schema_without_headers():
     assert len(result_dict["tables"][0]["table_fragments"]) == 1
 
 
-def test_read_table_with_schema_that_doesnt_matches_page():
+def test_read_table_with_mapping_that_doesnt_matches_page():
     result = read_tables(
         "./tests/data/demo_table.pdf",
-        schema=TablesSchema(
+        mapping=TablesMapping(
             tables=[
-                TableSchema(
+                TableMapping(
                     title="Plants",
                     header_mode="all_pages",
                     first_page=2,
