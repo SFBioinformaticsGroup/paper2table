@@ -1,12 +1,14 @@
 import os
 from typing import Optional
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 
 class DataFrameTableReader:
-    def __init__(self, page: int, dataframe: DataFrame, title: Optional[str] = None):
+    def __init__(
+        self, page: int, dataframe: DataFrame | Series, title: Optional[str] = None
+    ):
         self.page = page
-        self.df = dataframe
+        self.df = dataframe if isinstance(dataframe, DataFrame) else DataFrame()
         self.title = title
 
     @property
