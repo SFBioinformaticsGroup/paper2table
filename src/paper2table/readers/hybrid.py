@@ -6,9 +6,8 @@ from pydantic_ai import Agent, BinaryContent
 
 from utils.columns_schema import parse_schema
 
+from ..mapping import TablesMapping
 from ..tables_reader import TablesReader
-from . import pdfplumber
-from .pdfplumber import TablesMapping
 
 _logger = logging.getLogger(__name__)
 

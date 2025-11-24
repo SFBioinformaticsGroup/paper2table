@@ -1,9 +1,8 @@
 import pytest
+
+from paper2table.mapping import ColumnMapping, TableMapping, TablesMapping
 from paper2table.readers.pdfplumber import (
     read_tables,
-    TableMapping,
-    TablesMapping,
-    ColumnMapping,
 )
 
 

@@ -8,6 +8,7 @@ from typing import Optional
 from tqdm import tqdm
 
 from paper2table import __version__
+from paper2table.mapping import TablesMapping
 from paper2table.readers import agent, camelot, pdfplumber, hybrid
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
@@ -143,7 +144,7 @@ def get_tables_reader(args):
             sys.exit(1)
 
         def read_tables(
-            paper_path: str, _mapping: Optional[pdfplumber.TablesMapping] = None
+            paper_path: str, _mapping: Optional[TablesMapping] = None
         ):
             time.sleep(args.model_sleep)
             _logger.debug(f"Processing paper {paper_path} with model {args.model}")
@@ -159,7 +160,7 @@ def get_tables_reader(args):
         _logger.debug(f"Using pdfplumber reader with column names hints {column_names_hints}")
 
         def read_tables(
-            paper_path: str, mapping: Optional[pdfplumber.TablesMapping] = None
+            paper_path: str, mapping: Optional[TablesMapping] = None
         ):
 
             _logger.debug(
@@ -173,7 +174,7 @@ def get_tables_reader(args):
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
         def read_tables(
-            paper_path: str, _mapping: Optional[pdfplumber.TablesMapping] = None
+            paper_path: str, _mapping: Optional[TablesMapping] = None
         ):
             _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
@@ -195,7 +196,7 @@ def get_tables_reader(args):
         base_reader = read_tables
 
         def read_tables(
-            paper_path: str, _mapping: Optional[pdfplumber.TablesMapping] = None
+            paper_path: str, _mapping: Optional[TablesMapping] = None
         ):
             time.sleep(args.model_sleep)
             _logger.debug(
