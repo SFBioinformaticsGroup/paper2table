@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Callable
 
 from pydantic_ai import Agent, BinaryContent
 
@@ -53,7 +54,11 @@ def build_instructions(schema):
 
 
 def read_tables(
-    path: str, model: str, schema: str, mappings_path: Path
+    path: str,
+    model: str,
+    schema: str,
+    mappings_path: Path,
+    reader: Callable[[str, TablesMapping], TablesReader],
 ) -> TablesReader:
     paper_path = Path(path)
     mapping_path = mappings_path / paper_path.name.replace(".pdf", ".mapping.json")
@@ -78,4 +83,4 @@ def read_tables(
         ).output
         mappings_path.mkdir(parents=True, exist_ok=True)
         mapping_path.write_text(mapping.model_dump_json())
-    return pdfplumber.read_tables(path, mapping=mapping)
+    return reader(path, mapping)
