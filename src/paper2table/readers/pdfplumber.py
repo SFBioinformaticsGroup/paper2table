@@ -3,17 +3,77 @@ from typing import Optional
 
 import pandas as pd
 import pdfplumber
+import pdfplumber.page
 
-from utils.columns_schema import tokenize_schema
-from utils.normalize_name import normalize_name
 
-from ..mapping import TableMapping, TablesMapping
+from . import document
+from .utils import first_row_is_table_header, Row
+from ..mapping import TablesMapping
 from ..tables_reader import TablesReader
-from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
 
 _logger = logging.getLogger(__name__)
 
-type TableFragment = list[list[str | None]]
+type TableFragment = list[Row]
+
+
+class PDFPlumberTable:
+    rows: TableFragment
+
+    def __init__(self, rows: TableFragment):
+        self.rows = rows
+
+    def to_dataframe(self, column_names_hints: list[str]) -> pd.DataFrame:
+        if first_row_is_table_header(self.rows, column_names_hints):
+            return pd.DataFrame(self.rows[1:], columns=self.rows[0])
+        return pd.DataFrame(self.rows)
+
+
+class PDFPlumberPage:
+    def __init__(self, page: pdfplumber.page.Page):
+        self.page = page
+
+    def extract_tables(self) -> list[PDFPlumberTable]:
+        # TODO pick best settings
+        # self.generate_pdfplumber_settings()
+
+        tables = self.page.extract_tables()
+        _logger.debug("Extracted %i tables", len(tables))
+        return [PDFPlumberTable(table) for table in tables]
+
+    def generate_pdfplumber_settings(self):
+        for vertical_strategy in ["lines", "text"]:
+            for horizontal_strategy in ["lines", "text"]:
+                if vertical_strategy == "text":
+                    for min_words in range(15, 0, -2):
+                        yield {
+                            "vertical_strategy": vertical_strategy,
+                            "horizontal_strategy": horizontal_strategy,
+                            "min_words_vertical": min_words,
+                        }
+                else:
+                    yield {
+                        "vertical_strategy": vertical_strategy,
+                        "horizontal_strategy": horizontal_strategy,
+                    }
+
+    @property
+    def page_number(self) -> int:
+        return self.page.page_number
+
+
+class PDFPlumberDocument:
+    pdf: pdfplumber.pdf.PDF
+
+    def __init__(self, pdf: pdfplumber.pdf.PDF):
+        self.pdf = pdf
+
+    @property
+    def pages_count(self) -> int:
+        return len(self.pdf.pages)
+
+    @property
+    def pages(self) -> list[PDFPlumberPage]:
+        return [PDFPlumberPage(page) for page in self.pdf.pages]
 
 
 def read_tables(
@@ -21,126 +81,11 @@ def read_tables(
     column_names_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
-    try:
-        pdf = pdfplumber.open(pdf_path)
-    except Exception as e:
-        _logger.warning(f"Error reading {pdf_path}: {e}")
-        return DataFrameTablesReader(pdf_path, [])
-
-    if mapping:
-        tables = read_mapped_tables(pdf_path, mapping, pdf)
-    else:
-        tables = read_all_tables(pdf_path, column_names_hints, pdf)
-
-    return DataFrameTablesReader(
-        pdf_path, tables, citation=mapping.citation if mapping else None
+    return document.read_tables(
+        pdf_path,
+        column_names_hints=column_names_hints,
+        mapping=mapping,
+        open=lambda pdf_path: PDFPlumberDocument(
+            pdfplumber.open(pdf_path, unicode_norm="NFKD", repair=True)
+        ),
     )
-
-
-def read_all_tables(
-    pdf_path: str, column_names_hints: Optional[str], pdf: pdfplumber.PDF
-):
-    tables = []
-    parsed_hints = (
-        parse_column_names_hints(column_names_hints) if column_names_hints else []
-    )
-    for page in pdf.pages:
-        try:
-            table_fragments = page.extract_tables()
-            for table_fragment in table_fragments:
-                dataframe = read_table(
-                    table_fragment if table_fragment else [],
-                    column_names_hints=parsed_hints,
-                )
-                tables.append(DataFrameTableReader(page.page_number, dataframe))
-        except Exception as e:
-            _logger.warning(f"Error reading page {page.page_number} of {pdf_path}: {e}")
-    return tables
-
-
-def read_mapped_tables(pdf_path: str, mapping: TablesMapping, pdf: pdfplumber.PDF):
-    """
-    Reads the tables described by schema
-    """
-    tables = []
-    for table_mapping in mapping.tables:
-        for page in range(table_mapping.first_page, table_mapping.last_page + 1):
-            if page > len(pdf.pages):
-                _logger.warning(
-                    f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
-                )
-                break
-
-            extracted_tables = pdf.pages[page - 1].extract_tables()
-            if not extracted_tables:
-                _logger.warning(f"Couldn't read tables in page {page} of {pdf_path}")
-                continue
-
-            try:
-                dataframe = read_table(
-                    table_fragment=extracted_tables[-1],
-                    table_mapping=table_mapping,
-                    page=page,
-                )
-                tables.append(
-                    DataFrameTableReader(
-                        title=table_mapping.title, page=page, dataframe=dataframe
-                    )
-                )
-            except Exception as e:
-                _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
-    return tables
-
-
-def parse_column_names_hints(hints: str) -> list[str]:
-    return [normalize_name(hint) for hint in tokenize_schema(hints)]
-
-
-def first_row_is_table_header(rows: TableFragment, column_names_hints: list[str]):
-    return (
-        rows
-        and column_names_hints
-        and any(normalize_name(key) in column_names_hints for key in rows[0])
-    )
-
-
-def to_dataframe(rows: TableFragment, column_names_hints: list[str]):
-    if first_row_is_table_header(rows, column_names_hints):
-        return pd.DataFrame(rows[1:], columns=rows[0])
-    return pd.DataFrame(rows)
-
-
-def read_table(
-    table_fragment: TableFragment,
-    column_names_hints: list[str] = [],
-    table_mapping: Optional[TableMapping] = None,
-    page: Optional[int] = None,
-) -> pd.DataFrame:
-    dataframe = to_dataframe(table_fragment, column_names_hints)
-
-    if table_mapping is not None:
-        selected_column_names = list(
-            map(
-                lambda mapping: mapping.from_column_number,
-                table_mapping.column_mappings,
-            )
-        )
-        renamer = {
-            mapping.from_column_number: mapping.to_column_name
-            for mapping in table_mapping.column_mappings
-        }
-        dataframe = dataframe[selected_column_names].rename(columns=renamer)
-        if table_mapping.header_mode == "all_pages" or (
-            table_mapping.header_mode == "first_page_only"
-            and page == table_mapping.first_page
-        ):
-            dataframe.drop([0], inplace=True)
-
-    dataframe.rename(columns=lambda column: normalize_name(str(column)), inplace=True)
-    dataframe = dataframe.apply(
-        lambda row: list(
-            map(lambda v: v.replace("\n", " ") if isinstance(v, str) else v, row)
-        )
-    )
-
-    return dataframe

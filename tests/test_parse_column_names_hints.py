@@ -1,4 +1,4 @@
-from paper2table.readers.pdfplumber import parse_column_names_hints
+from paper2table.hints import parse_column_names_hints
 
 
 def test_simple_comma_separated():

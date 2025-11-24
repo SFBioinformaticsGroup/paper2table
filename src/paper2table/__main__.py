@@ -130,6 +130,7 @@ def setup_logging(loglevel):
     logging.basicConfig(
         stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
+    logging.getLogger().setLevel(logging.WARN)
     if loglevel:
         _logger.setLevel(loglevel)
 
@@ -143,9 +144,7 @@ def get_tables_reader(args):
             )
             sys.exit(1)
 
-        def read_tables(
-            paper_path: str, _mapping: Optional[TablesMapping] = None
-        ):
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             time.sleep(args.model_sleep)
             _logger.debug(f"Processing paper {paper_path} with model {args.model}")
             return agent.read_tables(paper_path, model=args.model, schema=schema)
@@ -157,15 +156,13 @@ def get_tables_reader(args):
             else ""
         )
 
-        _logger.debug(f"Using pdfplumber reader with column names hints {column_names_hints}")
+        _logger.debug(
+            f"Using pdfplumber reader with column names hints {column_names_hints}"
+        )
 
-        def read_tables(
-            paper_path: str, mapping: Optional[TablesMapping] = None
-        ):
+        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
 
-            _logger.debug(
-                f"Processing paper {paper_path}..."
-            )
+            _logger.debug(f"Processing paper {paper_path}...")
             return pdfplumber.read_tables(
                 paper_path, column_names_hints, mapping=mapping
             )
@@ -173,9 +170,7 @@ def get_tables_reader(args):
     else:
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
-        def read_tables(
-            paper_path: str, _mapping: Optional[TablesMapping] = None
-        ):
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
 
@@ -195,13 +190,9 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(
-            paper_path: str, _mapping: Optional[TablesMapping] = None
-        ):
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             time.sleep(args.model_sleep)
-            _logger.debug(
-                f"Processing paper {paper_path}"
-            )
+            _logger.debug(f"Processing paper {paper_path}")
             return hybrid.read_tables(
                 paper_path,
                 model=args.model,
