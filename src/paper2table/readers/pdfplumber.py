@@ -68,7 +68,7 @@ class PDFPlumberDocument:
         self.pdf = pdf
 
     @property
-    def pages_count(self) -> int:
+    def page_count(self) -> int:
         return len(self.pdf.pages)
 
     @property

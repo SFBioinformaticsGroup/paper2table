@@ -33,7 +33,7 @@ class PDFDocument(Protocol):
     """
 
     @property
-    def pages_count(self) -> int: ...
+    def page_count(self) -> int: ...
 
     @property
     def pages(self) -> list[PDFPage]: ...
@@ -71,7 +71,7 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
     tables = []
     for table_mapping in mapping.tables:
         for page in range(table_mapping.first_page, table_mapping.last_page + 1):
-            if page > document.pages_count:
+            if page > document.page_count:
                 _logger.warning(
                     f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
                 )
