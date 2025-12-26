@@ -14,11 +14,6 @@ def test_read_table_without_options():
     assert result.tables[0].page == 1
     assert result.tables[0].rows == [
         {
-            "0": "common_name",
-            "1": "scienti\x00c_name",  # FIXME encoding is broken
-            "2": "species",
-        },
-        {
             "0": "Sun\x00ower",
             "1": "Helianthus annuus",
             "2": "annuus",

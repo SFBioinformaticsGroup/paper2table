@@ -106,6 +106,9 @@ def read_table(
 ) -> pd.DataFrame:
     dataframe: pd.DataFrame = table_fragment.to_dataframe(column_names_hints)
 
+    def index_renamer(column):
+        return dataframe.columns.get_loc(column)
+
     if table_mapping is not None:
         selected_column_names = list(
             map(
@@ -117,7 +120,9 @@ def read_table(
             mapping.from_column_number: mapping.to_column_name
             for mapping in table_mapping.column_mappings
         }
-        dataframe = dataframe[selected_column_names].rename(columns=renamer)
+        dataframe = dataframe.rename(index_renamer, axis="columns")[
+            selected_column_names
+        ].rename(columns=renamer)
         if table_mapping.header_mode == "all_pages" or (
             table_mapping.header_mode == "first_page_only"
             and page == table_mapping.first_page

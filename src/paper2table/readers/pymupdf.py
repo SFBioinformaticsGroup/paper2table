@@ -28,7 +28,6 @@ class PyMuPDFPage:
 
     def extract_tables(self) -> list[PyMuPDFTable]:
         tables = self.page.find_tables().tables
-        _logger.debug("Extracted %i tables", len(tables))
         return [PyMuPDFTable(table) for table in tables]
 
     @property
