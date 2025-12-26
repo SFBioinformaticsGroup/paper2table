@@ -1,4 +1,4 @@
-from utils import normalize_name
+from utils.normalize_name import normalize_name
 
 type Row = list[str | None]
 
