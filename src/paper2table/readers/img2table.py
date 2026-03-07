@@ -19,8 +19,13 @@ class Img2TableTable:
     def __init__(self, table: ExtractedTable):
         self.table = table
 
-    def to_dataframe(self, column_names_hints: list[str]) -> pd.DataFrame:
-        return self.table.df
+    def to_dataframe(
+        self, _column_names_hints: list[str], skip_first_row: bool
+    ) -> pd.DataFrame:
+        dataframe = self.table.df
+        if skip_first_row:
+            dataframe.drop([0], inplace=True)
+        return dataframe
 
 
 class Img2TablePage:

@@ -22,8 +22,8 @@ class PDFPlumberTable:
     def __init__(self, rows: TableFragment):
         self.rows = rows
 
-    def to_dataframe(self, column_names_hints: list[str]) -> pd.DataFrame:
-        if first_row_is_table_header(self.rows, column_names_hints):
+    def to_dataframe(self, column_names_hints: list[str], skip_first_row: bool) -> pd.DataFrame:
+        if skip_first_row or first_row_is_table_header(self.rows, column_names_hints):
             return pd.DataFrame(self.rows[1:], columns=self.rows[0])
         return pd.DataFrame(self.rows)
 

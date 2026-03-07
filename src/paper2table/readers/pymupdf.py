@@ -3,7 +3,6 @@ from typing import Optional
 
 import pandas as pd
 import pymupdf
-import pymupdf.layout
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
@@ -18,7 +17,9 @@ class PyMuPDFTable:
     def __init__(self, table: pymupdf.table.Table):
         self.table = table
 
-    def to_dataframe(self, _column_names_hints: list[str]) -> pd.DataFrame:
+    def to_dataframe(
+        self, _column_names_hints: list[str], _skip_first_row: bool
+    ) -> pd.DataFrame:
         return self.table.to_pandas()
 
 
