@@ -1,10 +1,9 @@
 import pytest
 
 from paper2table.mapping import ColumnMapping, TableMapping, TablesMapping
-from paper2table.readers.pdfplumber import (
+from paper2table.readers.pymupdf import (
     read_tables,
 )
-
 
 def test_read_table_without_options():
     result = read_tables("./tests/data/demo_table.pdf")
@@ -14,59 +13,54 @@ def test_read_table_without_options():
     assert result.tables[0].page == 1
     assert result.tables[0].rows == [
         {
-            "0": "common_name",
-            "1": "scienti\x00c_name",  # FIXME encoding is broken
-            "2": "species",
+            "common_name": "Sunflower",
+            "scientific_name": "Helianthus annuus",
+            "species": "annuus",
         },
         {
-            "0": "Sun\x00ower",
-            "1": "Helianthus annuus",
-            "2": "annuus",
+            "common_name": "Rose",
+            "scientific_name": "Rosa gallica",
+            "species": "gallica",
         },
         {
-            "0": "Rose",
-            "1": "Rosa gallica",
-            "2": "gallica",
+            "common_name": "Tulip",
+            "scientific_name": "Tulipa gesneriana",
+            "species": "gesneriana",
         },
         {
-            "0": "Tulip",
-            "1": "Tulipa gesneriana",
-            "2": "gesneriana",
+            "common_name": "Lavender",
+            "scientific_name": "Lavandula angustifolia",
+            "species": "angustifolia",
         },
         {
-            "0": "Lavender",
-            "1": "Lavandula angustifolia",
-            "2": "angustifolia",
+            "common_name": "Oak",
+            "scientific_name": "Quercus robur",
+            "species": "robur",
         },
         {
-            "0": "Oak",
-            "1": "Quercus robur",
-            "2": "robur",
+            "common_name": "Maple",
+            "scientific_name": "Acer saccharum",
+            "species": "saccharum",
         },
         {
-            "0": "Maple",
-            "1": "Acer saccharum",
-            "2": "saccharum",
+            "common_name": "Dandelion",
+            "scientific_name": "Taraxacum officinale",
+            "species": "officinale",
         },
         {
-            "0": "Dandelion",
-            "1": "Taraxacum o\x00cinale",
-            "2": "o\x00cinale",
+            "common_name": "Bamboo",
+            "scientific_name": "Bambusa vulgaris",
+            "species": "vulgaris",
         },
         {
-            "0": "Bamboo",
-            "1": "Bambusa vulgaris",
-            "2": "vulgaris",
+            "common_name": "Cactus (Prickly Pear)",
+            "scientific_name": "Opuntia ficus-indica",
+            "species": "ficus-indica",
         },
         {
-            "0": "Cactus (Prickly Pear)",
-            "1": "Opuntia \x00cus-indica",
-            "2": "\x00cus-indica",
-        },
-        {
-            "0": "Coffee",
-            "1": "Coffea arabica",
-            "2": "arabica",
+            "common_name": "Coffee",
+            "scientific_name": "Coffea arabica",
+            "species": "arabica",
         },
     ]
     result_dict = result.to_dict()
@@ -97,53 +91,53 @@ def test_read_table_with_hints():
     assert result.tables[0].page == 1
     assert result.tables[0].rows == [
         {
-            "common_name": "Sun\x00ower",
-            "scienti_c_name": "Helianthus annuus",
+            "common_name": "Sunflower",
+            "scientific_name": "Helianthus annuus",
             "species": "annuus",
         },
         {
             "common_name": "Rose",
-            "scienti_c_name": "Rosa gallica",
+            "scientific_name": "Rosa gallica",
             "species": "gallica",
         },
         {
             "common_name": "Tulip",
-            "scienti_c_name": "Tulipa gesneriana",
+            "scientific_name": "Tulipa gesneriana",
             "species": "gesneriana",
         },
         {
             "common_name": "Lavender",
-            "scienti_c_name": "Lavandula angustifolia",
+            "scientific_name": "Lavandula angustifolia",
             "species": "angustifolia",
         },
         {
             "common_name": "Oak",
-            "scienti_c_name": "Quercus robur",
+            "scientific_name": "Quercus robur",
             "species": "robur",
         },
         {
             "common_name": "Maple",
-            "scienti_c_name": "Acer saccharum",
+            "scientific_name": "Acer saccharum",
             "species": "saccharum",
         },
         {
             "common_name": "Dandelion",
-            "scienti_c_name": "Taraxacum o\x00cinale",
-            "species": "o\x00cinale",
+            "scientific_name": "Taraxacum officinale",
+            "species": "officinale",
         },
         {
             "common_name": "Bamboo",
-            "scienti_c_name": "Bambusa vulgaris",
+            "scientific_name": "Bambusa vulgaris",
             "species": "vulgaris",
         },
         {
             "common_name": "Cactus (Prickly Pear)",
-            "scienti_c_name": "Opuntia \x00cus-indica",
-            "species": "\x00cus-indica",
+            "scientific_name": "Opuntia ficus-indica",
+            "species": "ficus-indica",
         },
         {
             "common_name": "Coffee",
-            "scienti_c_name": "Coffea arabica",
+            "scientific_name": "Coffea arabica",
             "species": "arabica",
         },
     ]
@@ -182,7 +176,7 @@ def test_read_table_with_mapping_that_matches_page():
     assert result.tables[0].page == 1
     assert result.tables[0].rows == [
         {
-            "vernacular_name": "Sun\x00ower",
+            "vernacular_name": "Sunflower",
             "scientific_name": "Helianthus annuus",
         },
         {
@@ -207,7 +201,7 @@ def test_read_table_with_mapping_that_matches_page():
         },
         {
             "vernacular_name": "Dandelion",
-            "scientific_name": "Taraxacum o\x00cinale",
+            "scientific_name": "Taraxacum officinale",
         },
         {
             "vernacular_name": "Bamboo",
@@ -215,7 +209,7 @@ def test_read_table_with_mapping_that_matches_page():
         },
         {
             "vernacular_name": "Cactus (Prickly Pear)",
-            "scientific_name": "Opuntia \x00cus-indica",
+            "scientific_name": "Opuntia ficus-indica",
         },
         {
             "vernacular_name": "Coffee",
@@ -257,11 +251,7 @@ def test_read_table_with_mapping_without_headers():
     assert result.tables[0].page == 1
     assert result.tables[0].rows == [
         {
-            "scientific_name": "scienti\x00c_name",
-            "vernacular_name": "common_name",
-        },
-        {
-            "vernacular_name": "Sun\x00ower",
+            "vernacular_name": "Sunflower",
             "scientific_name": "Helianthus annuus",
         },
         {
@@ -286,7 +276,7 @@ def test_read_table_with_mapping_without_headers():
         },
         {
             "vernacular_name": "Dandelion",
-            "scientific_name": "Taraxacum o\x00cinale",
+            "scientific_name": "Taraxacum officinale",
         },
         {
             "vernacular_name": "Bamboo",
@@ -294,7 +284,7 @@ def test_read_table_with_mapping_without_headers():
         },
         {
             "vernacular_name": "Cactus (Prickly Pear)",
-            "scientific_name": "Opuntia \x00cus-indica",
+            "scientific_name": "Opuntia ficus-indica",
         },
         {
             "vernacular_name": "Coffee",

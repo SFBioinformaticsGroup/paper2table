@@ -3,11 +3,13 @@ import logging
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 from tqdm import tqdm
 
 from paper2table import __version__
-from paper2table.readers import agent, camelot, pdfplumber
+from paper2table.mapping import TablesMapping
+from paper2table.readers import agent, camelot, pdfplumber, hybrid
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
@@ -43,6 +45,14 @@ def parse_args():
         default="pdfplumber",
     )
     parser.add_argument(
+        "-H",
+        "--hybrid",
+        dest="hybrid",
+        help="Enable hybrid mode",
+        action="store_const",
+        const=True,
+    )
+    parser.add_argument(
         "-m",
         "--model",
         type=str,
@@ -61,7 +71,7 @@ def parse_args():
         "-s",
         "--schema",
         type=str,
-        help="set table schema in the form column:type. Only used by agent reader",
+        help="set table schema in the form column:type. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-p",
@@ -70,10 +80,16 @@ def parse_args():
         help="set table schema path. Only used by agent reader",
     )
     parser.add_argument(
+        "-M",
+        "--mappings-path",
+        type=str,
+        help="set tables mapping path. Only used by hybrid reader",
+    )
+    parser.add_argument(
         "-c",
         "--column-names-hints-path",
         type=str,
-        help="set table schema path. Only used by agent reader",
+        help="set table schema path. Only used by pdfplumber reader",
     )
     parser.add_argument(
         "-o",
@@ -112,43 +128,78 @@ def setup_logging(loglevel):
     """
     logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
     logging.basicConfig(
-        level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
+        stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
+    logging.getLogger().setLevel(logging.WARN)
+    if loglevel:
+        _logger.setLevel(loglevel)
 
 
 def get_tables_reader(args):
     if args.reader == "agent":
         schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
         if not schema:
-            print("Missing schema. Need to either pass --schema-path or --schema")
+            print(
+                "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
+            )
             sys.exit(1)
 
-        def read_tables(paper_path: str):
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             time.sleep(args.model_sleep)
-            _logger.debug(
-                f"Processing paper {paper_path} with model {args.model} and {schema}..."
-            )
+            _logger.debug(f"Processing paper {paper_path} with model {args.model}")
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
     elif args.reader == "pdfplumber":
+        column_names_hints = (
+            Path(args.column_names_hints_path).read_text()
+            if args.column_names_hints_path
+            else ""
+        )
 
-        def read_tables(paper_path: str):
-            column_names_hints = (
-                Path(args.column_names_hints_path).read_text()
-                if args.column_names_hints_path
-                else ""
-            )
+        _logger.debug(
+            f"Using pdfplumber reader with column names hints {column_names_hints}"
+        )
 
-            _logger.debug(
-                f"Processing paper {paper_path} with pdfplumber and {column_names_hints} as column names hints..."
+        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
+
+            _logger.debug(f"Processing paper {paper_path}...")
+            return pdfplumber.read_tables(
+                paper_path, column_names_hints, mapping=mapping
             )
-            return pdfplumber.read_tables(paper_path, column_names_hints)
 
     else:
+        _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
-        def read_tables(paper_path: str):
-            _logger.debug(f"Processing paper {paper_path} with camelot...")
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+            _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
+
+    if args.hybrid:
+        mappings_path = (
+            Path(args.mappings_path) if args.schema_path else Path("./mappings")
+        )
+        schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
+        if not schema:
+            print(
+                "Missing schema. Need to either pass --schema-path or --schema when using hybrid mode"
+            )
+            sys.exit(1)
+
+        _logger.debug(f"Schema is {schema}")
+        _logger.debug(f"Applying {args.reader}-{args.model} hybrid reader")
+
+        base_reader = read_tables
+
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+            time.sleep(args.model_sleep)
+            _logger.debug(f"Processing paper {paper_path}")
+            return hybrid.read_tables(
+                paper_path,
+                model=args.model,
+                mappings_path=mappings_path,
+                schema=schema,
+                reader=base_reader,
+            )
 
     return read_tables
 

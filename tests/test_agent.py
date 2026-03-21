@@ -1,6 +1,6 @@
 import pytest
-from paper2table.readers.agent import parse_schema
 
+from utils.columns_schema import parse_schema
 
 def test_parse_schema_space_separated():
     assert parse_schema("name:str age:int") == {"name": (str, ...), "age": (int, ...)}
