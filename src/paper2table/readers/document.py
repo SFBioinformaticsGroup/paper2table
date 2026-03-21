@@ -75,7 +75,7 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
         for page in range(table_mapping.first_page, table_mapping.last_page + 1):
             if page > document.page_count:
                 _logger.warning(
-                    f"Page {page} in schema is out of bonds of {pdf_path}. Abort processing"
+                    f"Page {page} in schema is out of bounds of {pdf_path}. Abort processing"
                 )
                 break
 

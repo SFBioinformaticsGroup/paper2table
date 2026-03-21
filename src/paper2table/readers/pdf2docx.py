@@ -16,7 +16,9 @@ class Pdf2DocxTable:
     def __init__(self, rows):
         self.table = rows
 
-    def to_dataframe(self, column_names_hints: list[str], skip_first_row: bool) -> pd.DataFrame:
+    def to_dataframe(
+        self, column_names_hints: list[str], skip_first_row: bool
+    ) -> pd.DataFrame:
         if skip_first_row or first_row_is_table_header(self.rows, column_names_hints):
             return pd.DataFrame(self.rows[1:], columns=self.rows[0])
         return pd.DataFrame(self.rows)
@@ -43,8 +45,9 @@ class Pdf2DocxPage:
 class Pdf2DocxDocument:
     document: Converter
 
-    def __init__(self, document):
+    def __init__(self, document: Converter):
         self.document = document
+        self.document.load_pages()
 
     @property
     def page_count(self) -> int:
@@ -62,15 +65,13 @@ def read_tables(
     column_names_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
-
-    return document.read_tables(
-        pdf_path,
-        column_names_hints=column_names_hints,
-        mapping=mapping,
-        open=lambda pdf_path: Pdf2DocxDocument(open_pdf(pdf_path)),
-    )
-
-
-def open_pdf(pdf_path: str):
-    with Converter(pdf_path) as converter:
-        return converter
+    converter = Converter(pdf_path)
+    try:
+        return document.read_tables(
+            pdf_path,
+            column_names_hints=column_names_hints,
+            mapping=mapping,
+            open=lambda _pdf_path: Pdf2DocxDocument(converter),
+        )
+    finally:
+        converter.close()
