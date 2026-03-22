@@ -1,7 +1,6 @@
-from img2table.document import Image
+from img2table.document import PDF
 from img2table.ocr import TesseractOCR
 from img2table.tables.objects.extraction import ExtractedTable
-from img2table.document import Image, PDF
 
 from typing import Optional
 import pandas as pd
