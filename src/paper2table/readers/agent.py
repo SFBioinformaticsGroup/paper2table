@@ -8,6 +8,7 @@ from utils.columns_schema import parse_schema
 from ..tables_reader import TablesReader
 from ..tables_reader.pydantic import TablesModelWrapper
 
+
 def build_table_model(schema: str):
     """
     Build and return a TableModel from a schema string.

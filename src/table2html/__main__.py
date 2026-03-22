@@ -41,9 +41,7 @@ def build_html(metadata, papers):
 
     if metadata:
         html.append(
-            "<h2>Metadata</h2><pre>{}</pre>".format(
-                json.dumps(metadata, indent=2, ensure_ascii=False)
-            )
+            f"<h2>Metadata</h2><pre>{json.dumps(metadata, indent=2, ensure_ascii=False)}</pre>"
         )
 
     html.append("<h2>Papers</h2>")
@@ -74,7 +72,7 @@ def build_html(metadata, papers):
                         if row_agreement_level <= 1
                         else "medium" if row_agreement_level == 2 else "high"
                     )
-                    html.append("<tr class='{}'>".format(css_class))
+                    html.append(f"<tr class='{css_class}'>")
                     for col in columns:
                         html.append(f"<td>{row.get(col,'')}</td>")
                     html.append("</tr>")
