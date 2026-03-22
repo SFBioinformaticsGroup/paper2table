@@ -46,12 +46,12 @@ _logger = logging.getLogger(__name__)
 
 def read_tables(
     pdf_path: str,
-    open: Callable[[str], PDFDocument],
+    read_document: Callable[[str], PDFDocument],
     column_names_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
     try:
-        document = open(pdf_path)
+        document = read_document(pdf_path)
     except Exception as e:
         _logger.warning(f"Error reading {pdf_path}: {e}")
         return DataFrameTablesReader(pdf_path, [])

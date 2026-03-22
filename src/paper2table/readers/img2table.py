@@ -68,7 +68,7 @@ def read_tables(
         pdf_path,
         column_names_hints=column_names_hints,
         mapping=mapping,
-        open=lambda pdf_path: Img2TableDocument(open_pdf(pdf_path)),
+        read_document=lambda pdf_path: Img2TableDocument(open_pdf(pdf_path)),
     )
 
 

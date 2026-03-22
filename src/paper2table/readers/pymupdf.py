@@ -64,5 +64,5 @@ def read_tables(
             pdf_path,
             column_names_hints=column_names_hints,
             mapping=mapping,
-            open=lambda _: PyMuPDFDocument(pdf),
+            read_document=lambda _: PyMuPDFDocument(pdf),
         )
