@@ -41,15 +41,21 @@ instructions = (
     "",
     "TASK",
     "====",
-    "You are going to read the given paper and extract zero or more tables that corresponds to the given structure",
+    "You are going to read the given paper and extract zero or more tables"
+    " that corresponds to the given structure",
     "",
     "RESTRICTIONS" "============",
-    " * In order to generate the table, only consider data that is in tabular format. Ignore any plain text paragraph",
+    " * In order to generate the table, only consider data that is in tabular format."
+    " Ignore any plain text paragraph",
     " * Don't try to translate data. Keep it in its original language",
-    " * Don't try to transform cell's contents nor to resume text nor to paraphrase it. Extract data as-is",
-    " * If there is no data available for a column and a row, don't try to generate new data. Place an empty string instead",
-    " * When possible, you'll generate in the citation output field an APA-style cite of the paper from where the table was extracted",
-    " * When a table spans across multiple pages, generate multiple table_fragments, one for each page. Otherwise, generate a single table fragment",
+    " * Don't try to transform cell's contents nor to resume text nor to paraphrase it."
+    " Extract data as-is",
+    " * If there is no data available for a column and a row, don't try to generate"
+    " new data. Place an empty string instead",
+    " * When possible, you'll generate in the citation output field an APA-style cite"
+    " of the paper from where the table was extracted",
+    " * When a table spans across multiple pages, generate multiple table_fragments,"
+    " one for each page. Otherwise, generate a single table fragment",
     " * Annotate each table fragment with the page number where it appears",
 )
 
