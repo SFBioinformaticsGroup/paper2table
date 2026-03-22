@@ -237,7 +237,7 @@ def get_table_writer(args):
 
     else:
 
-        def write_tables(result: TablesReader, paper_path: str):
+        def write_tables(result: TablesReader, _paper_path: str):
             stdout.write_tables(result)
 
     return write_tables
