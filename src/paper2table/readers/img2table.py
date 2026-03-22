@@ -1,10 +1,10 @@
+import logging
+from typing import Optional
+
+import pandas as pd
 from img2table.document import PDF
 from img2table.ocr import TesseractOCR
 from img2table.tables.objects.extraction import ExtractedTable
-
-from typing import Optional
-import pandas as pd
-import logging
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
