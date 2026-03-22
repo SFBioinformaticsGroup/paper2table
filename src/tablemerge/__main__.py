@@ -2,9 +2,9 @@ import argparse
 import json
 from pathlib import Path
 
-from .merge import merge_tablesfiles, MergeError
-
 from tablevalidate.schema import TablesFile
+
+from .merge import merge_tablesfiles, MergeError
 
 
 def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
@@ -34,7 +34,10 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
         merged_tablesfile: TablesFile = merge_tablesfiles(
             tablesfiles, row_agreement=True
         )
-        print(f"{basename}: MERGED: {len(tablesfiles)} files into {len(merged_tablesfile.tables)} tables")
+        print(
+            f"{basename}: MERGED: {len(tablesfiles)} files"
+            f" into {len(merged_tablesfile.tables)} tables"
+        )
         with open(output_path / basename, "w", encoding="utf-8") as outfile:
             json.dump(merged_tablesfile.model_dump(), outfile, ensure_ascii=False)
     except MergeError as e:

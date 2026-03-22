@@ -19,8 +19,8 @@ def build_table_model(schema: str):
         "height:float\nweight:float"
     """
     fields = parse_schema(schema)
-    RowModel = create_model("RowModel", **fields)
-    TableFragmentModel = create_model(
+    RowModel = create_model("RowModel", **fields)  # pylint: disable=invalid-name
+    TableFragmentModel = create_model(  # pylint: disable=invalid-name
         "TableFragment", rows=(list[RowModel], ...), page=(int, ...)
     )
     return create_model("TableModel", table_fragments=(list[TableFragmentModel], ...))

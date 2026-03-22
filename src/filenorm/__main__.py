@@ -69,8 +69,8 @@ def plan_actions(files: list[str]):
 def execute(
     duplicates, renames, confirm_delete, confirm_rename, explain_delete, explain_rename
 ):
-    for md5, duplicates in duplicates.items():
-        for file in duplicates:
+    for md5, files in duplicates.items():
+        for file in files:
             if confirm_delete(md5, file):
                 os.remove(file)
                 explain_delete(file)

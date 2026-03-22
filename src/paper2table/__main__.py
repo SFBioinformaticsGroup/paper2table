@@ -144,7 +144,8 @@ def get_tables_reader(args):
         )
         if not schema:
             print(
-                "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
+                "Missing schema. Need to either pass --schema-path"
+                " or --schema when using agent reader"
             )
             sys.exit(1)
 
@@ -189,7 +190,8 @@ def get_tables_reader(args):
         )
         if not schema:
             print(
-                "Missing schema. Need to either pass --schema-path or --schema when using hybrid mode"
+                "Missing schema. Need to either pass --schema-path"
+                " or --schema when using hybrid mode"
             )
             sys.exit(1)
 

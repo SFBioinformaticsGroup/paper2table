@@ -31,8 +31,7 @@ def normalize_value(value: ColumnValue) -> str:
             )
             for value_with_agreement in value
         ]
-    else:
-        return value
+    return value
 
 
 def normalize_row(row: Row, row_agreement: bool = False) -> Row:
@@ -111,7 +110,7 @@ def merge_tablesfiles(
     """
     Process one or more "tables" elements
     """
-    if not len(tablesfiles):
+    if not tablesfiles:
         raise MergeError("Must pass at least TablesFile element")
 
     merged_tables: list[Table] = []

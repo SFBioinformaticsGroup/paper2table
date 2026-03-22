@@ -12,5 +12,6 @@ def validate_file(path: Path) -> Optional[ValueError]:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
         TablesFile.model_validate(data)
+        return None
     except (json.JSONDecodeError, ValidationError) as e:
         return e
