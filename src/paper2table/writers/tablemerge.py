@@ -24,7 +24,7 @@ class TablemergeMetadata:
     def get_reader(self):
         if self.reader == "agent":
             return self.model
-        elif self.reader == "hybrid":
+        if self.reader == "hybrid":
             return f"hybrid-pdfplumber-{self.model}"
         return self.reader
 

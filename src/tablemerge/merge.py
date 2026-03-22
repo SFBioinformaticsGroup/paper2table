@@ -23,7 +23,7 @@ def normalize_str_value(value: str):
 def normalize_value(value: ColumnValue) -> str:
     if isinstance(value, str):
         return normalize_str_value(value)
-    elif isinstance(value, list):
+    if isinstance(value, list):
         return [
             ValueWithAgreement(
                 value=normalize_str_value(value_with_agreement.value),
