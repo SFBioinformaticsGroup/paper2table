@@ -137,7 +137,11 @@ def setup_logging(loglevel):
 
 def get_tables_reader(args):
     if args.reader == "agent":
-        schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
+        schema = (
+            Path(args.schema_path).read_text(encoding="utf-8")
+            if args.schema_path
+            else args.schema
+        )
         if not schema:
             print(
                 "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
@@ -151,7 +155,7 @@ def get_tables_reader(args):
 
     elif args.reader == "pdfplumber":
         column_names_hints = (
-            Path(args.column_names_hints_path).read_text()
+            Path(args.column_names_hints_path).read_text(encoding="utf-8")
             if args.column_names_hints_path
             else ""
         )
@@ -178,7 +182,11 @@ def get_tables_reader(args):
         mappings_path = (
             Path(args.mappings_path) if args.schema_path else Path("./mappings")
         )
-        schema = Path(args.schema_path).read_text() if args.schema_path else args.schema
+        schema = (
+            Path(args.schema_path).read_text(encoding="utf-8")
+            if args.schema_path
+            else args.schema
+        )
         if not schema:
             print(
                 "Missing schema. Need to either pass --schema-path or --schema when using hybrid mode"
