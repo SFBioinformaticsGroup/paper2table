@@ -10,7 +10,7 @@ from . import file
 
 
 class TablemergeMetadata:
-    reader: Literal["agent", "hybrid", "pdfplumber", "camelot"]
+    reader: Literal["agent", "hybrid", "pdfplumber", "camelot", "img2table", "pymupdf"]
     model: Optional[str]
     datetime: dt
     uuid: UUID

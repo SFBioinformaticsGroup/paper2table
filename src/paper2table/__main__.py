@@ -4,12 +4,13 @@ import sys
 import time
 from pathlib import Path
 from typing import Optional
+import traceback
 
 from tqdm import tqdm
 
 from paper2table import __version__
 from paper2table.mapping import TablesMapping
-from paper2table.readers import agent, camelot, pdfplumber, hybrid
+from paper2table.readers import agent, camelot, pdfplumber, img2table, pymupdf, hybrid
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
@@ -40,7 +41,7 @@ def parse_args():
     parser.add_argument(
         "-r",
         "--reader",
-        choices=["pdfplumber", "camelot", "agent"],
+        choices=["agent", "pdfplumber", "camelot", "img2table", "pymupdf"],
         help="How tables are going to be extracted",
         default="pdfplumber",
     )
@@ -172,12 +173,49 @@ def get_tables_reader(args):
                 paper_path, column_names_hints, mapping=mapping
             )
 
-    else:
+    elif args.reader == "img2table":
+        column_names_hints = (
+            Path(args.column_names_hints_path).read_text(encoding="utf-8")
+            if args.column_names_hints_path
+            else ""
+        )
+
+        _logger.debug(
+            f"Using img2table reader with column names hints {column_names_hints}"
+        )
+
+        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
+
+            _logger.debug(f"Processing paper {paper_path}...")
+            return img2table.read_tables(
+                paper_path, column_names_hints, mapping=mapping
+            )
+
+    elif args.reader == "pymupdf":
+        column_names_hints = (
+            Path(args.column_names_hints_path).read_text(encoding="utf-8")
+            if args.column_names_hints_path
+            else ""
+        )
+
+        _logger.debug(
+            f"Using pymupdf reader with column names hints {column_names_hints}"
+        )
+
+        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
+
+            _logger.debug(f"Processing paper {paper_path}...")
+            return pymupdf.read_tables(paper_path, column_names_hints, mapping=mapping)
+
+    elif args.reader == "camelot":
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
         def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
+
+    else:
+        raise ValueError(f"Reader {args.reader} is not implemented yet")
 
     if args.hybrid:
         mappings_path = (
