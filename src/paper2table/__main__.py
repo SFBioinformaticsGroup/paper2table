@@ -303,8 +303,8 @@ def main():
             write_tables(result, paper_path)
 
             _logger.debug(f"Paper {paper_path} processed")
-        except Exception as e:
-            _logger.warning(f"Paper {paper_path} failed {str(e)}")
+        except:
+            _logger.warning(f"Paper {paper_path} failed {str(traceback.format_exc())}")
 
 
 if __name__ == "__main__":
