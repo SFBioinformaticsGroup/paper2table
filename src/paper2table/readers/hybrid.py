@@ -65,16 +65,22 @@ def read_tables(
     schema: str,
     mappings_path: Path,
     reader: Callable[[str, TablesMapping], TablesReader],
+    force_mapping_generation: bool = False,
 ) -> TablesReader:
     paper_path = Path(path)
     mapping_path = mappings_path / paper_path.name.replace(".pdf", ".mapping.json")
-    if mapping_path.exists():
+    if mapping_path.exists() and not force_mapping_generation:
         _logger.debug("Using existing mapping for %s", paper_path)
-        mapping = TablesMapping.model_validate_json(mapping_path.read_text())
-    else:
-        _logger.debug(
-            "Mapping for %s doesn't exist. Generating it with model", paper_path
+        mapping = TablesMapping.model_validate_json(
+            mapping_path.read_text(encoding="utf-8")
         )
+    else:
+        if force_mapping_generation and mapping_path.exists():
+            _logger.debug("Forcing mapping regeneration for %s", paper_path)
+        else:
+            _logger.debug(
+                "Mapping for %s doesn't exist. Generating it with model", paper_path
+            )
         agent = Agent(
             model,
             output_type=TablesMapping,

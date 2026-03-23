@@ -54,6 +54,13 @@ def parse_args():
         const=True,
     )
     parser.add_argument(
+        "-F",
+        "--force-mapping-generation",
+        dest="force_mapping_generation",
+        help="Force regeneration of the mapping even if one already exists. Only used in hybrid mode",
+        action="store_true",
+    )
+    parser.add_argument(
         "-m",
         "--model",
         type=str,
@@ -239,6 +246,7 @@ def get_tables_reader(args):
                 mappings_path=mappings_path,
                 schema=schema,
                 reader=base_reader,
+                force_mapping_generation=args.force_mapping_generation,
             )
 
     return read_tables
