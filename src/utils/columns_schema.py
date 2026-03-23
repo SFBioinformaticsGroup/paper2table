@@ -14,10 +14,10 @@ def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
     fields: dict[str, tuple[Any, ...]] = {}
     for part in parts:
         if ":" not in part:
-            raise ValueError(f"Invalid field specifier: {part}")
+            raise ValueError(f"Invalid field specifier: {part}. Verify your schema")
         name, type_str = part.split(":", 1)
         if type_str not in types_map:
-            raise ValueError(f"Unsupported type: {type_str}")
+            raise ValueError(f"Unsupported type: {type_str}. Verify your schema")
         fields[name] = (types_map[type_str], ...)
 
     return fields

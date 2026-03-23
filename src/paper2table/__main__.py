@@ -57,7 +57,7 @@ def parse_args():
         "-m",
         "--model",
         type=str,
-        help="set language model. Default is google-gla:gemini-2.5-flash",
+        help="language model. Default is google-gla:gemini-2.5-flash",
         default="google-gla:gemini-2.5-flash",
     )
     parser.add_argument(
@@ -72,25 +72,25 @@ def parse_args():
         "-s",
         "--schema",
         type=str,
-        help="set table schema in the form column:type. Only used by agent or hybrid reader",
+        help="table schema in the form column:type. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-p",
         "--schema-path",
         type=str,
-        help="set table schema path. Only used by agent reader",
+        help="path to table schema in the form column:type. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-M",
         "--mappings-path",
         type=str,
-        help="set tables mapping path. Only used by hybrid reader",
+        help="tables mapping path where mappings will be stored. Only used by hybrid reader",
     )
     parser.add_argument(
         "-c",
         "--column-names-hints-path",
         type=str,
-        help="set table schema path. Only used by pdfplumber reader",
+        help="column name hints path. Only used by pdfplumber, img2table and pymupdf reader",
     )
     parser.add_argument(
         "-o",
@@ -138,11 +138,7 @@ def setup_logging(loglevel):
 
 def get_tables_reader(args):
     if args.reader == "agent":
-        schema = (
-            Path(args.schema_path).read_text(encoding="utf-8")
-            if args.schema_path
-            else args.schema
-        )
+        schema = read_schema(args)
         if not schema:
             print(
                 "Missing schema. Need to either pass --schema-path"
@@ -219,13 +215,9 @@ def get_tables_reader(args):
 
     if args.hybrid:
         mappings_path = (
-            Path(args.mappings_path) if args.schema_path else Path("./mappings")
+            Path(args.mappings_path) if args.mappings_path else Path("./mappings")
         )
-        schema = (
-            Path(args.schema_path).read_text(encoding="utf-8")
-            if args.schema_path
-            else args.schema
-        )
+        schema = read_schema(args)
         if not schema:
             print(
                 "Missing schema. Need to either pass --schema-path"
@@ -250,6 +242,14 @@ def get_tables_reader(args):
             )
 
     return read_tables
+
+
+def read_schema(args):
+    return (
+        Path(args.schema_path).read_text(encoding="utf-8")
+        if args.schema_path
+        else args.schema
+    )
 
 
 def get_table_writer(args):
