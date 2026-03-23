@@ -202,3 +202,44 @@ def test_pymupdf_cli():
         "citation": None,
         "metadata": {"filename": "demo_table.pdf"},
     }
+
+
+def test_hybrid_pymupdf_cli():
+    # Uses a pre-existing mapping file to avoid hitting the Gemini API.
+    # The mapping lives in tests/data/mappings/demo_table.mapping.json.
+    result = run_paper2table(
+        "-H",
+        "-r",
+        "pymupdf",
+        "-p",
+        "tests/data/demo_schema.txt",
+        "-M",
+        "tests/data/mappings",
+        "tests/data/demo_table.pdf",
+    )
+    assert result == {
+        "tables": [
+            {
+                "table_fragments": [
+                    {
+                        "rows": [
+                            {"name": "Sunflower", "species": "annuus"},
+                            {"name": "Rose", "species": "gallica"},
+                            {"name": "Tulip", "species": "gesneriana"},
+                            {"name": "Lavender", "species": "angustifolia"},
+                            {"name": "Oak", "species": "robur"},
+                            {"name": "Maple", "species": "saccharum"},
+                            {"name": "Dandelion", "species": "officinale"},
+                            {"name": "Bamboo", "species": "vulgaris"},
+                            {"name": "Cactus (Prickly Pear)", "species": "ficus-indica"},
+                            {"name": "Coffee", "species": "arabica"},
+                        ],
+                        "page": 1,
+                        "title": "Plant Species Information",
+                    }
+                ]
+            }
+        ],
+        "citation": "N/A",
+        "metadata": {"filename": "demo_table.pdf"},
+    }

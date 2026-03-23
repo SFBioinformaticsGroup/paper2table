@@ -1,0 +1,16 @@
+{
+  "tables": [
+    {
+      "title": "Plant Species Information",
+      "header_mode": "all_pages",
+      "first_page": 1,
+      "last_page": 1,
+      "column_mappings": [
+        {"from_column_number": 0, "to_column_name": "name"},
+        {"from_column_number": 2, "to_column_name": "species"}
+      ]
+    }
+  ],
+  "citation": "N/A",
+  "metadata": null
+}

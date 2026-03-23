@@ -84,10 +84,63 @@ Running
     # e.g. use the agent backend with the Gemini API
     $ GEMINI_API_KEY=... paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
 
+Hybrid mode
+===========
+
+Hybrid mode combines an LLM agent with a traditional reader backend.
+The agent analyses the PDF once to detect which tables are relevant and how their columns map to your schema.
+That mapping is then passed to the reader (``pdfplumber``, ``camelot``, ``pymupdf``) which performs the actual row extraction.
+This is usually more accurate and stable than running either approach alone.
+
+Enable hybrid mode with ``-H`` together with a schema (``-p`` or ``-s``) and, optionally, ``-r`` to choose the underlying reader (default: ``pdfplumber``).
+
+.. code-block:: bash
+
+    # run hybrid mode with the default pdfplumber reader
+    $ GEMINI_API_KEY=... paper2table -H -m google-gla:gemini-2.5-flash \
+        -p tests/data/demo_schema.txt \
+        tests/data/demo_table.pdf
+
+    # use camelot as the underlying reader instead
+    $ GEMINI_API_KEY=... paper2table -H -r camelot -m google-gla:gemini-2.5-flash \
+        -p tests/data/demo_schema.txt \
+        tests/data/demo_table.pdf
+
+    # save mappings to a custom directory (default: ./mappings)
+    $ GEMINI_API_KEY=... paper2table -H -m google-gla:gemini-2.5-flash \
+        -p tests/data/demo_schema.txt \
+        -M tests/data/mappings \
+        tests/data/demo_table.pdf
+
+The generated mapping is cached in the mappings directory (``<paper_name>.mapping.json``).
+On subsequent runs for the same PDF the agent step is skipped automatically.
+Use ``-F`` to force regeneration of the mapping:
+
+.. code-block:: bash
+
+    # regenerate the mapping even if one already exists
+    $ GEMINI_API_KEY=... paper2table -H -F -m google-gla:gemini-2.5-flash \
+        -p tests/data/demo_schema.txt \
+        tests/data/demo_table.pdf
+
+Each mapping file records which model produced it and when, under a ``metadata`` field:
+
+.. code-block:: javascript
+
+    {
+      "tables": [ ... ],
+      "citation": "...",
+      "metadata": {
+        "model": "google-gla:gemini-2.5-flash",
+        "date": "2026-03-23T10:00:00+00:00"
+      }
+    }pylint $(git ls-files 'src/**/*.py')
+
 Merging
 =======
 
-``paper2table`` also provides a table merging program called ``tablemerge``. In order to be able to use it, you'll need to first generate some metadata. You can produce it using the
+``paper2table`` also provides a table merging program called ``tablemerge``.
+In order to be able to use it, you'll need to first generate some metadata. You can produce it using the
 same ``paper2table`` command:
 
 .. code-block:: bash
