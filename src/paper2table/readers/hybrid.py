@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -6,7 +7,7 @@ from pydantic_ai import Agent, BinaryContent
 
 from utils.columns_schema import parse_schema
 
-from ..mapping import TablesMapping
+from ..mapping import TablesMapping, TablesMappingMetadata
 from ..tables_reader import TablesReader
 
 _logger = logging.getLogger(__name__)
@@ -93,6 +94,10 @@ def read_tables(
                 ),
             ]
         ).output
+        mapping.metadata = TablesMappingMetadata(
+            model=model,
+            date=datetime.now(timezone.utc).isoformat(),
+        )
         mappings_path.mkdir(parents=True, exist_ok=True)
-        mapping_path.write_text(mapping.model_dump_json())
+        mapping_path.write_text(mapping.model_dump_json(), encoding="utf-8")
     return reader(path, mapping)

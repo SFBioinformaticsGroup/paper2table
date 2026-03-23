@@ -1,6 +1,6 @@
 
 
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 
@@ -43,6 +43,12 @@ class TableMapping(BaseModel):
     """
 
 
+class TablesMappingMetadata(BaseModel):
+    model: str
+    date: str
+
+
 class TablesMapping(BaseModel):
     tables: list[TableMapping]
     citation: str
+    metadata: Optional[TablesMappingMetadata] = None
