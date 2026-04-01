@@ -12,7 +12,7 @@ from paper2table.readers.document import PDFDocument, PDFPage
 from paper2table.tables_reader import TablesReader
 
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 
 class Img2TableTable:

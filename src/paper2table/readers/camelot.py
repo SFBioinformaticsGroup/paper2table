@@ -5,7 +5,7 @@ import camelot
 from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
 from ..tables_reader import TablesReader
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 
 def read_tables(pdf_path: str) -> TablesReader:

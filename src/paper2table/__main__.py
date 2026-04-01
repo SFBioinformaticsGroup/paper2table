@@ -20,7 +20,7 @@ __author__ = "Franco Leonardo Bulgarelli"
 __copyright__ = "Franco Leonardo Bulgarelli"
 __license__ = "MIT"
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 
 def parse_args():
@@ -239,7 +239,7 @@ def get_tables_reader(args):
 
         def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
             time.sleep(args.model_sleep)
-            _logger.debug(f"Processing paper {paper_path}")
+            _logger.debug(f"Hybrid processing paper {paper_path}...")
             return hybrid.read_tables(
                 paper_path,
                 model=args.model,

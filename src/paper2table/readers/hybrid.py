@@ -10,7 +10,7 @@ from utils.columns_schema import parse_schema
 from ..mapping import TablesMapping, TablesMappingMetadata
 from ..tables_reader import TablesReader
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 
 def build_instructions(schema):

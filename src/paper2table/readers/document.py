@@ -49,7 +49,7 @@ class PDFDocument:
         return self.pages[index - 1]
 
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 
 def read_tables(
@@ -106,6 +106,9 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
                     last_error = None
                     break
                 except Exception as e:
+                    _logger.debug(
+                        "Strategy %s failed when reading page %i", strategy, page_number
+                    )
                     last_error = e
 
             if last_error:

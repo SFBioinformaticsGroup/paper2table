@@ -13,7 +13,7 @@ from ..mapping import TablesMapping
 from ..tables_reader import TablesReader
 from .document import PDFDocument, PDFPage
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pape2table")
 
 type TableFragment = list[Row]
 
