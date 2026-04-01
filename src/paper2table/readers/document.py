@@ -4,7 +4,7 @@ pdf document
 """
 
 import logging
-from typing import Callable, Optional, Protocol
+from typing import Callable, Optional, Protocol, Generator
 
 import pandas as pd
 
@@ -22,7 +22,10 @@ class PDFTable(Protocol):
     ) -> pd.DataFrame: ...
 
 
-class PDFPage(Protocol):
+class PDFPage:
+    def extract_tables_candidates(self) -> Generator[(str, PDFTable)]:
+        yield ("default", self.extract_tables())
+
     def extract_tables(self) -> list[PDFTable]: ...
 
     @property
@@ -84,26 +87,34 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
                 )
                 break
 
-            extracted_tables = page.extract_tables()
-            if not extracted_tables:
-                _logger.warning(
-                    f"Couldn't read tables in page {page_number} of {pdf_path}"
-                )
-                continue
-
-            try:
-                dataframe = read_table(
-                    table_fragment=extracted_tables[-1],
-                    table_mapping=table_mapping,
-                    page=page_number,
-                )
-                tables.append(
-                    DataFrameTableReader(
-                        title=table_mapping.title, page=page_number, dataframe=dataframe
+            candidates = page.extract_tables_candidates()
+            for strategy, extracted_tables in candidates:
+                if not extracted_tables:
+                    _logger.warning(
+                        f"Couldn't read tables in page {page_number} of {pdf_path}"
+                        f" with strategy {strategy}"
                     )
-                )
-            except Exception as e:
-                _logger.warning(f"Error reading page {page_number} of {pdf_path}: {e}")
+                    continue
+
+                try:
+                    dataframe = read_table(
+                        table_fragment=extracted_tables[-1],
+                        table_mapping=table_mapping,
+                        page=page_number,
+                    )
+                    tables.append(
+                        DataFrameTableReader(
+                            title=table_mapping.title,
+                            page=page_number,
+                            dataframe=dataframe,
+                        )
+                    )
+                    break
+                except Exception as e:
+                    _logger.debug(
+                        f"Error reading page {page_number} of {pdf_path}"
+                        f" with strategy {strategy}: {e}"
+                    )
     return tables
 
 

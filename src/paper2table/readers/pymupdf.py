@@ -6,7 +6,7 @@ import pymupdf
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
-from paper2table.readers.document import PDFDocument
+from paper2table.readers.document import PDFDocument, PDFPage
 from paper2table.tables_reader import TablesReader
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class PyMuPDFTable:
         return self.table.to_pandas()
 
 
-class PyMuPDFPage:
+class PyMuPDFPage(PDFPage):
     def __init__(self, page: pymupdf.Page):
         self.page = page
 

@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+import json
 
 import pandas as pd
 import pdfplumber
@@ -10,7 +11,7 @@ from . import document
 from .utils import first_row_is_table_header, Row
 from ..mapping import TablesMapping
 from ..tables_reader import TablesReader
-from .document import PDFDocument
+from .document import PDFDocument, PDFPage
 
 _logger = logging.getLogger(__name__)
 
@@ -29,15 +30,22 @@ class PDFPlumberTable:
         return pd.DataFrame(self.rows)
 
 
-class PDFPlumberPage:
+class PDFPlumberPage(PDFPage):
     def __init__(self, page: pdfplumber.page.Page):
         self.page = page
 
-    def extract_tables(self) -> list[PDFPlumberTable]:
-        # TODO pick best settings
-        # self.generate_pdfplumber_settings()
+    def extract_tables_candidates(self):
+        for settings in self.generate_pdfplumber_settings():
+            settings_id = json.dumps(settings)
+            yield (settings_id, self.extract_tables_with_settings(settings))
 
-        tables = self.page.extract_tables()
+    def extract_tables(self) -> list[PDFPlumberTable]:
+        tables = self.extract_tables_with_settings()
+        _logger.debug("Extracted %i tables", len(tables))
+        return tables
+
+    def extract_tables_with_settings(self, settings = None):
+        tables = self.page.extract_tables(settings)
         _logger.debug("Extracted %i tables", len(tables))
         return [PDFPlumberTable(table) for table in tables]
 

@@ -8,7 +8,7 @@ from img2table.tables.objects.extraction import ExtractedTable
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
-from paper2table.readers.document import PDFDocument
+from paper2table.readers.document import PDFDocument, PDFPage
 from paper2table.tables_reader import TablesReader
 
 
@@ -28,7 +28,7 @@ class Img2TableTable:
         return dataframe
 
 
-class Img2TablePage:
+class Img2TablePage(PDFPage):
     page: int
     tables: list[ExtractedTable]
 
