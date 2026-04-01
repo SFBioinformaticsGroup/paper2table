@@ -23,7 +23,9 @@ class PDFTable(Protocol):
 
 
 class PDFPage:
-    def extract_tables_candidates(self) -> Generator[(str, PDFTable)]:
+    def extract_tables_candidates(
+        self,
+    ) -> Generator[tuple[str, list[PDFTable]], None, None]:
         yield ("default", self.extract_tables())
 
     def extract_tables(self) -> list[PDFTable]: ...
@@ -88,19 +90,11 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
                 break
 
             candidates = page.extract_tables_candidates()
+            last_error: Exception | None = None
             for strategy, extracted_tables in candidates:
-                if not extracted_tables:
-                    _logger.warning(
-                        f"Couldn't read tables in page {page_number} of {pdf_path}"
-                        f" with strategy {strategy}"
-                    )
-                    continue
-
                 try:
-                    dataframe = read_table(
-                        table_fragment=extracted_tables[-1],
-                        table_mapping=table_mapping,
-                        page=page_number,
+                    dataframe = read_page_as_dataframe(
+                        extracted_tables, table_mapping, page_number
                     )
                     tables.append(
                         DataFrameTableReader(
@@ -109,13 +103,33 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
                             dataframe=dataframe,
                         )
                     )
+                    last_error = None
                     break
                 except Exception as e:
-                    _logger.debug(
-                        f"Error reading page {page_number} of {pdf_path}"
-                        f" with strategy {strategy}: {e}"
-                    )
+                    last_error = e
+
+            if last_error:
+                _logger.warning(
+                    f"Couldn't read page {page_number} of {pdf_path}"
+                    f" with strategy {strategy}: {last_error}"
+                )
+
+        break
+
     return tables
+
+
+def read_page_as_dataframe(
+    extracted_tables: list[PDFTable], table_mapping: TableMapping, page_number: int
+):
+    if not extracted_tables:
+        raise ValueError("No tables were extracted")
+
+    return read_table(
+        table_fragment=extracted_tables[-1],
+        table_mapping=table_mapping,
+        page=page_number,
+    )
 
 
 def read_table(
