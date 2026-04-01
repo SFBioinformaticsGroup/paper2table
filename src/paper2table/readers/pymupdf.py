@@ -28,9 +28,16 @@ class PyMuPDFPage(PDFPage):
     def __init__(self, page: pymupdf.Page):
         self.page = page
 
+    def extract_tables_candidates(self):
+        for strategy in ["lines", "lines_strict", "text"]:
+            yield (strategy, self.extract_tables_with_strategy(strategy))
+
     def extract_tables(self) -> list[PyMuPDFTable]:
-        tables = self.page.find_tables().tables
-        return [PyMuPDFTable(table) for table in tables]
+        return self.extract_tables_with_strategy("lines")
+
+    def extract_tables_with_strategy(self, strategy):
+        result = self.page.find_tables(strategy=strategy)
+        return [PyMuPDFTable(table) for table in (result.tables if result else [])]
 
     @property
     def page_number(self) -> int:

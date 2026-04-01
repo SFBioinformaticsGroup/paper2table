@@ -40,11 +40,11 @@ class PDFPlumberPage(PDFPage):
             yield (settings_id, self.extract_tables_with_settings(settings))
 
     def extract_tables(self) -> list[PDFPlumberTable]:
-        tables = self.extract_tables_with_settings()
+        tables = self.extract_tables_with_settings(None)
         _logger.debug("Extracted %i tables", len(tables))
         return tables
 
-    def extract_tables_with_settings(self, settings = None):
+    def extract_tables_with_settings(self, settings):
         tables = self.page.extract_tables(settings)
         _logger.debug("Extracted %i tables", len(tables))
         return [PDFPlumberTable(table) for table in tables]
