@@ -265,7 +265,9 @@ def get_table_writer(args):
         sys.exit(1)
 
     if args.tablemerge:
-        metadata = TablemergeMetadata(args.reader, args.model)
+        metadata = TablemergeMetadata(
+            reader=args.reader, model=args.model, hybrid=args.hybrid
+        )
 
         def write_tables(result: TablesReader, paper_path: str):
             tablemerge.write_tables(

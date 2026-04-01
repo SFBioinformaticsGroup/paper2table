@@ -10,22 +10,24 @@ from . import file
 
 
 class TablemergeMetadata:
-    reader: Literal["agent", "hybrid", "pdfplumber", "camelot", "img2table", "pymupdf"]
+    reader: Literal["agent", "pdfplumber", "camelot", "img2table", "pymupdf"]
     model: Optional[str]
     datetime: dt
+    hybrid: bool
     uuid: UUID
 
-    def __init__(self, reader: str, model: Optional[str]):
+    def __init__(self, reader: str, model: Optional[str], hybrid=False):
         self.reader = reader
         self.model = model
+        self.hybrid = hybrid
         self.uuid = uuid4()
         self.datetime = dt.now()
 
     def get_reader(self):
         if self.reader == "agent":
             return self.model
-        if self.reader == "hybrid":
-            return f"hybrid-pdfplumber-{self.model}"
+        if self.hybrid:
+            return f"hybrid-{self.reader}-{self.model}"
         return self.reader
 
     def to_dict(self):
