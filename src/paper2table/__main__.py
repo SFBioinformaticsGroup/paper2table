@@ -92,6 +92,7 @@ def parse_args():
         "--mappings-path",
         type=str,
         help="tables mapping path where mappings will be stored. Only used by hybrid reader",
+        default="./mappings",
     )
     parser.add_argument(
         "-c",
@@ -221,9 +222,7 @@ def get_tables_reader(args):
         raise ValueError(f"Reader {args.reader} is not implemented yet")
 
     if args.hybrid:
-        mappings_path = (
-            Path(args.mappings_path) if args.mappings_path else Path("./mappings")
-        )
+        mappings_path = Path(args.mappings_path)
         schema = read_schema(args)
         if not schema:
             print(
