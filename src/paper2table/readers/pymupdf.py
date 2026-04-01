@@ -6,6 +6,7 @@ import pymupdf
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
+from paper2table.readers.document import PDFDocument
 from paper2table.tables_reader import TablesReader
 
 _logger = logging.getLogger(__name__)
@@ -36,17 +37,17 @@ class PyMuPDFPage:
         return self.page.number + 1
 
 
-class PyMuPDFDocument:
-    document: pymupdf.Document
+class PyMuPDFDocument(PDFDocument):
+    _document: pymupdf.Document
     _pages: list[PyMuPDFPage]
 
     def __init__(self, document: pymupdf.Document):
-        self.document = document
+        self._document = document
         self._pages = [PyMuPDFPage(page) for page in document]
 
     @property
     def page_count(self) -> int:
-        return self.document.page_count
+        return self._document.page_count
 
     @property
     def pages(self) -> list[PyMuPDFPage]:

@@ -29,9 +29,9 @@ class PDFPage(Protocol):
     def page_number(self) -> int: ...
 
 
-class PDFDocument(Protocol):
+class PDFDocument:
     """
-    A protocol for pdf documents
+    A base class for pdf documents
     """
 
     @property
@@ -39,6 +39,9 @@ class PDFDocument(Protocol):
 
     @property
     def pages(self) -> list[PDFPage]: ...
+
+    def page_at(self, index: int) -> PDFPage:
+        return self.pages[index - 1]
 
 
 _logger = logging.getLogger(__name__)
@@ -72,31 +75,35 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
     """
     tables = []
     for table_mapping in mapping.tables:
-        for page in range(table_mapping.first_page, table_mapping.last_page + 1):
-            if page > document.page_count:
+        for page_number in range(table_mapping.first_page, table_mapping.last_page + 1):
+            try:
+                page = document.page_at(page_number)
+            except IndexError:
                 _logger.warning(
-                    f"Page {page} in schema is out of bounds of {pdf_path}. Abort processing"
+                    f"Page {page_number} in schema is out of bounds of {pdf_path}. Abort processing"
                 )
                 break
 
-            extracted_tables = document.pages[page - 1].extract_tables()
+            extracted_tables = page.extract_tables()
             if not extracted_tables:
-                _logger.warning(f"Couldn't read tables in page {page} of {pdf_path}")
+                _logger.warning(
+                    f"Couldn't read tables in page {page_number} of {pdf_path}"
+                )
                 continue
 
             try:
                 dataframe = read_table(
                     table_fragment=extracted_tables[-1],
                     table_mapping=table_mapping,
-                    page=page,
+                    page=page_number,
                 )
                 tables.append(
                     DataFrameTableReader(
-                        title=table_mapping.title, page=page, dataframe=dataframe
+                        title=table_mapping.title, page=page_number, dataframe=dataframe
                     )
                 )
             except Exception as e:
-                _logger.warning(f"Error reading page {page} of {pdf_path}: {e}")
+                _logger.warning(f"Error reading page {page_number} of {pdf_path}: {e}")
     return tables
 
 

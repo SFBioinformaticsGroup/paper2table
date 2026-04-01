@@ -205,8 +205,6 @@ def test_pymupdf_cli():
 
 
 def test_hybrid_pymupdf_cli():
-    # Uses a pre-existing mapping file to avoid hitting the Gemini API.
-    # The mapping lives in tests/data/mappings/demo_table.mapping.json.
     result = run_paper2table(
         "-H",
         "-r",

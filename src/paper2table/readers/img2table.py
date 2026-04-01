@@ -8,6 +8,7 @@ from img2table.tables.objects.extraction import ExtractedTable
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
+from paper2table.readers.document import PDFDocument
 from paper2table.tables_reader import TablesReader
 
 
@@ -43,7 +44,7 @@ class Img2TablePage:
         return self.index
 
 
-class Img2TableDocument:
+class Img2TableDocument(PDFDocument):
     tables: dict[int, list[ExtractedTable]]
 
     def __init__(self, tables: dict[int, list[ExtractedTable]]):

@@ -10,6 +10,7 @@ from . import document
 from .utils import first_row_is_table_header, Row
 from ..mapping import TablesMapping
 from ..tables_reader import TablesReader
+from .document import PDFDocument
 
 _logger = logging.getLogger(__name__)
 
@@ -61,19 +62,21 @@ class PDFPlumberPage:
         return self.page.page_number
 
 
-class PDFPlumberDocument:
-    pdf: pdfplumber.pdf.PDF
+class PDFPlumberDocument(PDFDocument):
+    _pdf: pdfplumber.pdf.PDF
+    _pages: list[PDFPlumberPage]
 
     def __init__(self, pdf: pdfplumber.pdf.PDF):
-        self.pdf = pdf
+        self._pdf = pdf
+        self._pages = [PDFPlumberPage(page) for page in self._pdf.pages]
 
     @property
     def page_count(self) -> int:
-        return len(self.pdf.pages)
+        return len(self._pdf.pages)
 
     @property
     def pages(self) -> list[PDFPlumberPage]:
-        return [PDFPlumberPage(page) for page in self.pdf.pages]
+        return self._pages
 
 
 def read_tables(
