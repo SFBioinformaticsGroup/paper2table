@@ -45,15 +45,19 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
     in the given resultset directories
     """
     tablesfiles: list[TablesFile] = []
+    uuids: list[str | None] = []
     for resultset_dir in resultset_dirs:
         tables_path = Path(resultset_dir) / basename
         if tables_path.exists():
-            with open(tables_path, "r", encoding="utf-8") as tablesfile:
-                data = json.load(tablesfile)
-                tablesfile = TablesFile.model_validate(data)
-                tablesfiles.append(tablesfile)
+            source_uuid = None
+            metadata_file = Path(resultset_dir) / "tables.metadata.json"
+            if metadata_file.exists():
+                with open(metadata_file, "r", encoding="utf-8") as f:
+                    source_uuid = json.load(f).get("uuid")
+            with open(tables_path, "r", encoding="utf-8") as f:
+                tablesfiles.append(TablesFile.model_validate(json.load(f)))
+                uuids.append(source_uuid)
 
-    # TODO add uuids to each row sources
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
     if not any(size > 0 for size in sizes):
@@ -64,7 +68,7 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
 
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles, row_agreement=True
+            tablesfiles, uuids=uuids, row_agreement=True
         )
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"

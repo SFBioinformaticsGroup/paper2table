@@ -48,3 +48,16 @@ def test_normalize_row_with_mixed_values():
         family=[ValueWithAgreement(value="apiaceae", agreement_level=2)],
         scientific_name="ammi majus l.",
     )
+
+
+def test_normalize_row_preserves_sources():
+    uuids = ["uuid-a", "uuid-b"]
+    assert normalize_row(
+        Row(family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=uuids)
+    ) == Row(family="apiaceae", scientific_name="ammi majus l.", sources_=uuids)
+
+
+def test_normalize_row_preserves_none_sources():
+    assert normalize_row(
+        Row(family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=None)
+    ) == Row(family="apiaceae", scientific_name="ammi majus l.", sources_=None)
