@@ -56,6 +56,7 @@ class TablesFile(BaseModel):
     tables: List[Table]
     citation: Citation
     metadata: Optional[Metadata] = None
+    uuid: Optional[str] = None
 
 
 def get_table_fragments(table: Table) -> list[TableFragment]:

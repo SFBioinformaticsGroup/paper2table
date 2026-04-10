@@ -112,7 +112,6 @@ def to_values_with_agreement(column_value: ColumnValue):
 
 def merge_tablesfiles( # pylint: disable=too-many-locals
     tablesfiles: list[TablesFile],
-    uuids: list[str | None] | None = None,
     row_agreement=False,
     column_agreement=False,
 ) -> TablesFile:
@@ -150,12 +149,13 @@ def merge_tablesfiles( # pylint: disable=too-many-locals
             if not left_fragment:
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
-            initial_uuid = uuids[0] if uuids else None
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, initial_uuid, row_agreement, column_agreement
+                left_fragment, tablesfiles[0].uuid, row_agreement, column_agreement
             )
 
-            for i, right_fragment in enumerate(fragments_cluster[1:], start=1):
+            for right_fragment, right_tablesfile in zip(
+                fragments_cluster[1:], tablesfiles[1:]
+            ):
                 if not right_fragment:
                     break
 
@@ -164,9 +164,7 @@ def merge_tablesfiles( # pylint: disable=too-many-locals
                         f"Pages don't match: {left_fragment.page} != {right_fragment.page}"
                     )
 
-                right_uuid = uuids[i] if uuids else None
-                table_fragment_builder.current_right_uuid = right_uuid
-
+                right_uuid = right_tablesfile.uuid
                 right_rows = right_fragment.rows
                 left_rows = table_fragment_builder.next_left_rows()
                 start_right_index = 0
@@ -175,19 +173,14 @@ def merge_tablesfiles( # pylint: disable=too-many-locals
                     found = False
                     for right_index in range(start_right_index, len(right_rows)):
                         if same_row(left_row, right_rows[right_index]):
-                            # add all right rows that are before
-                            # the matching row
                             table_fragment_builder.append_skipped(
-                                right_rows[start_right_index:right_index]
+                                right_rows[start_right_index:right_index], right_uuid
                             )
 
                             right_row = right_rows[right_index].model_copy(
                                 update={"sources_": [right_uuid] if right_uuid else None}
                             )
-                            table_fragment_builder.merge_and_append(
-                                left_row,
-                                right_row,
-                            )
+                            table_fragment_builder.merge_and_append(left_row, right_row)
                             # update right index so that
                             # new left rows are matched only to rows that
                             # are after the one found
@@ -198,7 +191,9 @@ def merge_tablesfiles( # pylint: disable=too-many-locals
                     if not found:
                         table_fragment_builder.append_unmatched(left_row)
 
-                table_fragment_builder.append_skipped(right_rows[start_right_index:])
+                table_fragment_builder.append_skipped(
+                    right_rows[start_right_index:], right_uuid
+                )
 
             merged_fragments.append(table_fragment_builder.build())
 
@@ -223,7 +218,6 @@ class TableFragmentBuilder:
     page: int
     row_agreement: bool
     column_agreement: bool
-    current_right_uuid: str | None
 
     def __init__(
         self,
@@ -232,7 +226,6 @@ class TableFragmentBuilder:
         row_agreement: bool,
         column_agreement: bool,
     ):
-        self.current_right_uuid = None
         self.row_agreement = row_agreement
         self.column_agreement = column_agreement
         self.page = initial_fragment.page
@@ -252,19 +245,13 @@ class TableFragmentBuilder:
         new = normalize_row(row, self.row_agreement)
         self.rows.append(new)
 
-    def append_skipped(self, rows: list[Row]):
+    def append_skipped(self, rows: list[Row], source_uuid: str | None):
         """
         Append a range of rows, without processing them
         """
         for skipped_row in rows:
             stamped = skipped_row.model_copy(
-                update={
-                    "sources_": (
-                        [self.current_right_uuid]
-                        if self.current_right_uuid
-                        else None
-                    )
-                }
+                update={"sources_": [source_uuid] if source_uuid else None}
             )
             self._append(stamped)
 

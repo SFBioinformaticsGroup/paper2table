@@ -97,8 +97,10 @@ def build_html(metadata, papers):  # pylint: disable=too-many-locals,too-many-st
                     html.append("<p><i>No rows</i></p>")
                     continue
 
-                # Build header from keys
-                columns = list(rows[0].keys())
+                # Build header from keys, sources_ always last
+                columns = [k for k in rows[0].keys() if k != "sources_"]
+                if "sources_" in rows[0]:
+                    columns.append("sources_")
                 html.append("<table class='table'>")
                 html.append(
                     "<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>"
@@ -113,7 +115,10 @@ def build_html(metadata, papers):  # pylint: disable=too-many-locals,too-many-st
                     )
                     html.append(f"<tr class='{css_class}'>")
                     for col in columns:
-                        html.append(f"<td>{row.get(col,'')}</td>")
+                        val = row.get(col, "")
+                        if isinstance(val, list):
+                            val = ", ".join(str(v) for v in val)
+                        html.append(f"<td>{val}</td>")
                     html.append("</tr>")
 
                 html.append("</table>")

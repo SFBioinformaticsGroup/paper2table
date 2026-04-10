@@ -9,12 +9,13 @@ from tablevalidate.schema import (
 )
 
 
-def wrap(rows: list[Row], page=1, citation=""):
+def wrap(rows: list[Row], page=1, citation="", uuid=None):
     return TablesFile(
         tables=[
             TableWithFragments(table_fragments=[TableFragment(rows=rows, page=page)])
         ],
         citation=citation,
+        uuid=uuid,
     )
 
 
@@ -373,14 +374,14 @@ def test_merge_different_rows_with_column_agreement():
 
 def test_sources_stamped_on_single_tablesfile():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table)], uuids=["uuid-a"])
+    result = merge_tablesfiles([wrap(table, uuid="uuid-a")])
     rows = result.tables[0].table_fragments[0].rows
     assert rows[0].sources_ == ["uuid-a"]
 
 
 def test_sources_merged_on_matched_rows():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table), wrap(table)], uuids=["uuid-a", "uuid-b"])
+    result = merge_tablesfiles([wrap(table, uuid="uuid-a"), wrap(table, uuid="uuid-b")])
     rows = result.tables[0].table_fragments[0].rows
     assert rows[0].sources_ == ["uuid-a", "uuid-b"]
 
@@ -388,9 +389,7 @@ def test_sources_merged_on_matched_rows():
 def test_sources_only_left_uuid_on_unmatched_left_row():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
-    result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], uuids=["uuid-a", "uuid-b"]
-    )
+    result = merge_tablesfiles([wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")])
     rows = result.tables[0].table_fragments[0].rows
     assert rows[0].sources_ == ["uuid-a"]
     assert rows[1].sources_ == ["uuid-b"]
@@ -402,9 +401,7 @@ def test_sources_right_uuid_on_skipped_row():
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
     ]
-    result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], uuids=["uuid-a", "uuid-b"]
-    )
+    result = merge_tablesfiles([wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")])
     rows = result.tables[0].table_fragments[0].rows
     # "Rosaceae" was skipped (appears before the match in right table)
     rosaceae_row = next(r for r in rows if r.get_columns().get("family") == "rosaceae")
@@ -416,12 +413,12 @@ def test_sources_right_uuid_on_skipped_row():
 
 def test_sources_deduped_when_same_uuid_appears_twice():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table), wrap(table)], uuids=["uuid-a", "uuid-a"])
+    result = merge_tablesfiles([wrap(table, uuid="uuid-a"), wrap(table, uuid="uuid-a")])
     rows = result.tables[0].table_fragments[0].rows
     assert rows[0].sources_ == ["uuid-a"]
 
 
-def test_sources_none_when_no_uuids_passed():
+def test_sources_none_when_no_uuid_on_tablesfiles():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     result = merge_tablesfiles([wrap(table), wrap(table)])
     rows = result.tables[0].table_fragments[0].rows

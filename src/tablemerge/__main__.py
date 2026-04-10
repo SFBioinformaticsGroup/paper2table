@@ -9,18 +9,25 @@ from tablevalidate.schema import TablesFile
 from .merge import merge_tablesfiles, MergeError
 
 
-def generate_merge_metadata(resultset_dirs: list[str], output_path: Path):
+def _read_resultset_metadata(resultset_dir: str) -> dict:
+    try:
+        with open(Path(resultset_dir) / "tables.metadata.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+
+def generate_merge_metadata(
+    resultset_dirs: list[str], output_path: Path, metadata_map: dict[str, dict]
+):
     sources = []
     for resultset_dir in resultset_dirs:
+        meta = metadata_map.get(resultset_dir, {})
         source = {"path": resultset_dir}
-        metadata_file = Path(resultset_dir) / "tables.metadata.json"
-        if metadata_file.exists():
-            with open(metadata_file, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-                if "uuid" in meta:
-                    source["uuid"] = meta["uuid"]
-                if "reader" in meta:
-                    source["reader"] = meta["reader"]
+        if "uuid" in meta:
+            source["uuid"] = meta["uuid"]
+        if "reader" in meta:
+            source["reader"] = meta["reader"]
         sources.append(source)
 
     metadata = {
@@ -35,41 +42,34 @@ def generate_merge_metadata(resultset_dirs: list[str], output_path: Path):
     with open(metadata_out, "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-    print("Metadata written to ", metadata_out)
+    print(f"Metadata written to {metadata_out}")
     return metadata
 
 
-def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
+def merge_tablesfiles_paths(
+    basename, resultset_dirs, output_path, metadata_map: dict[str, dict]
+):
     """
     Merge all the TablesFile of the same basename
     in the given resultset directories
     """
     tablesfiles: list[TablesFile] = []
-    uuids: list[str | None] = []
     for resultset_dir in resultset_dirs:
         tables_path = Path(resultset_dir) / basename
         if tables_path.exists():
-            source_uuid = None
-            metadata_file = Path(resultset_dir) / "tables.metadata.json"
-            if metadata_file.exists():
-                with open(metadata_file, "r", encoding="utf-8") as f:
-                    source_uuid = json.load(f).get("uuid")
             with open(tables_path, "r", encoding="utf-8") as f:
-                tablesfiles.append(TablesFile.model_validate(json.load(f)))
-                uuids.append(source_uuid)
+                tablesfile = TablesFile.model_validate(json.load(f))
+                tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
+                tablesfiles.append(tablesfile)
 
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
     if not any(size > 0 for size in sizes):
-        print(
-            f"{basename}: MERGE SKIPPED: All tables are empty",
-        )
+        print(f"{basename}: MERGE SKIPPED: All tables are empty")
         return
 
     try:
-        merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles, uuids=uuids, row_agreement=True
-        )
+        merged_tablesfile: TablesFile = merge_tablesfiles(tablesfiles, row_agreement=True)
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -82,8 +82,9 @@ def merge_tablesfiles_paths(basename, resultset_dirs, output_path):
 
 def merge_resultsets(resultset_dirs: list[str], output_dir: str, metadata_only=False):
     output_path = Path(output_dir)
+    metadata_map = {d: _read_resultset_metadata(d) for d in resultset_dirs}
 
-    generate_merge_metadata(resultset_dirs, output_path)
+    generate_merge_metadata(resultset_dirs, output_path, metadata_map)
 
     if metadata_only:
         return
@@ -96,7 +97,7 @@ def merge_resultsets(resultset_dirs: list[str], output_dir: str, metadata_only=F
             tablesfiles_basenames.add(tablesfile.name)
 
     for basename in sorted(list(tablesfiles_basenames)):
-        merge_tablesfiles_paths(basename, resultset_dirs, output_path)
+        merge_tablesfiles_paths(basename, resultset_dirs, output_path, metadata_map)
 
 
 def parse_args():
