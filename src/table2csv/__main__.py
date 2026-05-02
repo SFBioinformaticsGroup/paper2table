@@ -1,19 +1,7 @@
 import argparse
-import json
 from pathlib import Path
 import pandas as pd
-from utils.table_fragments import get_table_fragments
-
-
-# TODO reuse function in paper2html
-def load_papers(directory: Path):
-    papers = {}
-    for paper_file in directory.glob("*.tables.json"):
-        if paper_file.name == "tables.metadata.json":
-            continue
-        with open(paper_file, "r", encoding="utf-8") as f:
-            papers[paper_file.name] = json.load(f)
-    return papers
+from utils.table_fragments import get_table_fragments, load_papers
 
 
 def build_dataframes(papers):

@@ -3,23 +3,16 @@ import json
 import webbrowser
 from pathlib import Path
 
-from utils.table_fragments import get_table_fragments
+from utils.table_fragments import get_table_fragments, load_papers
 
 
-def load_papers(directory: Path):
+def load_papers_with_metadata(directory: Path):
     metadata_file = directory / "tables.metadata.json"
     metadata = {}
     if metadata_file.exists():
         with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
-
-    papers = {}
-    for paper_file in directory.glob("*.tables.json"):
-        if paper_file.name == "tables.metadata.json":
-            continue
-        with open(paper_file, "r", encoding="utf-8") as f:
-            papers[paper_file.name] = json.load(f)
-    return metadata, papers
+    return metadata, load_papers(directory)
 
 
 def build_html(metadata, papers):
@@ -106,7 +99,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    metadata, papers = load_papers(Path(args.input_dir))
+    metadata, papers = load_papers_with_metadata(Path(args.input_dir))
     html = build_html(metadata, papers)
     save_html(html, Path(args.out))
 
