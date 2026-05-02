@@ -35,7 +35,7 @@ def _source_cell(source: dict, key: str) -> str:
     return value
 
 
-def build_html(metadata, papers):
+def build_html(metadata, papers):  # pylint: disable=too-many-locals,too-many-statements
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
@@ -66,11 +66,21 @@ def build_html(metadata, papers):
             html.append("<h3>Sources</h3>")
             all_keys = {k for s in sources for k in s}
             preferred = ["uuid", "reader", "path"]
-            source_keys = [k for k in preferred if k in all_keys] + sorted(all_keys - set(preferred))
+            source_keys = [k for k in preferred if k in all_keys] + sorted(
+                all_keys - set(preferred)
+            )
             html.append("<table class='table'>")
-            html.append("<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>")
+            html.append(
+                "<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>"
+            )
             for source in sources:
-                html.append("<tr>" + "".join(f"<td>{_source_cell(source, k)}</td>" for k in source_keys) + "</tr>")
+                html.append(
+                    "<tr>"
+                    + "".join(
+                        f"<td>{_source_cell(source, k)}</td>" for k in source_keys
+                    )
+                    + "</tr>"
+                )
             html.append("</table>")
 
     html.append("<h2>Papers</h2>")
@@ -141,6 +151,7 @@ def main():
 
     print(f"Viewer generated: {args.out}")
     webbrowser.open_new_tab(str(Path(args.out).absolute()))
+
 
 if __name__ == "__main__":
     main()
