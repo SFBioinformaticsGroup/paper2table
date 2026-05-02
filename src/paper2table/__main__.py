@@ -57,7 +57,10 @@ def parse_args():
         "-F",
         "--force-mapping-generation",
         dest="force_mapping_generation",
-        help="Force regeneration of the mapping even if one already exists. Only used in hybrid mode",
+        help=(
+            "Force regeneration of the mapping even if one already exists."
+            "Only used in hybrid mode"
+        ),
         action="store_true",
     )
     parser.add_argument(
