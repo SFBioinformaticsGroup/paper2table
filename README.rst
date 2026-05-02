@@ -240,3 +240,24 @@ The format is informally specified this way:
     }
 
 You can also find a proper json schema definition in `tablesfile.schema.json <./tablesfile.schema.json>`_
+
+Metadata files
+==============
+
+Both ``paper2table`` (with the ``-t`` flag) and ``tablemerge`` write a metadata file alongside the extracted tables.
+The file has the same structure in both cases:
+
+.. code-block:: javascript
+
+    {
+      "reader": string,   // e.g. "pdfplumber", "camelot", "agent", "hybrid-pdfplumber-gemini-2.5-flash", "tablemerge"
+      "uuid": string,     // UUID identifying this run
+      "datetime": string, // ISO 8601 timestamp of the run
+      "sources": [        // only present in tablemerge output
+        {
+          "path": string,   // path to the source resultset directory
+          "uuid": string,   // UUID of the source extraction run (if available)
+          "reader": string  // reader used for the source run (if available)
+        }
+      ]
+    }
