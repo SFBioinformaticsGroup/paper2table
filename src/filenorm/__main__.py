@@ -26,7 +26,7 @@ def md5sum(path):
     return h.hexdigest()
 
 
-def plan_actions(files: list[str]):
+def plan_actions(files: list[str]):  # pylint: disable=too-many-locals
     checksums = {}
     duplicates = {}
     for file in files:
@@ -66,7 +66,7 @@ def plan_actions(files: list[str]):
     return duplicates, renames, checksums
 
 
-def execute(
+def execute(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     duplicates, renames, confirm_delete, confirm_rename, explain_delete, explain_rename
 ):
     for md5, files in duplicates.items():

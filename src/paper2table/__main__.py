@@ -239,7 +239,7 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):  # pylint: disable=function-redefined
             time.sleep(args.model_sleep)
             _logger.debug(f"Hybrid processing paper {paper_path}...")
             return hybrid.read_tables(
