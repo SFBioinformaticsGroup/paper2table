@@ -7,12 +7,32 @@ from utils.table_fragments import get_table_fragments, load_papers
 
 
 def load_papers_with_metadata(directory: Path):
-    metadata_file = directory / "tables.metadata.json"
     metadata = {}
-    if metadata_file.exists():
-        with open(metadata_file, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
+    for candidate in ("tablemerge.metadata.json", "tables.metadata.json"):
+        metadata_file = directory / candidate
+        if metadata_file.exists():
+            with open(metadata_file, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+            break
     return metadata, load_papers(directory)
+
+
+def _reader_emoji(reader: str) -> str:
+    if not reader:
+        return ""
+    if reader in ("pdfplumber", "camelot", "pymupdf"):
+        return "💻"
+    if reader.startswith("hybrid-"):
+        return "☯️"
+    return "🤖"
+
+
+def _source_cell(source: dict, key: str) -> str:
+    value = source.get(key, "")
+    if key == "uuid":
+        emoji = _reader_emoji(source.get("reader", ""))
+        return f"{emoji} {value}" if emoji else value
+    return value
 
 
 def build_html(metadata, papers):
@@ -24,6 +44,7 @@ def build_html(metadata, papers):
     html.append(".paper { margin-bottom: 2em; }")
     html.append(".table { border-collapse: collapse; margin: 1em 0; width: 100%; }")
     html.append(".table th, .table td { border: 1px solid #ddd; padding: 8px; }")
+    html.append(".metadata-table th { text-align: left; width: 120px; }")
     html.append(".low { background-color: #fdd; }")
     html.append(".medium { background-color: #ffd; }")
     html.append(".high { background-color: #dfd; }")
@@ -33,9 +54,24 @@ def build_html(metadata, papers):
     html.append("<h1>Paper2Table Viewer</h1>")
 
     if metadata:
-        html.append(
-            f"<h2>Metadata</h2><pre>{json.dumps(metadata, indent=2, ensure_ascii=False)}</pre>"
-        )
+        html.append("<h2>Metadata</h2>")
+        scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
+        if scalar_fields:
+            html.append("<table class='table metadata-table'>")
+            for key, value in scalar_fields.items():
+                html.append(f"<tr><th>{key}</th><td>{value}</td></tr>")
+            html.append("</table>")
+        sources = metadata.get("sources")
+        if sources:
+            html.append("<h3>Sources</h3>")
+            all_keys = {k for s in sources for k in s}
+            preferred = ["uuid", "reader", "path"]
+            source_keys = [k for k in preferred if k in all_keys] + sorted(all_keys - set(preferred))
+            html.append("<table class='table'>")
+            html.append("<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>")
+            for source in sources:
+                html.append("<tr>" + "".join(f"<td>{_source_cell(source, k)}</td>" for k in source_keys) + "</tr>")
+            html.append("</table>")
 
     html.append("<h2>Papers</h2>")
     for paper_name, content in papers.items():
