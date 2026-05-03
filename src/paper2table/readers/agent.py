@@ -44,7 +44,8 @@ instructions = (
     "You are going to read the given paper and extract zero or more tables"
     " that corresponds to the given structure",
     "",
-    "RESTRICTIONS" "============",
+    "RESTRICTIONS",
+    "============",
     " * In order to generate the table, only consider data that is in tabular format."
     " Ignore any plain text paragraph",
     " * Don't try to translate data. Keep it in its original language",

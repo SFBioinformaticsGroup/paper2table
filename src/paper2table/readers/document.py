@@ -46,7 +46,7 @@ class PDFDocument:
     def pages(self) -> list[PDFPage]: ...
 
     def page_at(self, index: int) -> PDFPage:
-        return self.pages[index - 1]
+        return self.pages[index - 1]  # pylint: disable=unsubscriptable-object
 
 
 _logger = logging.getLogger("pape2table")
@@ -91,6 +91,7 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
 
             candidates = page.extract_tables_candidates()
             last_error: Exception | None = None
+            strategy: str | None = None
             for strategy, extracted_tables in candidates:
                 try:
                     dataframe = read_page_as_dataframe(
@@ -137,10 +138,12 @@ def read_page_as_dataframe(
 
 def read_table(
     table_fragment: PDFTable,
-    column_names_hints: list[str] = [],
+    column_names_hints: Optional[list[str]] = None,
     table_mapping: Optional[TableMapping] = None,
     page: Optional[int] = None,
 ) -> pd.DataFrame:
+    if column_names_hints is None:
+        column_names_hints = []
     skip_first_row = table_mapping is not None and (
         table_mapping.header_mode == "all_pages"
         or (

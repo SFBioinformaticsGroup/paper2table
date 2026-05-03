@@ -102,7 +102,7 @@ recursive=no
 # source root is an absolute path or a path relative to the current working
 # directory used to determine a package namespace for modules located under the
 # source root.
-source-roots=
+source-roots=src
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -450,7 +450,10 @@ disable=raw-checker-failed,
         missing-module-docstring,
         missing-class-docstring,
         missing-function-docstring,
-        logging-fstring-interpolation
+        logging-fstring-interpolation,
+        too-few-public-methods,
+        too-many-arguments,
+        too-many-positional-arguments
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
