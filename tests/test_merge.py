@@ -389,7 +389,9 @@ def test_sources_merged_on_matched_rows():
 def test_sources_only_left_uuid_on_unmatched_left_row():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
-    result = merge_tablesfiles([wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")])
+    result = merge_tablesfiles(
+        [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")]
+    )
     rows = result.tables[0].table_fragments[0].rows
     assert rows[0].sources_ == ["uuid-a"]
     assert rows[1].sources_ == ["uuid-b"]
@@ -401,7 +403,9 @@ def test_sources_right_uuid_on_skipped_row():
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
     ]
-    result = merge_tablesfiles([wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")])
+    result = merge_tablesfiles(
+        [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")]
+    )
     rows = result.tables[0].table_fragments[0].rows
     # "Rosaceae" was skipped (appears before the match in right table)
     rosaceae_row = next(r for r in rows if r.get_columns().get("family") == "rosaceae")
@@ -409,6 +413,17 @@ def test_sources_right_uuid_on_skipped_row():
     # "Apiaceae" was matched
     apiaceae_row = next(r for r in rows if r.get_columns().get("family") == "apiaceae")
     assert apiaceae_row.sources_ == ["uuid-a", "uuid-b"]
+
+
+def test_two_tables_with_unicode_variant_values():
+    # look the same but are different ñ
+    table_1 = [Row(common_name="pezuña de vaca")]
+    table_2 = [Row(common_name="pezuña de vaca")]
+
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(common_name="pezuña de vaca")
+    ]
 
 
 def test_sources_deduped_when_same_uuid_appears_twice():

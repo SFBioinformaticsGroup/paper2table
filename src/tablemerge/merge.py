@@ -1,5 +1,6 @@
 import re
 from itertools import zip_longest
+from unidecode import unidecode
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -20,7 +21,7 @@ def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
 
 
-def normalize_value(value: ColumnValue) -> str:
+def normalize_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
         return normalize_str_value(value)
     if isinstance(value, list):
@@ -47,9 +48,26 @@ def normalize_row(row: Row, row_agreement: bool = False) -> Row:
     )
 
 
+def transliterate_value(value: ColumnValue) -> ColumnValue:
+    if isinstance(value, str):
+        return unidecode(value)
+    if isinstance(value, list):
+        return [
+            ValueWithAgreement(
+                value=unidecode(v.value), agreement_level=v.agreement_level
+            )
+            for v in value
+        ]
+    return value
+
+
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    return normalize_row(left).get_columns() == normalize_row(right).get_columns()
+    left_cols = normalize_row(left).get_columns()
+    right_cols = normalize_row(right).get_columns()
+    return {k: transliterate_value(v) for k, v in left_cols.items()} == {
+        k: transliterate_value(v) for k, v in right_cols.items()
+    }
 
 
 def merge_rows(
@@ -75,8 +93,8 @@ def merge_rows(
 
 def merge_columns_without_agreement(left: Row, right: Row):
     return {
-        **normalize_row(left).get_columns(),
         **normalize_row(right).get_columns(),
+        **normalize_row(left).get_columns(),
     }
 
 
@@ -110,7 +128,7 @@ def to_values_with_agreement(column_value: ColumnValue):
     )
 
 
-def merge_tablesfiles( # pylint: disable=too-many-locals
+def merge_tablesfiles(  # pylint: disable=too-many-locals
     tablesfiles: list[TablesFile],
     row_agreement=False,
     column_agreement=False,
@@ -178,7 +196,9 @@ def merge_tablesfiles( # pylint: disable=too-many-locals
                             )
 
                             right_row = right_rows[right_index].model_copy(
-                                update={"sources_": [right_uuid] if right_uuid else None}
+                                update={
+                                    "sources_": [right_uuid] if right_uuid else None
+                                }
                             )
                             table_fragment_builder.merge_and_append(left_row, right_row)
                             # update right index so that
@@ -230,7 +250,9 @@ class TableFragmentBuilder:
         self.column_agreement = column_agreement
         self.page = initial_fragment.page
         self.rows = [
-            row.model_copy(update={"sources_": [initial_uuid] if initial_uuid else None})
+            row.model_copy(
+                update={"sources_": [initial_uuid] if initial_uuid else None}
+            )
             for row in map(
                 lambda r: normalize_row(r, row_agreement), initial_fragment.rows
             )
