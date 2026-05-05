@@ -35,7 +35,60 @@ def _source_cell(source: dict, key: str) -> str:
     return value
 
 
-def build_html(metadata, papers):  # pylint: disable=too-many-locals,too-many-statements
+def build_metadata_html(metadata) -> list:
+    html = ["<h2>Metadata</h2>"]
+    scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
+    if scalar_fields:
+        html.append("<table class='table metadata-table'>")
+        for key, value in scalar_fields.items():
+            html.append(f"<tr><th>{key}</th><td>{value}</td></tr>")
+        html.append("</table>")
+    sources = metadata.get("sources")
+    if sources:
+        html.append("<h3>Sources</h3>")
+        all_keys = {k for s in sources for k in s}
+        preferred = ["uuid", "reader", "path"]
+        source_keys = [k for k in preferred if k in all_keys] + sorted(
+            all_keys - set(preferred)
+        )
+        html.append("<table class='table'>")
+        html.append("<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>")
+        for source in sources:
+            html.append(
+                "<tr>"
+                + "".join(f"<td>{_source_cell(source, k)}</td>" for k in source_keys)
+                + "</tr>"
+            )
+        html.append("</table>")
+    return html
+
+
+def build_fragment_html(idx, fragment) -> list:
+    html = [f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>"]
+    rows = fragment.get("rows", [])
+    if not rows:
+        html.append("<p><i>No rows</i></p>")
+        return html
+    columns = [k for k in rows[0].keys() if k != "sources_"]
+    if "sources_" in rows[0]:
+        columns.append("sources_")
+    html.append("<table class='table'>")
+    html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
+    for row in rows:
+        level = row.get("agreement_level_", 0)
+        css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
+        html.append(f"<tr class='{css_class}'>")
+        for col in columns:
+            val = row.get(col, "")
+            if isinstance(val, list):
+                val = ", ".join(str(v) for v in val)
+            html.append(f"<td>{val}</td>")
+        html.append("</tr>")
+    html.append("</table>")
+    return html
+
+
+def build_html(metadata, papers):
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
@@ -52,77 +105,16 @@ def build_html(metadata, papers):  # pylint: disable=too-many-locals,too-many-st
     html.append("</head><body>")
 
     html.append("<h1>Paper2Table Viewer</h1>")
-
     if metadata:
-        html.append("<h2>Metadata</h2>")
-        scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
-        if scalar_fields:
-            html.append("<table class='table metadata-table'>")
-            for key, value in scalar_fields.items():
-                html.append(f"<tr><th>{key}</th><td>{value}</td></tr>")
-            html.append("</table>")
-        sources = metadata.get("sources")
-        if sources:
-            html.append("<h3>Sources</h3>")
-            all_keys = {k for s in sources for k in s}
-            preferred = ["uuid", "reader", "path"]
-            source_keys = [k for k in preferred if k in all_keys] + sorted(
-                all_keys - set(preferred)
-            )
-            html.append("<table class='table'>")
-            html.append(
-                "<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>"
-            )
-            for source in sources:
-                html.append(
-                    "<tr>"
-                    + "".join(
-                        f"<td>{_source_cell(source, k)}</td>" for k in source_keys
-                    )
-                    + "</tr>"
-                )
-            html.append("</table>")
+        html.extend(build_metadata_html(metadata))
 
     html.append("<h2>Papers</h2>")
     for paper_name, content in papers.items():
         html.append(f"<div class='paper'><h3>{paper_name}</h3>")
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
-
         for idx, table in enumerate(content.get("tables", []), 1):
-            fragments = get_table_fragments(table)
-            for fragment in fragments:
-                html.append(f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>")
-                rows = fragment.get("rows", [])
-                if not rows:
-                    html.append("<p><i>No rows</i></p>")
-                    continue
-
-                # Build header from keys, sources_ always last
-                columns = [k for k in rows[0].keys() if k != "sources_"]
-                if "sources_" in rows[0]:
-                    columns.append("sources_")
-                html.append("<table class='table'>")
-                html.append(
-                    "<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>"
-                )
-
-                for row in rows:
-                    row_agreement_level = row.get("agreement_level_", 0)
-                    css_class = (
-                        "low"
-                        if row_agreement_level <= 1
-                        else "medium" if row_agreement_level == 2 else "high"
-                    )
-                    html.append(f"<tr class='{css_class}'>")
-                    for col in columns:
-                        val = row.get(col, "")
-                        if isinstance(val, list):
-                            val = ", ".join(str(v) for v in val)
-                        html.append(f"<td>{val}</td>")
-                    html.append("</tr>")
-
-                html.append("</table>")
-
+            for fragment in get_table_fragments(table):
+                html.extend(build_fragment_html(idx, fragment))
         html.append("</div>")
 
     html.append("</body></html>")
