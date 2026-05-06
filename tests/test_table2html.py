@@ -21,7 +21,7 @@ def test_fragment_renders_header_and_row():
     assert "<td>Rosaceae</td>" in out
 
 
-def test_fragment_sources_column_last():
+def test_fragment_readers_before_sources():
     fragment = {
         "page": 1,
         "rows": [{"sources_": ["s1"], "species": "Rosa"}],
@@ -29,7 +29,29 @@ def test_fragment_sources_column_last():
     out = joined(build_fragment_html(1, fragment))
     headers = [h.strip() for h in out.split("<th>")[1:]]
     assert headers[0].startswith("species")
+    assert headers[-2].startswith("readers_")
     assert headers[-1].startswith("sources_")
+
+
+def test_fragment_readers_column_shows_readers():
+    fragment = {
+        "page": 1,
+        "rows": [{"sources_": ["s1", "s2"], "species": "Rosa"}],
+    }
+    uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}
+    out = joined(build_fragment_html(1, fragment, uuid_to_reader))
+    assert "pdfplumber" in out
+    assert "camelot" in out
+
+
+def test_fragment_readers_column_deduplicates():
+    fragment = {
+        "page": 1,
+        "rows": [{"sources_": ["s1", "s2"], "species": "Rosa"}],
+    }
+    uuid_to_reader = {"s1": "pdfplumber", "s2": "pdfplumber"}
+    out = joined(build_fragment_html(1, fragment, uuid_to_reader))
+    assert "<td>pdfplumber</td>" in out
 
 
 def test_fragment_list_value_joined():

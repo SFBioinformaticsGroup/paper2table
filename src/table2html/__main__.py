@@ -63,14 +63,16 @@ def build_metadata_html(metadata) -> list:
     return html
 
 
-def build_fragment_html(idx, fragment) -> list:
+def build_fragment_html(idx, fragment, uuid_to_reader=None) -> list:
     html = [f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>"]
     rows = fragment.get("rows", [])
     if not rows:
         html.append("<p><i>No rows</i></p>")
         return html
+    has_sources = "sources_" in rows[0]
     columns = [k for k in rows[0].keys() if k != "sources_"]
-    if "sources_" in rows[0]:
+    if has_sources:
+        columns.append("readers_")
         columns.append("sources_")
     html.append("<table class='table'>")
     html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
@@ -79,9 +81,15 @@ def build_fragment_html(idx, fragment) -> list:
         css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
         html.append(f"<tr class='{css_class}'>")
         for col in columns:
-            val = row.get(col, "")
-            if isinstance(val, list):
-                val = ", ".join(str(v) for v in val)
+            if col == "readers_":
+                source_ids = row.get("sources_") or []
+                mapping = uuid_to_reader or {}
+                readers = list(dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping))
+                val = ", ".join(readers)
+            else:
+                val = row.get(col, "")
+                if isinstance(val, list):
+                    val = ", ".join(str(v) for v in val)
             html.append(f"<td>{val}</td>")
         html.append("</tr>")
     html.append("</table>")
@@ -108,13 +116,19 @@ def build_html(metadata, papers):
     if metadata:
         html.extend(build_metadata_html(metadata))
 
+    uuid_to_reader = {
+        s["uuid"]: s["reader"]
+        for s in metadata.get("sources", [])
+        if "uuid" in s and "reader" in s
+    }
+
     html.append("<h2>Papers</h2>")
     for paper_name, content in papers.items():
         html.append(f"<div class='paper'><h3>{paper_name}</h3>")
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
         for idx, table in enumerate(content.get("tables", []), 1):
             for fragment in get_table_fragments(table):
-                html.extend(build_fragment_html(idx, fragment))
+                html.extend(build_fragment_html(idx, fragment, uuid_to_reader))
         html.append("</div>")
 
     html.append("</body></html>")
