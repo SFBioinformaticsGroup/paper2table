@@ -40,7 +40,7 @@ def generate_merge_metadata(
     }
 
     output_path.mkdir(parents=True, exist_ok=True)
-    metadata_out = output_path / "tablemerge.metadata.json"
+    metadata_out = output_path / "tables.metadata.json"
     with open(metadata_out, "w", encoding="utf-8") as f:
         json.dump(merge_metadata, f, ensure_ascii=False, indent=2)
 

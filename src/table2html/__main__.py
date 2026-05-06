@@ -8,12 +8,10 @@ from utils.table_fragments import get_table_fragments, load_papers
 
 def load_papers_with_metadata(directory: Path):
     metadata = {}
-    for candidate in ("tablemerge.metadata.json", "tables.metadata.json"):
-        metadata_file = directory / candidate
-        if metadata_file.exists():
-            with open(metadata_file, "r", encoding="utf-8") as f:
-                metadata = json.load(f)
-            break
+    metadata_file = directory / "tables.metadata.json"
+    if metadata_file.exists():
+        with open(metadata_file, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
     return metadata, load_papers(directory)
 
 
@@ -33,6 +31,28 @@ def _source_cell(source: dict, key: str) -> str:
         emoji = _reader_emoji(source.get("reader", ""))
         return f"{emoji} {value}" if emoji else value
     return value
+
+
+def build_toc(papers) -> list:
+    html = ['<nav id="toc">', '<div id="toc-inner">', '<b>Contents</b>', '<ul>']
+    for paper_i, (paper_name, content) in enumerate(papers.items()):
+        paper_id = f"paper-{paper_i}"
+        html.append(f'<li><a href="#{paper_id}">{paper_name}</a>')
+        fragments = [
+            (idx, fragment)
+            for idx, table in enumerate(content.get("tables", []), 1)
+            for fragment in get_table_fragments(table)
+        ]
+        if fragments:
+            html.append("<ul>")
+            for idx, fragment in fragments:
+                page = fragment.get("page", "?")
+                frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
+                html.append(f'<li><a href="#{frag_id}">Table {idx}, p.&nbsp;{page}</a></li>')
+            html.append("</ul>")
+        html.append("</li>")
+    html.extend(["</ul>", "</div>", "</nav>"])
+    return html
 
 
 def build_metadata_html(metadata) -> list:
@@ -63,8 +83,10 @@ def build_metadata_html(metadata) -> list:
     return html
 
 
-def build_fragment_html(idx, fragment, uuid_to_reader=None) -> list:
-    html = [f"<h4>Table {idx}, page {fragment.get('page','?')}</h4>"]
+def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> list:
+    page = fragment.get("page", "?")
+    id_attr = f' id="{anchor_id}"' if anchor_id else ""
+    html = [f"<h4{id_attr}>Table {idx}, page {page}</h4>"]
     rows = fragment.get("rows", [])
     if not rows:
         html.append("<p><i>No rows</i></p>")
@@ -96,12 +118,55 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None) -> list:
     return html
 
 
+_TOC_JS = """\
+(function () {
+  var entries = Array.from(document.querySelectorAll('#toc a')).map(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    return { el: document.getElementById(id), a: a };
+  }).filter(function (x) { return x.el; });
+
+  function update() {
+    var scrollY = window.scrollY + 8;
+    var active = null;
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].el.getBoundingClientRect().top + window.scrollY <= scrollY) {
+        active = entries[i];
+      } else {
+        break;
+      }
+    }
+    entries.forEach(function (e) { e.a.classList.remove('active'); });
+    if (active) {
+      active.a.classList.add('active');
+      active.a.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+}());
+"""
+
+
 def build_html(metadata, papers):
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
     html.append("<style>")
-    html.append("body { font-family: Arial, sans-serif; margin: 20px; }")
+    html.append("* { box-sizing: border-box; }")
+    html.append("body { font-family: Arial, sans-serif; display: flex; align-items: flex-start; margin: 0; }")
+    html.append("#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;"
+                " overflow-y: auto; border-right: 1px solid #ddd; background: #f5f5f5; padding: 12px; }")
+    html.append("#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em;"
+                " text-transform: uppercase; letter-spacing: 0.05em; }")
+    html.append("#toc ul { list-style: none; margin: 0; padding: 0; }")
+    html.append("#toc ul ul { padding-left: 12px; }")
+    html.append("#toc li { margin: 1px 0; }")
+    html.append("#toc a { display: block; padding: 3px 6px; border-radius: 3px; text-decoration: none;"
+                " color: #333; font-size: 0.82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }")
+    html.append("#toc a:hover { background: #e0e0e0; }")
+    html.append("#toc a.active { background: #cde; color: #036; font-weight: 600; }")
+    html.append("main { flex: 1; padding: 20px; min-width: 0; }")
     html.append(".paper { margin-bottom: 2em; }")
     html.append(".table { border-collapse: collapse; margin: 1em 0; width: 100%; }")
     html.append(".table th, .table td { border: 1px solid #ddd; padding: 8px; }")
@@ -112,6 +177,9 @@ def build_html(metadata, papers):
     html.append("</style>")
     html.append("</head><body>")
 
+    html.extend(build_toc(papers))
+
+    html.append("<main>")
     html.append("<h1>Paper2Table Viewer</h1>")
     if metadata:
         html.extend(build_metadata_html(metadata))
@@ -123,14 +191,19 @@ def build_html(metadata, papers):
     }
 
     html.append("<h2>Papers</h2>")
-    for paper_name, content in papers.items():
-        html.append(f"<div class='paper'><h3>{paper_name}</h3>")
+    for paper_i, (paper_name, content) in enumerate(papers.items()):
+        paper_id = f"paper-{paper_i}"
+        html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
         for idx, table in enumerate(content.get("tables", []), 1):
             for fragment in get_table_fragments(table):
-                html.extend(build_fragment_html(idx, fragment, uuid_to_reader))
+                page = fragment.get("page", "?")
+                frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
+                html.extend(build_fragment_html(idx, fragment, uuid_to_reader, anchor_id=frag_id))
         html.append("</div>")
 
+    html.append("</main>")
+    html.append(f"<script>{_TOC_JS}</script>")
     html.append("</body></html>")
     return "\n".join(html)
 
