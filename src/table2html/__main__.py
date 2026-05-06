@@ -34,7 +34,7 @@ def _source_cell(source: dict, key: str) -> str:
 
 
 def build_toc(papers) -> list:
-    html = ['<nav id="toc">', '<div id="toc-inner">', '<b>Contents</b>', '<ul>']
+    html = ['<nav id="toc">', '<div id="toc-inner">', "<b>Contents</b>", "<ul>"]
     for paper_i, (paper_name, content) in enumerate(papers.items()):
         paper_id = f"paper-{paper_i}"
         html.append(f'<li><a href="#{paper_id}">{paper_name}</a>')
@@ -48,7 +48,9 @@ def build_toc(papers) -> list:
             for idx, fragment in fragments:
                 page = fragment.get("page", "?")
                 frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
-                html.append(f'<li><a href="#{frag_id}">Table {idx}, p.&nbsp;{page}</a></li>')
+                html.append(
+                    f'<li><a href="#{frag_id}">Table {idx}, p.&nbsp;{page}</a></li>'
+                )
             html.append("</ul>")
         html.append("</li>")
     html.extend(["</ul>", "</div>", "</nav>"])
@@ -83,13 +85,24 @@ def build_metadata_html(metadata) -> list:
     return html
 
 
+_META_KEYS = {"agreement_level_", "sources_"}
+
+
+def is_empty_row(row):
+    return all(not row.get(k) for k in row if k not in _META_KEYS)
+
+
 def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> list:
     page = fragment.get("page", "?")
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
     html = [f"<h4{id_attr}>Table {idx}, page {page}</h4>"]
-    rows = fragment.get("rows", [])
+    all_rows = fragment.get("rows", [])
+    rows = [r for r in all_rows if not is_empty_row(r)]
+    skipped = len(all_rows) - len(rows)
     if not rows:
         html.append("<p><i>No rows</i></p>")
+        if skipped:
+            html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
         return html
     has_sources = "sources_" in rows[0]
     columns = [k for k in rows[0].keys() if k != "sources_"]
@@ -106,7 +119,9 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> l
             if col == "readers_":
                 source_ids = row.get("sources_") or []
                 mapping = uuid_to_reader or {}
-                readers = list(dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping))
+                readers = list(
+                    dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
+                )
                 val = ", ".join(readers)
             else:
                 val = row.get(col, "")
@@ -115,6 +130,8 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> l
             html.append(f"<td>{val}</td>")
         html.append("</tr>")
     html.append("</table>")
+    if skipped:
+        html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
     return html
 
 
@@ -154,16 +171,24 @@ def build_html(metadata, papers):
     html.append("<title>Paper2Table Viewer</title>")
     html.append("<style>")
     html.append("* { box-sizing: border-box; }")
-    html.append("body { font-family: Arial, sans-serif; display: flex; align-items: flex-start; margin: 0; }")
-    html.append("#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;"
-                " overflow-y: auto; border-right: 1px solid #ddd; background: #f5f5f5; padding: 12px; }")
-    html.append("#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em;"
-                " text-transform: uppercase; letter-spacing: 0.05em; }")
+    html.append(
+        "body { font-family: Arial, sans-serif; display: flex; align-items: flex-start; margin: 0; }"
+    )
+    html.append(
+        "#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;"
+        " overflow-y: auto; border-right: 1px solid #ddd; background: #f5f5f5; padding: 12px; }"
+    )
+    html.append(
+        "#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em;"
+        " text-transform: uppercase; letter-spacing: 0.05em; }"
+    )
     html.append("#toc ul { list-style: none; margin: 0; padding: 0; }")
     html.append("#toc ul ul { padding-left: 12px; }")
     html.append("#toc li { margin: 1px 0; }")
-    html.append("#toc a { display: block; padding: 3px 6px; border-radius: 3px; text-decoration: none;"
-                " color: #333; font-size: 0.82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }")
+    html.append(
+        "#toc a { display: block; padding: 3px 6px; border-radius: 3px; text-decoration: none;"
+        " color: #333; font-size: 0.82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
+    )
     html.append("#toc a:hover { background: #e0e0e0; }")
     html.append("#toc a.active { background: #cde; color: #036; font-weight: 600; }")
     html.append("main { flex: 1; padding: 20px; min-width: 0; }")
@@ -199,7 +224,11 @@ def build_html(metadata, papers):
             for fragment in get_table_fragments(table):
                 page = fragment.get("page", "?")
                 frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
-                html.extend(build_fragment_html(idx, fragment, uuid_to_reader, anchor_id=frag_id))
+                html.extend(
+                    build_fragment_html(
+                        idx, fragment, uuid_to_reader, anchor_id=frag_id
+                    )
+                )
         html.append("</div>")
 
     html.append("</main>")

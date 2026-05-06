@@ -1,4 +1,4 @@
-from table2html.__main__ import build_fragment_html, build_metadata_html, build_html
+from table2html.__main__ import build_fragment_html, build_metadata_html, build_html, is_empty_row
 
 
 def joined(parts):
@@ -127,3 +127,36 @@ def test_build_html_includes_paper():
     out = build_html({}, papers)
     assert "mypaper.tables.json" in out
     assert "Smith 2020" in out
+
+
+def test_is_empty_row_true_when_only_meta():
+    assert is_empty_row({"agreement_level_": 2, "sources_": ["s1"]})
+
+
+def test_is_empty_row_true_when_blank_content():
+    assert is_empty_row({"species": "", "agreement_level_": 1})
+
+
+def test_is_empty_row_false_when_has_content():
+    assert not is_empty_row({"species": "Rosa", "agreement_level_": 1})
+
+
+def test_fragment_skips_empty_rows_and_shows_legend():
+    fragment = {
+        "page": 1,
+        "rows": [
+            {"species": "Rosa", "family": "Rosaceae"},
+            {"species": "", "family": ""},
+            {"species": "", "family": ""},
+        ],
+    }
+    out = joined(build_fragment_html(1, fragment))
+    assert "Rosa" in out
+    assert "(2 empty rows not shown)" in out
+
+
+def test_fragment_all_empty_rows_no_table():
+    fragment = {"page": 1, "rows": [{"species": ""}, {"species": ""}]}
+    out = joined(build_fragment_html(1, fragment))
+    assert "<table" not in out
+    assert "(2 empty rows not shown)" in out
