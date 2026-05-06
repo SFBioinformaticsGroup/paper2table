@@ -1,5 +1,6 @@
 import re
 from itertools import zip_longest
+from unidecode import unidecode
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -20,7 +21,7 @@ def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
 
 
-def normalize_value(value: ColumnValue) -> str:
+def normalize_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
         return normalize_str_value(value)
     if isinstance(value, list):
@@ -43,12 +44,30 @@ def normalize_row(row: Row, row_agreement: bool = False) -> Row:
         agreement_level_=(
             row.get_agreement_level() if row_agreement else row.agreement_level_
         ),
+        sources_=row.sources_,
     )
+
+
+def transliterate_value(value: ColumnValue) -> ColumnValue:
+    if isinstance(value, str):
+        return unidecode(value)
+    if isinstance(value, list):
+        return [
+            ValueWithAgreement(
+                value=unidecode(v.value), agreement_level=v.agreement_level
+            )
+            for v in value
+        ]
+    return value
 
 
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    return normalize_row(left).get_columns() == normalize_row(right).get_columns()
+    left_cols = normalize_row(left).get_columns()
+    right_cols = normalize_row(right).get_columns()
+    return {k: transliterate_value(v) for k, v in left_cols.items()} == {
+        k: transliterate_value(v) for k, v in right_cols.items()
+    }
 
 
 def merge_rows(
@@ -64,13 +83,18 @@ def merge_rows(
         columns = merge_columns_with_agreement(left, right)
     else:
         columns = merge_columns_without_agreement(left, right)
-    return Row(agreement_level_=agreement_level, **columns)
+
+    left_sources = left.sources_ or []
+    right_sources = right.sources_ or []
+    sources = list(dict.fromkeys(left_sources + right_sources)) or None
+
+    return Row(agreement_level_=agreement_level, sources_=sources, **columns)
 
 
 def merge_columns_without_agreement(left: Row, right: Row):
     return {
-        **normalize_row(left).get_columns(),
         **normalize_row(right).get_columns(),
+        **normalize_row(left).get_columns(),
     }
 
 
@@ -105,7 +129,9 @@ def to_values_with_agreement(column_value: ColumnValue):
 
 
 def merge_tablesfiles(  # pylint: disable=too-many-locals
-    tablesfiles: list[TablesFile], row_agreement=False, column_agreement=False
+    tablesfiles: list[TablesFile],
+    row_agreement=False,
+    column_agreement=False,
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -142,10 +168,12 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, row_agreement, column_agreement
+                left_fragment, tablesfiles[0].uuid, row_agreement, column_agreement
             )
 
-            for right_fragment in fragments_cluster[1:]:
+            for right_fragment, right_tablesfile in zip(
+                fragments_cluster[1:], tablesfiles[1:]
+            ):
                 if not right_fragment:
                     break
 
@@ -154,6 +182,7 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                         f"Pages don't match: {left_fragment.page} != {right_fragment.page}"
                     )
 
+                right_uuid = right_tablesfile.uuid
                 right_rows = right_fragment.rows
                 left_rows = table_fragment_builder.next_left_rows()
                 start_right_index = 0
@@ -162,16 +191,16 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                     found = False
                     for right_index in range(start_right_index, len(right_rows)):
                         if same_row(left_row, right_rows[right_index]):
-                            # add all right rows that are before
-                            # the matching row
                             table_fragment_builder.append_skipped(
-                                right_rows[start_right_index:right_index]
+                                right_rows[start_right_index:right_index], right_uuid
                             )
 
-                            table_fragment_builder.merge_and_append(
-                                left_row,
-                                right_rows[right_index],
+                            right_row = right_rows[right_index].model_copy(
+                                update={
+                                    "sources_": [right_uuid] if right_uuid else None
+                                }
                             )
+                            table_fragment_builder.merge_and_append(left_row, right_row)
                             # update right index so that
                             # new left rows are matched only to rows that
                             # are after the one found
@@ -182,7 +211,9 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                     if not found:
                         table_fragment_builder.append_unmatched(left_row)
 
-                table_fragment_builder.append_skipped(right_rows[start_right_index:])
+                table_fragment_builder.append_skipped(
+                    right_rows[start_right_index:], right_uuid
+                )
 
             merged_fragments.append(table_fragment_builder.build())
 
@@ -211,18 +242,21 @@ class TableFragmentBuilder:
     def __init__(
         self,
         initial_fragment: TableFragment,
+        initial_uuid: str | None,
         row_agreement: bool,
         column_agreement: bool,
     ):
-        self.rows = list(
-            map(
-                lambda row: normalize_row(row, row_agreement),
-                initial_fragment.rows,
-            )
-        )
-        self.page = initial_fragment.page
         self.row_agreement = row_agreement
         self.column_agreement = column_agreement
+        self.page = initial_fragment.page
+        self.rows = [
+            row.model_copy(
+                update={"sources_": [initial_uuid] if initial_uuid else None}
+            )
+            for row in map(
+                lambda r: normalize_row(r, row_agreement), initial_fragment.rows
+            )
+        ]
 
     def next_left_rows(self):
         rows = self.rows
@@ -233,12 +267,15 @@ class TableFragmentBuilder:
         new = normalize_row(row, self.row_agreement)
         self.rows.append(new)
 
-    def append_skipped(self, rows: list[Row]):
+    def append_skipped(self, rows: list[Row], source_uuid: str | None):
         """
         Append a range of rows, without processing them
         """
         for skipped_row in rows:
-            self._append(skipped_row)
+            stamped = skipped_row.model_copy(
+                update={"sources_": [source_uuid] if source_uuid else None}
+            )
+            self._append(stamped)
 
     def append_unmatched(self, row: Row):
         """

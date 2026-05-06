@@ -12,6 +12,7 @@ ColumnValue = Union[str, List[ValueWithAgreement]]
 
 class Row(BaseModel):
     agreement_level_: Optional[int] = Field(None)
+    sources_: Optional[List[str]] = Field(None)
 
     model_config = ConfigDict(extra="allow")
 
@@ -19,7 +20,7 @@ class Row(BaseModel):
         return self.__dict__[item]
 
     def get_columns(self) -> Dict[str, ColumnValue]:
-        return {k: v for k, v in self if k != "agreement_level_"}
+        return {k: v for k, v in self if k not in ("agreement_level_", "sources_")}
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
@@ -55,6 +56,7 @@ class TablesFile(BaseModel):
     tables: List[Table]
     citation: Citation
     metadata: Optional[Metadata] = None
+    uuid: Optional[str] = None
 
 
 def get_table_fragments(table: Table) -> list[TableFragment]:
