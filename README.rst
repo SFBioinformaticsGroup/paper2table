@@ -124,6 +124,20 @@ Use ``-F`` to force regeneration of the mapping:
         -p tests/data/demo_schema.txt \
         tests/data/demo_table.pdf
 
+Split-pages mode
+================
+
+When using the agent reader (``-r agent``), the ``--split-pages`` flag sends the PDF to the
+agent one page at a time instead of all at once.
+This is useful when a paper is long and the agent model has input token limitations.
+
+.. code-block:: bash
+
+    $ GEMINI_API_KEY=... paper2table -r agent --split-pages \
+        -m google-gla:gemini-2.5-flash \
+        -p tests/data/demo_schema.txt \
+        tests/data/demo_table.pdf
+
 Each mapping file records which model produced it and when, under a ``metadata`` field:
 
 .. code-block:: javascript

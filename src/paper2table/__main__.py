@@ -10,7 +10,16 @@ from tqdm import tqdm
 
 from paper2table import __version__
 from paper2table.mapping import TablesMapping
-from paper2table.readers import agent, camelot, pdfplumber, img2table, pymupdf, hybrid
+from paper2table.readers import (
+    agent,
+    camelot,
+    pdfplumber,
+    img2table,
+    pymupdf,
+    hybrid,
+    split_pages,
+)
+from paper2table.readers.errors import PartialProcessingError
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
@@ -114,6 +123,15 @@ def parse_args():
         "--tablemerge",
         action="store_true",
         help="Generates a tablemerge directory. Must be used with -o",
+    )
+    parser.add_argument(
+        "--split-pages",
+        dest="split_pages",
+        action="store_true",
+        help=(
+            "Split the PDF into individual pages before sending to the agent."
+            " Only supported with -r agent (without -H)."
+        ),
     )
     parser.add_argument(
         "-vv",
@@ -224,6 +242,21 @@ def get_tables_reader(args):
     else:
         raise ValueError(f"Reader {args.reader} is not implemented yet")
 
+    if args.split_pages:
+        if args.reader != "agent" or args.hybrid:
+            print("--split-pages is only supported with -r agent (without -H)")
+            sys.exit(1)
+
+        def base_agent_read(paper_path: str, _mapping=None):
+            return agent.read_tables(paper_path, model=args.model, schema=schema)
+
+        def read_tables(
+            paper_path: str, _mapping=None
+        ):  # pylint: disable=function-redefined
+            return split_pages.read_tables(
+                paper_path, base_agent_read, sleep=args.model_sleep
+            )
+
     if args.hybrid:
         mappings_path = Path(args.mappings_path)
         schema = read_schema(args)
@@ -239,7 +272,9 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):  # pylint: disable=function-redefined
+        def read_tables(
+            paper_path: str, _mapping: Optional[TablesMapping] = None
+        ):  # pylint: disable=function-redefined
             time.sleep(args.model_sleep)
             _logger.debug(f"Hybrid processing paper {paper_path}...")
             return hybrid.read_tables(
@@ -315,6 +350,12 @@ def main():
             write_tables(result, paper_path)
 
             _logger.debug(f"Paper {paper_path} processed")
+        except PartialProcessingError as e:
+            _logger.warning(
+                f"Paper {paper_path} failed on page {e.page_num}."
+                f" Writing partial results. {str(traceback.format_exc())}"
+            )
+            write_tables(e.partial_result, paper_path)
         except Exception:
             _logger.warning(f"Paper {paper_path} failed {str(traceback.format_exc())}")
 
