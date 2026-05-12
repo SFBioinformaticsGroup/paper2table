@@ -1,4 +1,12 @@
-from table2html.__main__ import build_fragment_html, build_metadata_html, build_html, is_empty_row
+from table2html.__main__ import (
+    agreement_css_class,
+    build_css,
+    build_data_row,
+    build_fragment_html,
+    build_html,
+    build_metadata_html,
+    is_empty_row,
+)
 
 
 def joined(parts):
@@ -160,3 +168,58 @@ def test_fragment_all_empty_rows_no_table():
     out = joined(build_fragment_html(1, fragment))
     assert "<table" not in out
     assert "(2 empty rows not shown)" in out
+
+
+def test_agreement_css_class_low_zero():
+    assert agreement_css_class(0) == "low"
+
+
+def test_agreement_css_class_low_one():
+    assert agreement_css_class(1) == "low"
+
+
+def test_agreement_css_class_medium():
+    assert agreement_css_class(2) == "medium"
+
+
+def test_agreement_css_class_high():
+    assert agreement_css_class(3) == "high"
+
+
+def test_build_data_row_simple():
+    row = {"species": "Rosa", "family": "Rosaceae"}
+    out = joined(build_data_row(row, ["species", "family"]))
+    assert "<td>Rosa</td>" in out
+    assert "<td>Rosaceae</td>" in out
+
+
+def test_build_data_row_applies_css_class():
+    row = {"x": "v", "agreement_level_": 2}
+    out = joined(build_data_row(row, ["x"]))
+    assert "class='medium'" in out
+
+
+def test_build_data_row_readers_column():
+    row = {"species": "Rosa", "sources_": ["s1", "s2"]}
+    uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}
+    out = joined(build_data_row(row, ["species", "readers_"], uuid_to_reader))
+    assert "pdfplumber" in out
+    assert "camelot" in out
+
+
+def test_build_data_row_list_value():
+    row = {"tags": ["a", "b", "c"]}
+    out = joined(build_data_row(row, ["tags"]))
+    assert "<td>a, b, c</td>" in out
+
+
+def test_build_css_contains_body_rule():
+    css = "\n".join(build_css())
+    assert "font-family: Arial" in css
+
+
+def test_build_css_contains_agreement_classes():
+    css = "\n".join(build_css())
+    assert ".low { background-color: #fdd; }" in css
+    assert ".medium { background-color: #ffd; }" in css
+    assert ".high { background-color: #dfd; }" in css

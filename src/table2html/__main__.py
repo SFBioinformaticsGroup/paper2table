@@ -92,6 +92,34 @@ def is_empty_row(row):
     return all(not row.get(k) for k in row if k not in _META_KEYS)
 
 
+def agreement_css_class(level: int) -> str:
+    if level <= 1:
+        return "low"
+    if level == 2:
+        return "medium"
+    return "high"
+
+
+def build_data_row(row: dict, columns: list, uuid_to_reader=None) -> list:
+    css_class = agreement_css_class(row.get("agreement_level_", 0))
+    html = [f"<tr class='{css_class}'>"]
+    for col in columns:
+        if col == "readers_":
+            source_ids = row.get("sources_") or []
+            mapping = uuid_to_reader or {}
+            readers = list(
+                dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
+            )
+            val = ", ".join(readers)
+        else:
+            val = row.get(col, "")
+            if isinstance(val, list):
+                val = ", ".join(str(v) for v in val)
+        html.append(f"<td>{val}</td>")
+    html.append("</tr>")
+    return html
+
+
 def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> list:
     page = fragment.get("page", "?")
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
@@ -112,23 +140,7 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> l
     html.append("<table class='table'>")
     html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
     for row in rows:
-        level = row.get("agreement_level_", 0)
-        css_class = "low" if level <= 1 else "medium" if level == 2 else "high"
-        html.append(f"<tr class='{css_class}'>")
-        for col in columns:
-            if col == "readers_":
-                source_ids = row.get("sources_") or []
-                mapping = uuid_to_reader or {}
-                readers = list(
-                    dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
-                )
-                val = ", ".join(readers)
-            else:
-                val = row.get(col, "")
-                if isinstance(val, list):
-                    val = ", ".join(str(v) for v in val)
-            html.append(f"<td>{val}</td>")
-        html.append("</tr>")
+        html.extend(build_data_row(row, columns, uuid_to_reader))
     html.append("</table>")
     if skipped:
         html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
@@ -165,40 +177,41 @@ _TOC_JS = """\
 """
 
 
+def build_css() -> list:
+    return [
+        "* { box-sizing: border-box; }",
+        "body { font-family: Arial, sans-serif; display: flex;"
+        " align-items: flex-start; margin: 0; }",
+        "#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;"
+        " overflow-y: auto; border-right: 1px solid #ddd;"
+        " background: #f5f5f5; padding: 12px; }",
+        "#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em;"
+        " text-transform: uppercase; letter-spacing: 0.05em; }",
+        "#toc ul { list-style: none; margin: 0; padding: 0; }",
+        "#toc ul ul { padding-left: 12px; }",
+        "#toc li { margin: 1px 0; }",
+        "#toc a { display: block; padding: 3px 6px; border-radius: 3px;"
+        " text-decoration: none; color: #333; font-size: 0.82em;"
+        " white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+        "#toc a:hover { background: #e0e0e0; }",
+        "#toc a.active { background: #cde; color: #036; font-weight: 600; }",
+        "main { flex: 1; padding: 20px; min-width: 0; }",
+        ".paper { margin-bottom: 2em; }",
+        ".table { border-collapse: collapse; margin: 1em 0; width: 100%; }",
+        ".table th, .table td { border: 1px solid #ddd; padding: 8px; }",
+        ".metadata-table th { text-align: left; width: 120px; }",
+        ".low { background-color: #fdd; }",
+        ".medium { background-color: #ffd; }",
+        ".high { background-color: #dfd; }",
+    ]
+
+
 def build_html(metadata, papers):
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
     html.append("<style>")
-    html.append("* { box-sizing: border-box; }")
-    html.append(
-        "body { font-family: Arial, sans-serif; display: flex; align-items: flex-start; margin: 0; }"
-    )
-    html.append(
-        "#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;"
-        " overflow-y: auto; border-right: 1px solid #ddd; background: #f5f5f5; padding: 12px; }"
-    )
-    html.append(
-        "#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em;"
-        " text-transform: uppercase; letter-spacing: 0.05em; }"
-    )
-    html.append("#toc ul { list-style: none; margin: 0; padding: 0; }")
-    html.append("#toc ul ul { padding-left: 12px; }")
-    html.append("#toc li { margin: 1px 0; }")
-    html.append(
-        "#toc a { display: block; padding: 3px 6px; border-radius: 3px; text-decoration: none;"
-        " color: #333; font-size: 0.82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
-    )
-    html.append("#toc a:hover { background: #e0e0e0; }")
-    html.append("#toc a.active { background: #cde; color: #036; font-weight: 600; }")
-    html.append("main { flex: 1; padding: 20px; min-width: 0; }")
-    html.append(".paper { margin-bottom: 2em; }")
-    html.append(".table { border-collapse: collapse; margin: 1em 0; width: 100%; }")
-    html.append(".table th, .table td { border: 1px solid #ddd; padding: 8px; }")
-    html.append(".metadata-table th { text-align: left; width: 120px; }")
-    html.append(".low { background-color: #fdd; }")
-    html.append(".medium { background-color: #ffd; }")
-    html.append(".high { background-color: #dfd; }")
+    html.extend(build_css())
     html.append("</style>")
     html.append("</head><body>")
 
