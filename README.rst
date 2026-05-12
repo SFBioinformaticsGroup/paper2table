@@ -164,6 +164,16 @@ same ``paper2table`` command:
     # suitable for use with tablemerge command
     $ paper2table -t -o tests/data/tables tests/data/demo_table.pdf
 
+To resume an interrupted run or add new papers to an existing resultset, use ``--append`` with the UUID of the resultset:
+
+.. code-block:: bash
+
+    # append new papers to an existing resultset
+    # papers already present in the resultset are skipped automatically
+    $ paper2table -t -o tests/data/tables --append <uuid> new_papers/*.pdf
+
+``--append`` aborts if the reader or model of the current invocation does not match the one recorded in the existing resultset.
+
 After doing this, you can merge tables like this:
 
 .. code-block:: bash

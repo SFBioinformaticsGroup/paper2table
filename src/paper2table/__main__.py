@@ -1,9 +1,11 @@
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
 from typing import Optional
+from uuid import UUID
 import traceback
 
 from tqdm import tqdm
@@ -123,6 +125,12 @@ def parse_args():
         "--tablemerge",
         action="store_true",
         help="Generates a tablemerge directory. Must be used with -o",
+    )
+    parser.add_argument(
+        "--append",
+        type=str,
+        metavar="UUID",
+        help="Append to an existing resultset. Must be used with -t and -o",
     )
     parser.add_argument(
         "--split-pages",
@@ -297,15 +305,53 @@ def read_schema(args):
     )
 
 
+def get_skip_predicate(args):
+    if not args.append:
+        return lambda _: False
+    resultset_dir = os.path.join(args.output_directory, args.append)
+
+    def should_skip(paper_path):
+        basename = os.path.basename(paper_path).replace(".pdf", ".tables.json")
+        return os.path.exists(os.path.join(resultset_dir, basename))
+
+    return should_skip
+
+
 def get_table_writer(args):
     if args.tablemerge and not args.output_directory:
         print("--tablemerge requires also --output-directory")
         sys.exit(1)
 
+    if args.append and not (args.tablemerge and args.output_directory):
+        print("--append requires --tablemerge and --output-directory")
+        sys.exit(1)
+
     if args.tablemerge:
-        metadata = TablemergeMetadata(
-            reader=args.reader, model=args.model, hybrid=args.hybrid
-        )
+        if args.append:
+            try:
+                existing = tablemerge.load_metadata_dict(args.output_directory, args.append)
+            except FileNotFoundError as e:
+                print(str(e))
+                sys.exit(1)
+            current_reader = TablemergeMetadata(
+                reader=args.reader, model=args.model, hybrid=args.hybrid
+            ).get_reader()
+            if existing["reader"] != current_reader:
+                print(
+                    f"--append: reader mismatch."
+                    f" Existing: {existing['reader']}, current: {current_reader}"
+                )
+                sys.exit(1)
+            metadata = TablemergeMetadata(
+                reader=args.reader,
+                model=args.model,
+                hybrid=args.hybrid,
+                uuid=UUID(args.append),
+            )
+        else:
+            metadata = TablemergeMetadata(
+                reader=args.reader, model=args.model, hybrid=args.hybrid
+            )
 
         def write_tables(result: TablesReader, paper_path: str):
             tablemerge.write_tables(
@@ -342,8 +388,12 @@ def main():
 
     read_tables = get_tables_reader(args)
     write_tables = get_table_writer(args)
+    should_skip = get_skip_predicate(args)
 
     for paper_path in get_paper_paths(args):
+        if should_skip(paper_path):
+            _logger.debug(f"Skipping {paper_path}, already in resultset")
+            continue
         try:
             result = read_tables(paper_path)
 

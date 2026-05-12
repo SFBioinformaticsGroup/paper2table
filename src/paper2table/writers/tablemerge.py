@@ -16,11 +16,11 @@ class TablemergeMetadata:
     hybrid: bool
     uuid: UUID
 
-    def __init__(self, reader: str, model: Optional[str], hybrid=False):
+    def __init__(self, reader: str, model: Optional[str], hybrid=False, uuid: Optional[UUID] = None):
         self.reader = reader
         self.model = model
         self.hybrid = hybrid
-        self.uuid = uuid4()
+        self.uuid = uuid if uuid is not None else uuid4()
         self.datetime = dt.now()
 
     def get_reader(self):
@@ -36,6 +36,14 @@ class TablemergeMetadata:
             "uuid": str(self.uuid),
             "datetime": self.datetime.isoformat(),
         }
+
+
+def load_metadata_dict(output_directory: str, uuid_str: str) -> dict:
+    path = os.path.join(output_directory, uuid_str, "tables.metadata.json")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"No resultset found at {path}")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def write_tables(
