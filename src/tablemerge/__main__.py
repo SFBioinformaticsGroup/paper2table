@@ -6,7 +6,12 @@ from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
 
-from .merge import merge_tablesfiles, MergeError
+from .merge import (
+    merge_tablesfiles,
+    MergeError,
+    simple_count_agreement,
+    make_distinct_readers_agreement,
+)
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -19,8 +24,11 @@ def read_resultset_metadata(resultset_dir: str) -> dict:
         return {}
 
 
-def generate_merge_metadata(
-    resultset_dirs: list[str], output_path: Path, resultset_metadata: dict[str, dict]
+def write_merge_metadata(
+    resultset_dirs: list[str],
+    output_path: Path,
+    resultset_metadata: dict[str, dict],
+    agreement_method: str = "simple-count",
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -36,6 +44,7 @@ def generate_merge_metadata(
         "reader": "tablemerge",
         "uuid": str(uuid4()),
         "datetime": dt.now().isoformat(),
+        "agreement_method": agreement_method,
         "sources": sources,
     }
 
@@ -49,7 +58,7 @@ def generate_merge_metadata(
 
 
 def merge_tablesfiles_paths(
-    basename, resultset_dirs, output_path, metadata_map: dict[str, dict]
+    basename, resultset_dirs, output_path, metadata_map: dict[str, dict], agreement
 ):
     """
     Merge all the TablesFile of the same basename
@@ -72,7 +81,7 @@ def merge_tablesfiles_paths(
 
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles, row_agreement=True
+            tablesfiles, agreement=agreement
         )
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"
@@ -84,14 +93,33 @@ def merge_tablesfiles_paths(
         print(f"{basename}: MERGE FAILED:", str(e))
 
 
-def merge_resultsets(resultset_dirs: list[str], output_dir: str, metadata_only=False):
+def merge_resultsets(
+    resultset_dirs: list[str],
+    output_dir: str,
+    metadata_only=False,
+    agreement_method: str = "simple-count",
+):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
 
-    generate_merge_metadata(resultset_dirs, output_path, resultset_metadata)
+    write_merge_metadata(
+        resultset_dirs, output_path, resultset_metadata, agreement_method
+    )
 
     if metadata_only:
         return
+
+    agreement = (
+        make_distinct_readers_agreement(
+            {
+                meta["uuid"]: meta["reader"]
+                for meta in resultset_metadata.values()
+                if "uuid" in meta and "reader" in meta
+            }
+        )
+        if agreement_method == "distinct-readers"
+        else simple_count_agreement
+    )
 
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -102,7 +130,7 @@ def merge_resultsets(resultset_dirs: list[str], output_dir: str, metadata_only=F
 
     for basename in sorted(list(tablesfiles_basenames)):
         merge_tablesfiles_paths(
-            basename, resultset_dirs, output_path, resultset_metadata
+            basename, resultset_dirs, output_path, resultset_metadata, agreement
         )
 
 
@@ -125,13 +153,22 @@ def parse_args():
     parser.add_argument(
         "paths", nargs="+", help="Input directories containing .tables.json files"
     )
+    parser.add_argument(
+        "--agreement-method",
+        choices=["simple-count", "distinct-readers"],
+        default="simple-count",
+        help="How to compute agreement level (default: simple-count)",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     merge_resultsets(
-        args.paths, args.output_directory, metadata_only=args.metadata_only
+        args.paths,
+        args.output_directory,
+        metadata_only=args.metadata_only,
+        agreement_method=args.agreement_method,
     )
 
 

@@ -1,5 +1,6 @@
 import re
 from itertools import zip_longest
+from typing import Callable
 from unidecode import unidecode
 from tablevalidate.schema import (
     TablesFile,
@@ -11,6 +12,44 @@ from tablevalidate.schema import (
     Row,
     get_table_fragments,
 )
+
+Agreement = Callable[[Row, Row], int]
+
+
+def is_agent_reader(reader: str | None) -> bool:
+    if not reader:
+        return True
+    if reader in ("pdfplumber", "camelot", "pymupdf"):
+        return False
+    if reader.startswith("hybrid-"):
+        return False
+    return True
+
+
+def distinct_readers_agreement_level(
+    sources: list[str], uuid_to_reader: dict[str, str]
+) -> int:
+    agent_count = 0
+    non_agent_readers: set[str] = set()
+    for uuid in sources:
+        reader = uuid_to_reader.get(uuid)
+        if is_agent_reader(reader):
+            agent_count += 1
+        else:
+            non_agent_readers.add(reader)
+    return max(1, agent_count + len(non_agent_readers))
+
+
+def simple_count_agreement(left: Row, right: Row) -> int:
+    return left.get_agreement_level() + right.get_agreement_level()
+
+
+def make_distinct_readers_agreement(uuid_to_reader: dict[str, str]) -> Agreement:
+    def fn(left: Row, right: Row) -> int:
+        sources = list(dict.fromkeys((left.sources_ or []) + (right.sources_ or [])))
+        return distinct_readers_agreement_level(sources, uuid_to_reader)
+
+    return fn
 
 
 class MergeError(ValueError):
@@ -71,13 +110,9 @@ def same_row(left: Row, right: Row) -> bool:
 
 
 def merge_rows(
-    left: Row, right: Row, row_agreement=False, column_agreement=False
+    left: Row, right: Row, agreement: Agreement | None = None, column_agreement=False
 ) -> Row:
-    agreement_level = (
-        left.get_agreement_level() + right.get_agreement_level()
-        if row_agreement
-        else None
-    )
+    agreement_level = agreement(left, right) if agreement else None
 
     if column_agreement:
         columns = merge_columns_with_agreement(left, right)
@@ -130,7 +165,7 @@ def to_values_with_agreement(column_value: ColumnValue):
 
 def merge_tablesfiles(  # pylint: disable=too-many-locals
     tablesfiles: list[TablesFile],
-    row_agreement=False,
+    agreement: Agreement | None = None,
     column_agreement=False,
 ) -> TablesFile:
     """
@@ -168,7 +203,7 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, tablesfiles[0].uuid, row_agreement, column_agreement
+                left_fragment, tablesfiles[0].uuid, agreement, column_agreement
             )
 
             for right_fragment, right_tablesfile in zip(
@@ -236,25 +271,26 @@ def make_fragments_clusters(tables_cluster: list[Table]):
 class TableFragmentBuilder:
     rows: list[Row]
     page: int
-    row_agreement: bool
+    agreement: Agreement | None
     column_agreement: bool
 
     def __init__(
         self,
         initial_fragment: TableFragment,
         initial_uuid: str | None,
-        row_agreement: bool,
+        agreement: Agreement | None,
         column_agreement: bool,
     ):
-        self.row_agreement = row_agreement
+        self.agreement = agreement
         self.column_agreement = column_agreement
         self.page = initial_fragment.page
+        do_agreement = agreement is not None
         self.rows = [
             row.model_copy(
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, row_agreement), initial_fragment.rows
+                lambda r: normalize_row(r, do_agreement), initial_fragment.rows
             )
         ]
 
@@ -264,7 +300,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.row_agreement)
+        new = normalize_row(row, self.agreement is not None)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row], source_uuid: str | None):
@@ -298,7 +334,7 @@ class TableFragmentBuilder:
             merge_rows(
                 left,
                 right,
-                row_agreement=self.row_agreement,
+                agreement=self.agreement,
                 column_agreement=self.column_agreement,
             )
         )

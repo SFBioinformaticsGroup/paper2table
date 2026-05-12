@@ -1,5 +1,5 @@
 import pytest
-from tablemerge.merge import merge_tablesfiles, merge_rows
+from tablemerge.merge import merge_tablesfiles, merge_rows, simple_count_agreement
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -37,7 +37,7 @@ def test_single_table_returns_normalized():
 def test_single_table_with_row_agreement():
     table = [Row(family=" Apiaceae ", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table)], row_agreement=True)
+    result = merge_tablesfiles([wrap(table)], agreement=simple_count_agreement)
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
@@ -57,7 +57,7 @@ def test_two_identical_tables():
 def test_two_identical_tables_with_row_agreement():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table), wrap(table)], row_agreement=True)
+    result = merge_tablesfiles([wrap(table), wrap(table)], agreement=simple_count_agreement)
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
@@ -89,7 +89,7 @@ def test_two_tables_with_different_column_names_and_row_agreement():
     table_1 = [Row(family=" Apiaceae ", scientific_name=" Ammi majus L. ")]
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
-    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], row_agreement=True)
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], agreement=simple_count_agreement)
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
         Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
@@ -281,7 +281,7 @@ def test_three_tables_with_conflicting_values_with_row_agreement_level():
     ]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2), wrap(table_3)], row_agreement=True
+        [wrap(table_1), wrap(table_2), wrap(table_3)], agreement=simple_count_agreement
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),

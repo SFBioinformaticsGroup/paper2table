@@ -12,6 +12,8 @@ def load_papers_with_metadata(directory: Path):
     if metadata_file.exists():
         with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
+    if metadata.get("reader") == "tablemerge" and "agreement_method" not in metadata:
+        metadata = {**metadata, "agreement_method": "simple-count"}
     return metadata, load_papers(directory)
 
 
