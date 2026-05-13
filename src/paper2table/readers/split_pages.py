@@ -84,7 +84,7 @@ def read_tables(
             try:
                 result = page_reader(tmp.name)
                 page_results.append((page_num, result))
-            except Exception as e:
+            except BaseException as e:
                 partial = read_tables_from_pages(pdf_path, page_results)
                 raise PartialProcessingError(page_num, partial, e) from e
             finally:
