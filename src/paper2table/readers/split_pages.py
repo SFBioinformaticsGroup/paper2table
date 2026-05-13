@@ -3,10 +3,13 @@ import tempfile
 import time
 from typing import Callable, List, Tuple
 
+import logging
 import pymupdf
 
 from .errors import PartialProcessingError
 from ..tables_reader import TablesReader
+
+_logger = logging.getLogger("pape2table")
 
 
 def fix_page_numbers(table_dict: dict, actual_page: int) -> dict:
@@ -74,6 +77,7 @@ def read_tables(
     page_results: List[Tuple[int, TablesReader]] = []
     with pymupdf.open(pdf_path) as document:
         for i in range(document.page_count):
+            _logger.debug("Reading page %i from %s", i, pdf_path)
             page_num = i + 1
             time.sleep(sleep)
             tmp = write_tmp_page_file(document, i)
