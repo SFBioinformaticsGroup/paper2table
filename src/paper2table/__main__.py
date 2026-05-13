@@ -308,9 +308,11 @@ def read_schema(args):
 def get_skip_predicate(args):
     if not args.append:
         return lambda _: False
+
     resultset_dir = os.path.join(args.output_directory, args.append)
 
     def should_skip(paper_path):
+        # TODO this is duplicated
         basename = os.path.basename(paper_path).replace(".pdf", ".tables.json")
         return os.path.exists(os.path.join(resultset_dir, basename))
 
@@ -328,30 +330,14 @@ def get_table_writer(args):
 
     if args.tablemerge:
         if args.append:
-            try:
-                existing = tablemerge.load_metadata_dict(args.output_directory, args.append)
-            except FileNotFoundError as e:
-                print(str(e))
-                sys.exit(1)
-            current_reader = TablemergeMetadata(
-                reader=args.reader, model=args.model, hybrid=args.hybrid
-            ).get_reader()
-            if existing["reader"] != current_reader:
-                print(
-                    f"--append: reader mismatch."
-                    f" Existing: {existing['reader']}, current: {current_reader}"
-                )
-                sys.exit(1)
-            metadata = TablemergeMetadata(
-                reader=args.reader,
-                model=args.model,
-                hybrid=args.hybrid,
-                uuid=UUID(args.append),
-            )
+            validate_existing_resultset(args)
+            uuid = UUID(args.append)
         else:
-            metadata = TablemergeMetadata(
-                reader=args.reader, model=args.model, hybrid=args.hybrid
-            )
+            uuid = None
+
+        metadata = TablemergeMetadata(
+            reader=args.reader, model=args.model, hybrid=args.hybrid, uuid=uuid
+        )
 
         def write_tables(result: TablesReader, paper_path: str):
             tablemerge.write_tables(
@@ -374,6 +360,25 @@ def get_table_writer(args):
             stdout.write_tables(result)
 
     return write_tables
+
+
+def validate_existing_resultset(args):
+    try:
+        existing = tablemerge.load_metadata(args.output_directory, args.append)
+    except FileNotFoundError as e:
+        print("--append: resultset doesn't exist or doesn't contain valid metadata")
+        sys.exit(1)
+
+    current_reader = TablemergeMetadata(
+        reader=args.reader, model=args.model, hybrid=args.hybrid
+    ).get_reader()
+
+    if existing["reader"] != current_reader:
+        print(
+            "--append: reader mismatch."
+            f" Existing: {existing['reader']}, current: {current_reader}"
+        )
+        sys.exit(1)
 
 
 def get_paper_paths(args):
