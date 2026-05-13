@@ -8,15 +8,22 @@ from paper2table.tables_reader import TablesReader
 
 from . import file
 
+type Reader = Literal["agent", "pdfplumber", "camelot", "img2table", "pymupdf"]
 
 class TablemergeMetadata:
-    reader: Literal["agent", "pdfplumber", "camelot", "img2table", "pymupdf"]
+    reader: Reader
     model: Optional[str]
     datetime: dt
     hybrid: bool
     uuid: UUID
 
-    def __init__(self, reader: str, model: Optional[str], hybrid=False, uuid: Optional[UUID] = None):
+    def __init__(
+        self,
+        reader: Reader,
+        model: Optional[str],
+        hybrid=False,
+        uuid: Optional[UUID] = None,
+    ):
         self.reader = reader
         self.model = model
         self.hybrid = hybrid
@@ -38,8 +45,9 @@ class TablemergeMetadata:
         }
 
 
-def load_metadata_dict(output_directory: str, uuid_str: str) -> dict:
-    path = os.path.join(output_directory, uuid_str, "tables.metadata.json")
+def load_metadata(output_directory: str, uuid: str) -> dict:
+    # TODO refactor: this code is everywhere
+    path = os.path.join(output_directory, uuid, "tables.metadata.json")
     if not os.path.exists(path):
         raise FileNotFoundError(f"No resultset found at {path}")
     with open(path, encoding="utf-8") as f:
