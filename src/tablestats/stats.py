@@ -39,7 +39,9 @@ class GlobalStats:
         }
 
 
-def update_papers_stats(stats: GlobalStats, paper_filename: str, paper_data: TablesFile) -> None:
+def update_papers_stats(
+    stats: GlobalStats, paper_filename: str, paper_data: TablesFile
+) -> None:
     paper_stats = compute_paper_stats(paper_data)
 
     stats.papers += 1

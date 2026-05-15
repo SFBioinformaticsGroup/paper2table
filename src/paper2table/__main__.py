@@ -373,7 +373,7 @@ def get_table_writer(args):
 def validate_existing_resultset(args):
     try:
         existing = tablemerge.load_metadata(args.output_directory, args.append)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print("--append: resultset doesn't exist or doesn't contain valid metadata")
         sys.exit(1)
 

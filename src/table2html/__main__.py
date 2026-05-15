@@ -10,7 +10,6 @@ from tablevalidate.schema import (
     Row,
     TablesFile,
     TableFragment,
-    ValueWithAgreement,
 )
 
 

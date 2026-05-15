@@ -72,9 +72,15 @@ def test_fragment_readers_column_deduplicates():
 def test_fragment_list_value_joined():
     fragment = TableFragment(
         page=1,
-        rows=[Row(tags=[ValueWithAgreement(value="a", agreement_level=1),
-                        ValueWithAgreement(value="b", agreement_level=1),
-                        ValueWithAgreement(value="c", agreement_level=1)])],
+        rows=[
+            Row(
+                tags=[
+                    ValueWithAgreement(value="a", agreement_level=1),
+                    ValueWithAgreement(value="b", agreement_level=1),
+                    ValueWithAgreement(value="c", agreement_level=1),
+                ]
+            )
+        ],
     )
     out = joined(build_fragment_html(1, fragment))
     assert "<td>a, b, c</td>" in out
@@ -220,9 +226,13 @@ def test_build_data_row_readers_column():
 
 
 def test_build_data_row_list_value():
-    row = Row(tags=[ValueWithAgreement(value="a", agreement_level=1),
-                    ValueWithAgreement(value="b", agreement_level=1),
-                    ValueWithAgreement(value="c", agreement_level=1)])
+    row = Row(
+        tags=[
+            ValueWithAgreement(value="a", agreement_level=1),
+            ValueWithAgreement(value="b", agreement_level=1),
+            ValueWithAgreement(value="c", agreement_level=1),
+        ]
+    )
     out = joined(build_data_row(row, ["tags"]))
     assert "<td>a, b, c</td>" in out
 

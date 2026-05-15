@@ -61,14 +61,13 @@ def read_tables_from_pages(
     )
 
 
-def write_tmp_page_file(doc, page_number):
-    page_doc = pymupdf.open()
-    page_doc.insert_pdf(doc, from_page=page_number, to_page=page_number)
-    tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
-    page_doc.save(tmp.name)
-    page_doc.close()
-    tmp.close()
-    return tmp
+def write_tmp_page_file(doc, page_number) -> str:
+    with pymupdf.open() as page_doc:
+        page_doc.insert_pdf(doc, from_page=page_number, to_page=page_number)
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp_name = tmp.name
+        page_doc.save(tmp_name)
+    return tmp_name
 
 
 def read_tables(
@@ -81,20 +80,20 @@ def read_tables(
     with pymupdf.open(pdf_path) as document:
         for i in range(document.page_count):
             page_num = i + 1
-            if page_range is not None and not (page_range[0] <= page_num <= page_range[1]):
+            if page_range is not None and not page_range[0] <= page_num <= page_range[1]:
                 continue
             _logger.debug("Reading page %i from %s", i, pdf_path)
             time.sleep(sleep)
-            tmp = write_tmp_page_file(document, i)
+            tmp_path = write_tmp_page_file(document, i)
             try:
-                result = page_reader(tmp.name)
+                result = page_reader(tmp_path)
                 page_results.append((page_num, result))
             except BaseException as e:
                 partial = read_tables_from_pages(pdf_path, page_results)
                 raise PartialProcessingError(page_num, partial, e) from e
             finally:
                 try:
-                    os.unlink(tmp.name)
+                    os.unlink(tmp_path)
                 except OSError:
                     pass
     return read_tables_from_pages(pdf_path, page_results)

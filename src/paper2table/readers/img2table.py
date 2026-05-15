@@ -41,7 +41,7 @@ class Img2TablePage(PDFPage):
 
     @property
     def page_number(self) -> int:
-        return self.index
+        return self.index  # pylint: disable=no-member
 
 
 class Img2TableDocument(PDFDocument):
