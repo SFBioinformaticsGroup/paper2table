@@ -63,10 +63,10 @@ def build_metadata_html(metadata) -> list:
     html = ["<h2>Metadata</h2>"]
     scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
     if scalar_fields:
-        html.append("<table class='table metadata-table'>")
+        html.append("<div class='table-wrapper'><table class='table metadata-table'>")
         for key, value in scalar_fields.items():
             html.append(f"<tr><th>{key}</th><td>{value}</td></tr>")
-        html.append("</table>")
+        html.append("</table></div>")
     sources = metadata.get("sources")
     if sources:
         html.append("<h3>Sources</h3>")
@@ -75,7 +75,7 @@ def build_metadata_html(metadata) -> list:
         source_keys = [k for k in preferred if k in all_keys] + sorted(
             all_keys - set(preferred)
         )
-        html.append("<table class='table'>")
+        html.append("<div class='table-wrapper'><table class='table'>")
         html.append("<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>")
         for source in sources:
             html.append(
@@ -83,7 +83,7 @@ def build_metadata_html(metadata) -> list:
                 + "".join(f"<td>{_source_cell(source, k)}</td>" for k in source_keys)
                 + "</tr>"
             )
-        html.append("</table>")
+        html.append("</table></div>")
     return html
 
 
@@ -139,11 +139,11 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> l
     if has_sources:
         columns.append("readers_")
         columns.append("sources_")
-    html.append("<table class='table'>")
+    html.append("<div class='table-wrapper'><table class='table'>")
     html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
     for row in rows:
         html.extend(build_data_row(row, columns, uuid_to_reader))
-    html.append("</table>")
+    html.append("</table></div>")
     if skipped:
         html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
     return html
@@ -197,9 +197,10 @@ def build_css() -> list:
         " white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
         "#toc a:hover { background: #e0e0e0; }",
         "#toc a.active { background: #cde; color: #036; font-weight: 600; }",
-        "main { flex: 1; padding: 20px; min-width: 0; }",
+        "main { flex: 1; padding: 20px; min-width: 0; overflow-x: hidden; }",
         ".paper { margin-bottom: 2em; }",
-        ".table { border-collapse: collapse; margin: 1em 0; width: 100%; }",
+        ".table-wrapper { overflow-x: auto; }",
+        ".table { border-collapse: collapse; margin: 1em 0; }",
         ".table th, .table td { border: 1px solid #ddd; padding: 8px; }",
         ".metadata-table th { text-align: left; width: 120px; }",
         ".low { background-color: #fdd; }",
