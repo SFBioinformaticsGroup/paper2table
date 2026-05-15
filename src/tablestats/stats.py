@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from utils.table_fragments import get_table_fragments
+from tablevalidate.schema import TablesFile
 
 
 @dataclass
@@ -38,7 +39,7 @@ class GlobalStats:
         }
 
 
-def update_papers_stats(stats: GlobalStats, paper_filename: str, paper_data: dict):
+def update_papers_stats(stats: GlobalStats, paper_filename: str, paper_data: TablesFile) -> None:
     paper_stats = compute_paper_stats(paper_data)
 
     stats.papers += 1
@@ -48,16 +49,16 @@ def update_papers_stats(stats: GlobalStats, paper_filename: str, paper_data: dic
     stats.papers_stats[paper_filename] = paper_stats
 
 
-def compute_paper_stats(paper_data) -> PaperStats:
-    tables = paper_data.get("tables", [])
+def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
+    tables = paper_data.tables
     tables_count = len(tables)
     rows_count = sum(
-        len(fragment.get("rows", []))
+        len(fragment.rows)
         for table in tables
         for fragment in get_table_fragments(table)
     )
     rows_with_agreement = sum(
-        sum(1 for row in fragment.get("rows", []) if row.get("agreement_level_", 0) > 1)
+        sum(1 for row in fragment.rows if (row.agreement_level_ or 0) > 1)
         for table in tables
         for fragment in get_table_fragments(table)
     )

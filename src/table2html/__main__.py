@@ -5,10 +5,17 @@ from pathlib import Path
 
 from utils.rows import is_empty_row
 from utils.table_fragments import get_table_fragments, load_papers
+from tablevalidate.schema import (
+    Citation,
+    Row,
+    TablesFile,
+    TableFragment,
+    ValueWithAgreement,
+)
 
 
-def load_papers_with_metadata(directory: Path):
-    metadata = {}
+def load_papers_with_metadata(directory: Path) -> tuple[dict, dict[str, TablesFile]]:
+    metadata: dict = {}
     metadata_file = directory / "tables.metadata.json"
     if metadata_file.exists():
         with open(metadata_file, "r", encoding="utf-8") as f:
@@ -36,23 +43,30 @@ def _source_cell(source: dict, key: str) -> str:
     return value
 
 
-def build_toc(papers) -> list:
+def render_citation(citation: Citation) -> str:
+    if citation is None:
+        return ""
+    if isinstance(citation, list):
+        return ", ".join(v.value for v in citation)
+    return citation
+
+
+def build_toc(papers: dict[str, TablesFile]) -> list[str]:
     html = ['<nav id="toc">', '<div id="toc-inner">', "<b>Contents</b>", "<ul>"]
     for paper_i, (paper_name, content) in enumerate(papers.items()):
         paper_id = f"paper-{paper_i}"
         html.append(f'<li><a href="#{paper_id}">{paper_name}</a>')
         fragments = [
             (idx, fragment)
-            for idx, table in enumerate(content.get("tables", []), 1)
+            for idx, table in enumerate(content.tables, 1)
             for fragment in get_table_fragments(table)
         ]
         if fragments:
             html.append("<ul>")
             for idx, fragment in fragments:
-                page = fragment.get("page", "?")
-                frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
+                frag_id = f"paper-{paper_i}-table-{idx}-page-{fragment.page}"
                 html.append(
-                    f'<li><a href="#{frag_id}">Table {idx}, p.&nbsp;{page}</a></li>'
+                    f'<li><a href="#{frag_id}">Table {idx}, p.&nbsp;{fragment.page}</a></li>'
                 )
             html.append("</ul>")
         html.append("</li>")
@@ -60,7 +74,7 @@ def build_toc(papers) -> list:
     return html
 
 
-def build_metadata_html(metadata) -> list:
+def build_metadata_html(metadata: dict) -> list[str]:
     html = ["<h2>Metadata</h2>"]
     scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
     if scalar_fields:
@@ -96,37 +110,48 @@ def agreement_css_class(level: int) -> str:
     return "high"
 
 
-def build_data_row(row: dict, columns: list, uuid_to_reader=None) -> list:
-    css_class = agreement_css_class(row.get("agreement_level_", 0))
+def build_data_row(
+    row: Row,
+    columns: list[str],
+    uuid_to_reader: dict[str, str] | None = None,
+) -> list[str]:
+    css_class = agreement_css_class(row.agreement_level_ or 0)
     html = [f"<tr class='{css_class}'>"]
+    col_values = row.get_columns()
     for col in columns:
-        if col == "readers_":
-            source_ids = row.get("sources_") or []
+        if col == "agreement_level_":
+            val = str(row.agreement_level_) if row.agreement_level_ is not None else ""
+        elif col == "readers_":
+            source_ids = row.sources_ or []
             mapping = uuid_to_reader or {}
             readers = list(
                 dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
             )
             val = ", ".join(readers)
+        elif col == "sources_":
+            val = ", ".join(row.sources_ or [])
         else:
-            val = row.get(col, "")
-            if isinstance(val, list):
-                val = ", ".join(str(v) for v in val)
+            cell = col_values.get(col, "")
+            if isinstance(cell, list):
+                val = ", ".join(v.value for v in cell)
+            else:
+                val = cell or ""
         html.append(f"<td>{val}</td>")
     html.append("</tr>")
     return html
 
 
-def collect_paper_source_uuids(content: dict) -> set:
-    uuids = set()
-    for table in content.get("tables", []):
+def collect_paper_source_uuids(content: TablesFile) -> set[str]:
+    uuids: set[str] = set()
+    for table in content.tables:
         for fragment in get_table_fragments(table):
-            for row in fragment.get("rows", []):
-                for uid in row.get("sources_", []):
+            for row in fragment.rows:
+                for uid in row.sources_ or []:
                     uuids.add(uid)
     return uuids
 
 
-def build_paper_sources_html(sources: list) -> list:
+def build_paper_sources_html(sources: list[dict]) -> list[str]:
     if not sources:
         return []
     all_keys = {k for s in sources for k in s}
@@ -148,11 +173,15 @@ def build_paper_sources_html(sources: list) -> list:
     return html
 
 
-def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> list:
-    page = fragment.get("page", "?")
+def build_fragment_html(
+    idx: int,
+    fragment: TableFragment,
+    uuid_to_reader: dict[str, str] | None = None,
+    anchor_id: str | None = None,
+) -> list[str]:
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
-    html = [f"<h4{id_attr}>Table {idx}, page {page}</h4>"]
-    all_rows = fragment.get("rows", [])
+    html = [f"<h4{id_attr}>Table {idx}, page {fragment.page}</h4>"]
+    all_rows = fragment.rows
     rows = [r for r in all_rows if not is_empty_row(r)]
     skipped = len(all_rows) - len(rows)
     if not rows:
@@ -160,8 +189,12 @@ def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> l
         if skipped:
             html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
         return html
-    has_sources = "sources_" in rows[0]
-    columns = [k for k in rows[0].keys() if k != "sources_"]
+    has_agreement = rows[0].agreement_level_ is not None
+    has_sources = rows[0].sources_ is not None
+    columns = []
+    if has_agreement:
+        columns.append("agreement_level_")
+    columns.extend(rows[0].get_columns().keys())
     if has_sources:
         columns.append("readers_")
         columns.append("sources_")
@@ -205,7 +238,7 @@ _TOC_JS = """\
 """
 
 
-def build_css() -> list:
+def build_css() -> list[str]:
     return [
         "* { box-sizing: border-box; }",
         "body { font-family: Arial, sans-serif; display: flex;"
@@ -237,7 +270,7 @@ def build_css() -> list:
     ]
 
 
-def build_html(metadata, papers):
+def build_html(metadata: dict, papers: dict[str, TablesFile]) -> str:
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
@@ -253,7 +286,7 @@ def build_html(metadata, papers):
     if metadata:
         html.extend(build_metadata_html(metadata))
 
-    uuid_to_reader = {
+    uuid_to_reader: dict[str, str] = {
         s["uuid"]: s["reader"]
         for s in metadata.get("sources", [])
         if "uuid" in s and "reader" in s
@@ -263,20 +296,17 @@ def build_html(metadata, papers):
     for paper_i, (paper_name, content) in enumerate(papers.items()):
         paper_id = f"paper-{paper_i}"
         html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
-        html.append(f"<p>Citation: {content.get('citation','')}</p>")
+        html.append(f"<p>Citation: {render_citation(content.citation)}</p>")
         paper_uuids = collect_paper_source_uuids(content)
         paper_sources = [
             s for s in metadata.get("sources", []) if s.get("uuid") in paper_uuids
         ]
         html.extend(build_paper_sources_html(paper_sources))
-        for idx, table in enumerate(content.get("tables", []), 1):
+        for idx, table in enumerate(content.tables, 1):
             for fragment in get_table_fragments(table):
-                page = fragment.get("page", "?")
-                frag_id = f"paper-{paper_i}-table-{idx}-page-{page}"
+                frag_id = f"paper-{paper_i}-table-{idx}-page-{fragment.page}"
                 html.extend(
-                    build_fragment_html(
-                        idx, fragment, uuid_to_reader, anchor_id=frag_id
-                    )
+                    build_fragment_html(idx, fragment, uuid_to_reader, anchor_id=frag_id)
                 )
         html.append("</div>")
 
@@ -286,12 +316,12 @@ def build_html(metadata, papers):
     return "\n".join(html)
 
 
-def save_html(html, output_file: Path):
+def save_html(html: str, output_file: Path) -> None:
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate static HTML viewer for paper2tables results"
     )

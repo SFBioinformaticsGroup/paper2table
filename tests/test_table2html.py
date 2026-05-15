@@ -5,8 +5,10 @@ from table2html.__main__ import (
     build_fragment_html,
     build_html,
     build_metadata_html,
-    is_empty_row,
+    render_citation,
 )
+from utils.rows import is_empty_row
+from tablevalidate.schema import Row, TableFragment, TablesFile, ValueWithAgreement
 
 
 def joined(parts):
@@ -14,14 +16,14 @@ def joined(parts):
 
 
 def test_fragment_no_rows():
-    out = joined(build_fragment_html(1, {"page": 3, "rows": []}))
+    out = joined(build_fragment_html(1, TableFragment(page=3, rows=[])))
     assert "Table 1, page 3" in out
     assert "No rows" in out
     assert "<table" not in out
 
 
 def test_fragment_renders_header_and_row():
-    fragment = {"page": 1, "rows": [{"species": "Rosa", "family": "Rosaceae"}]}
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", family="Rosaceae")])
     out = joined(build_fragment_html(1, fragment))
     assert "<th>species</th>" in out
     assert "<th>family</th>" in out
@@ -30,10 +32,7 @@ def test_fragment_renders_header_and_row():
 
 
 def test_fragment_readers_before_sources():
-    fragment = {
-        "page": 1,
-        "rows": [{"sources_": ["s1"], "species": "Rosa"}],
-    }
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1"])])
     out = joined(build_fragment_html(1, fragment))
     headers = [h.strip() for h in out.split("<th>")[1:]]
     assert headers[0].startswith("species")
@@ -41,11 +40,22 @@ def test_fragment_readers_before_sources():
     assert headers[-1].startswith("sources_")
 
 
+def test_fragment_agreement_level_column_shown_first():
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", agreement_level_=2)])
+    out = joined(build_fragment_html(1, fragment))
+    headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
+    assert headers[0] == "agreement_level_"
+    assert "<td>2</td>" in out
+
+
+def test_fragment_no_agreement_level_column_when_absent():
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa")])
+    out = joined(build_fragment_html(1, fragment))
+    assert "agreement_level_" not in out
+
+
 def test_fragment_readers_column_shows_readers():
-    fragment = {
-        "page": 1,
-        "rows": [{"sources_": ["s1", "s2"], "species": "Rosa"}],
-    }
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1", "s2"])])
     uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}
     out = joined(build_fragment_html(1, fragment, uuid_to_reader))
     assert "pdfplumber" in out
@@ -53,35 +63,37 @@ def test_fragment_readers_column_shows_readers():
 
 
 def test_fragment_readers_column_deduplicates():
-    fragment = {
-        "page": 1,
-        "rows": [{"sources_": ["s1", "s2"], "species": "Rosa"}],
-    }
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1", "s2"])])
     uuid_to_reader = {"s1": "pdfplumber", "s2": "pdfplumber"}
     out = joined(build_fragment_html(1, fragment, uuid_to_reader))
     assert "<td>pdfplumber</td>" in out
 
 
 def test_fragment_list_value_joined():
-    fragment = {"page": 1, "rows": [{"tags": ["a", "b", "c"]}]}
+    fragment = TableFragment(
+        page=1,
+        rows=[Row(tags=[ValueWithAgreement(value="a", agreement_level=1),
+                        ValueWithAgreement(value="b", agreement_level=1),
+                        ValueWithAgreement(value="c", agreement_level=1)])],
+    )
     out = joined(build_fragment_html(1, fragment))
     assert "<td>a, b, c</td>" in out
 
 
 def test_fragment_agreement_css_low():
-    fragment = {"page": 1, "rows": [{"x": "v", "agreement_level_": 1}]}
+    fragment = TableFragment(page=1, rows=[Row(x="v", agreement_level_=1)])
     out = joined(build_fragment_html(1, fragment))
     assert "class='low'" in out
 
 
 def test_fragment_agreement_css_medium():
-    fragment = {"page": 1, "rows": [{"x": "v", "agreement_level_": 2}]}
+    fragment = TableFragment(page=1, rows=[Row(x="v", agreement_level_=2)])
     out = joined(build_fragment_html(1, fragment))
     assert "class='medium'" in out
 
 
 def test_fragment_agreement_css_high():
-    fragment = {"page": 1, "rows": [{"x": "v", "agreement_level_": 3}]}
+    fragment = TableFragment(page=1, rows=[Row(x="v", agreement_level_=3)])
     out = joined(build_fragment_html(1, fragment))
     assert "class='high'" in out
 
@@ -131,40 +143,40 @@ def test_build_html_no_metadata_section_when_empty():
 
 
 def test_build_html_includes_paper():
-    papers = {"mypaper.tables.json": {"citation": "Smith 2020", "tables": []}}
+    papers = {"mypaper.tables.json": TablesFile(citation="Smith 2020", tables=[])}
     out = build_html({}, papers)
     assert "mypaper.tables.json" in out
     assert "Smith 2020" in out
 
 
 def test_is_empty_row_true_when_only_meta():
-    assert is_empty_row({"agreement_level_": 2, "sources_": ["s1"]})
+    assert is_empty_row(Row(agreement_level_=2, sources_=["s1"]))
 
 
 def test_is_empty_row_true_when_blank_content():
-    assert is_empty_row({"species": "", "agreement_level_": 1})
+    assert is_empty_row(Row(species="", agreement_level_=1))
 
 
 def test_is_empty_row_false_when_has_content():
-    assert not is_empty_row({"species": "Rosa", "agreement_level_": 1})
+    assert not is_empty_row(Row(species="Rosa", agreement_level_=1))
 
 
 def test_fragment_skips_empty_rows_and_shows_legend():
-    fragment = {
-        "page": 1,
-        "rows": [
-            {"species": "Rosa", "family": "Rosaceae"},
-            {"species": "", "family": ""},
-            {"species": "", "family": ""},
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(species="Rosa", family="Rosaceae"),
+            Row(species="", family=""),
+            Row(species="", family=""),
         ],
-    }
+    )
     out = joined(build_fragment_html(1, fragment))
     assert "Rosa" in out
     assert "(2 empty rows not shown)" in out
 
 
 def test_fragment_all_empty_rows_no_table():
-    fragment = {"page": 1, "rows": [{"species": ""}, {"species": ""}]}
+    fragment = TableFragment(page=1, rows=[Row(species=""), Row(species="")])
     out = joined(build_fragment_html(1, fragment))
     assert "<table" not in out
     assert "(2 empty rows not shown)" in out
@@ -187,20 +199,20 @@ def test_agreement_css_class_high():
 
 
 def test_build_data_row_simple():
-    row = {"species": "Rosa", "family": "Rosaceae"}
+    row = Row(species="Rosa", family="Rosaceae")
     out = joined(build_data_row(row, ["species", "family"]))
     assert "<td>Rosa</td>" in out
     assert "<td>Rosaceae</td>" in out
 
 
 def test_build_data_row_applies_css_class():
-    row = {"x": "v", "agreement_level_": 2}
+    row = Row(x="v", agreement_level_=2)
     out = joined(build_data_row(row, ["x"]))
     assert "class='medium'" in out
 
 
 def test_build_data_row_readers_column():
-    row = {"species": "Rosa", "sources_": ["s1", "s2"]}
+    row = Row(species="Rosa", sources_=["s1", "s2"])
     uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}
     out = joined(build_data_row(row, ["species", "readers_"], uuid_to_reader))
     assert "pdfplumber" in out
@@ -208,7 +220,9 @@ def test_build_data_row_readers_column():
 
 
 def test_build_data_row_list_value():
-    row = {"tags": ["a", "b", "c"]}
+    row = Row(tags=[ValueWithAgreement(value="a", agreement_level=1),
+                    ValueWithAgreement(value="b", agreement_level=1),
+                    ValueWithAgreement(value="c", agreement_level=1)])
     out = joined(build_data_row(row, ["tags"]))
     assert "<td>a, b, c</td>" in out
 
@@ -223,3 +237,19 @@ def test_build_css_contains_agreement_classes():
     assert ".low { background-color: #fdd; }" in css
     assert ".medium { background-color: #ffd; }" in css
     assert ".high { background-color: #dfd; }" in css
+
+
+def test_render_citation_none():
+    assert render_citation(None) == ""
+
+
+def test_render_citation_string():
+    assert render_citation("Smith 2020") == "Smith 2020"
+
+
+def test_render_citation_list():
+    citation = [
+        ValueWithAgreement(value="Smith 2020", agreement_level=2),
+        ValueWithAgreement(value="Smith et al.", agreement_level=1),
+    ]
+    assert render_citation(citation) == "Smith 2020, Smith et al."

@@ -2,30 +2,27 @@ import argparse
 from pathlib import Path
 import pandas as pd
 from utils.table_fragments import get_table_fragments, load_papers
+from tablevalidate.schema import TablesFile
 
 
-def build_dataframes(papers):
-    csvs = {}
+def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFrame]]:
+    csvs: dict[str, list[pd.DataFrame]] = {}
     for basename, tablesfile in papers.items():
         csvs[basename] = []
-        for table in tablesfile.get("tables", []):
-            fragments = get_table_fragments(table)
-            for fragment in fragments:
-                page = fragment.get("page", "")
-                rows = fragment.get("rows", [])
-
-                for row in rows:
-                    row["$page"] = page
-
+        for table in tablesfile.tables:
+            rows = []
+            for fragment in get_table_fragments(table):
+                for row in fragment.rows:
+                    rows.append({**dict(row.get_columns()), "$page": fragment.page})
             csvs[basename].append(pd.DataFrame(rows))
     return csvs
 
 
-def save_csv(dataframe, output_file: Path):
+def save_csv(dataframe: pd.DataFrame, output_file: Path) -> None:
     dataframe.to_csv(output_file, index=False)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export paper2table tables to csvs")
     parser.add_argument(
         "input_dir", help="Directory with tables.metadata.json and *.tables.json"
@@ -46,7 +43,7 @@ def main():
             save_csv(
                 dataframe,
                 Path(args.output_directory)
-                / f"{basename.replace(".tables.json", "")}_{index}.csv",
+                / f"{basename.replace('.tables.json', '')}_{index}.csv",
             )
 
 
