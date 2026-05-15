@@ -1,5 +1,10 @@
 import pytest
-from tablemerge.merge import merge_tablesfiles, merge_rows, simple_count_agreement
+from tablemerge.merge import (
+    merge_tablesfiles,
+    merge_rows,
+    simple_count_agreement,
+    is_empty_row,
+)
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -57,7 +62,9 @@ def test_two_identical_tables():
 def test_two_identical_tables_with_row_agreement():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table), wrap(table)], agreement=simple_count_agreement)
+    result = merge_tablesfiles(
+        [wrap(table), wrap(table)], agreement=simple_count_agreement
+    )
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
@@ -89,7 +96,9 @@ def test_two_tables_with_different_column_names_and_row_agreement():
     table_1 = [Row(family=" Apiaceae ", scientific_name=" Ammi majus L. ")]
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
-    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], agreement=simple_count_agreement)
+    result = merge_tablesfiles(
+        [wrap(table_1), wrap(table_2)], agreement=simple_count_agreement
+    )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
         Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
@@ -461,3 +470,74 @@ def test_merge_different_rows_that_already_have_agreement_with_column_agreement(
             ValueWithAgreement(value="rosa canina", agreement_level=2),
         ],
     )
+
+
+def test_is_empty_row_all_empty_strings():
+    assert is_empty_row(Row(family="", scientific_name=""))
+
+
+def test_is_empty_row_whitespace_only():
+    assert is_empty_row(Row(family="  ", scientific_name="\t"))
+
+
+def test_is_empty_row_none_values():
+    assert is_empty_row(Row(family=None, scientific_name=None))
+
+
+def test_is_empty_row_metadata_fields_ignored():
+    assert is_empty_row(Row(family="", agreement_level_=2, sources_=["abc"]))
+
+
+def test_is_empty_row_not_empty_when_has_data():
+    assert not is_empty_row(Row(family="Apiaceae", scientific_name=""))
+
+
+def test_is_empty_row_value_with_agreement_all_empty():
+    assert is_empty_row(Row(family=[ValueWithAgreement(value="", agreement_level=1)]))
+
+
+def test_is_empty_row_value_with_agreement_has_data():
+    assert not is_empty_row(
+        Row(family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)])
+    )
+
+
+def test_merge_filters_empty_rows_from_single_table():
+    table = [
+        Row(family="Apiaceae", scientific_name=""),
+        Row(family="", scientific_name=""),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    rows = result.tables[0].table_fragments[0].rows
+    assert len(rows) == 1
+    assert rows[0].family == "apiaceae"
+
+
+def test_merge_filters_whitespace_only_rows():
+    table = [
+        Row(family="  ", scientific_name="\n"),
+        Row(family="Rosaceae", scientific_name="Rosa"),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    rows = result.tables[0].table_fragments[0].rows
+    assert len(rows) == 1
+    assert rows[0].family == "rosaceae"
+
+
+def test_merge_filters_empty_rows_from_two_tables():
+    table_1 = [Row(family="Apiaceae"), Row(family="")]
+    table_2 = [Row(family="Apiaceae"), Row(family="")]
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    rows = result.tables[0].table_fragments[0].rows
+    assert len(rows) == 1
+    assert rows[0].family == "apiaceae"
+
+
+def test_merge_keeps_rows_with_partial_data():
+    table = [
+        Row(family="Apiaceae", scientific_name=""),
+        Row(family="", scientific_name=""),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    rows = result.tables[0].table_fragments[0].rows
+    assert len(rows) == 1

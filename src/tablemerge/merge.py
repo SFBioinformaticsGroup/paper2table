@@ -56,6 +56,20 @@ class MergeError(ValueError):
     pass
 
 
+def is_empty_value(value: ColumnValue) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    if isinstance(value, list):
+        return all(not v.value.strip() for v in value)
+    return False
+
+
+def is_empty_row(row: Row) -> bool:
+    return all(is_empty_value(v) for v in row.get_columns().values())
+
+
 def normalize_str_value(value: str):
     return re.sub(r"\s+", " ", value.strip()).lower()
 
@@ -340,4 +354,6 @@ class TableFragmentBuilder:
         )
 
     def build(self):
-        return TableFragment(rows=self.rows, page=self.page)
+        return TableFragment(
+            rows=[r for r in self.rows if not is_empty_row(r)], page=self.page
+        )
