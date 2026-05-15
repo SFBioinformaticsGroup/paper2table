@@ -122,6 +122,38 @@ def build_data_row(row: dict, columns: list, uuid_to_reader=None) -> list:
     return html
 
 
+def collect_paper_source_uuids(content: dict) -> set:
+    uuids = set()
+    for table in content.get("tables", []):
+        for fragment in get_table_fragments(table):
+            for row in fragment.get("rows", []):
+                for uid in row.get("sources_", []):
+                    uuids.add(uid)
+    return uuids
+
+
+def build_paper_sources_html(sources: list) -> list:
+    if not sources:
+        return []
+    all_keys = {k for s in sources for k in s}
+    preferred = ["uuid", "reader", "path"]
+    source_keys = [k for k in preferred if k in all_keys] + sorted(
+        all_keys - set(preferred)
+    )
+    html = ["<details class='paper-sources'>"]
+    html.append(f"<summary>Sources ({len(sources)})</summary>")
+    html.append("<div class='table-wrapper'><table class='table'>")
+    html.append("<tr>" + "".join(f"<th>{k}</th>" for k in source_keys) + "</tr>")
+    for source in sources:
+        html.append(
+            "<tr>"
+            + "".join(f"<td>{_source_cell(source, k)}</td>" for k in source_keys)
+            + "</tr>"
+        )
+    html.append("</table></div></details>")
+    return html
+
+
 def build_fragment_html(idx, fragment, uuid_to_reader=None, anchor_id=None) -> list:
     page = fragment.get("page", "?")
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
@@ -203,6 +235,8 @@ def build_css() -> list:
         ".table { border-collapse: collapse; margin: 1em 0; }",
         ".table th, .table td { border: 1px solid #ddd; padding: 8px; }",
         ".metadata-table th { text-align: left; width: 120px; }",
+        ".paper-sources { margin: 0.5em 0 1em; }",
+        ".paper-sources summary { cursor: pointer; color: #555; font-size: 0.85em; }",
         ".low { background-color: #fdd; }",
         ".medium { background-color: #ffd; }",
         ".high { background-color: #dfd; }",
@@ -236,6 +270,9 @@ def build_html(metadata, papers):
         paper_id = f"paper-{paper_i}"
         html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
+        paper_uuids = collect_paper_source_uuids(content)
+        paper_sources = [s for s in metadata.get("sources", []) if s.get("uuid") in paper_uuids]
+        html.extend(build_paper_sources_html(paper_sources))
         for idx, table in enumerate(content.get("tables", []), 1):
             for fragment in get_table_fragments(table):
                 page = fragment.get("page", "?")
