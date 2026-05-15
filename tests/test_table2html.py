@@ -54,6 +54,51 @@ def test_fragment_no_agreement_level_column_when_absent():
     assert "agreement_level_" not in out
 
 
+def test_fragment_non_common_column_appears_in_header():
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(species="Rosa", family="Rosaceae"),
+            Row(species="Mentha", note="fragrant"),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    assert "<th>species</th>" in out
+    assert "<th>family</th>" in out
+    assert "<th>note</th>" in out
+
+
+def test_fragment_non_common_column_ordering():
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(species="Rosa", family="Rosaceae"),
+            Row(species="Mentha", note="fragrant"),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
+    assert headers[0] == "species"       # common first
+    assert "family" in headers
+    assert "note" in headers
+    assert headers.index("species") < headers.index("family")   # common before extra
+    assert headers.index("species") < headers.index("note")
+
+
+def test_fragment_non_common_column_empty_for_missing_rows():
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(species="Rosa", family="Rosaceae"),
+            Row(species="Mentha", note="fragrant"),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    # "Rosa" row has no note; "Mentha" row has no family — both render empty cells
+    assert "<td>Rosa</td>" in out
+    assert "<td>Mentha</td>" in out
+
+
 def test_fragment_readers_column_shows_readers():
     fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1", "s2"])])
     uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}

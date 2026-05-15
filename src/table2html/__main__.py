@@ -188,12 +188,17 @@ def build_fragment_html(
         if skipped:
             html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
         return html
-    has_agreement = rows[0].agreement_level_ is not None
-    has_sources = rows[0].sources_ is not None
+    has_agreement = any(r.agreement_level_ is not None for r in rows)
+    has_sources = any(r.sources_ is not None for r in rows)
+    all_col_names = list(dict.fromkeys(col for row in rows for col in row.get_columns()))
+    row_col_sets = [set(row.get_columns()) for row in rows]
+    common_cols = [c for c in all_col_names if all(c in s for s in row_col_sets)]
+    extra_cols = [c for c in all_col_names if c not in common_cols]
     columns = []
     if has_agreement:
         columns.append("agreement_level_")
-    columns.extend(rows[0].get_columns().keys())
+    columns.extend(common_cols)
+    columns.extend(extra_cols)
     if has_sources:
         columns.append("readers_")
         columns.append("sources_")
