@@ -95,3 +95,39 @@ def test_read_tables_corrects_page_numbers():
     result = read_tables(DEMO_PDF, fake_reader)
     fragments = result.to_dict()["tables"][0]["table_fragments"]
     assert fragments[0]["page"] == 1  # demo_table.pdf page 1 stays 1
+
+
+def test_read_tables_page_range_includes_matching_page():
+    calls = []
+
+    def spy_reader(page_path):
+        calls.append(page_path)
+        return FakeTablesReader(tables=[], citation=None)
+
+    # demo_table.pdf has 1 page; range [1, 3] includes page 1
+    read_tables(DEMO_PDF, spy_reader, page_range=(1, 3))
+    assert len(calls) == 1
+
+
+def test_read_tables_page_range_skips_pages_outside_range():
+    calls = []
+
+    def spy_reader(page_path):
+        calls.append(page_path)
+        return FakeTablesReader(tables=[], citation=None)
+
+    # demo_table.pdf has 1 page; range [2, 5] excludes page 1
+    result = read_tables(DEMO_PDF, spy_reader, page_range=(2, 5))
+    assert len(calls) == 0
+    assert result.to_dict()["tables"] == []
+
+
+def test_read_tables_no_page_range_processes_all_pages():
+    calls = []
+
+    def spy_reader(page_path):
+        calls.append(page_path)
+        return FakeTablesReader(tables=[], citation=None)
+
+    read_tables(DEMO_PDF, spy_reader, page_range=None)
+    assert len(calls) == 1  # demo_table.pdf has 1 page

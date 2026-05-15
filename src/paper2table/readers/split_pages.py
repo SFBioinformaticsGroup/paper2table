@@ -1,7 +1,7 @@
 import os
 import tempfile
 import time
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import logging
 import pymupdf
@@ -72,13 +72,18 @@ def write_tmp_page_file(doc, page_number):
 
 
 def read_tables(
-    pdf_path: str, page_reader: Callable[[str], TablesReader], sleep: int = 0
+    pdf_path: str,
+    page_reader: Callable[[str], TablesReader],
+    sleep: int = 0,
+    page_range: Optional[Tuple[int, int]] = None,
 ) -> TablesReader:
     page_results: List[Tuple[int, TablesReader]] = []
     with pymupdf.open(pdf_path) as document:
         for i in range(document.page_count):
-            _logger.debug("Reading page %i from %s", i, pdf_path)
             page_num = i + 1
+            if page_range is not None and not (page_range[0] <= page_num <= page_range[1]):
+                continue
+            _logger.debug("Reading page %i from %s", i, pdf_path)
             time.sleep(sleep)
             tmp = write_tmp_page_file(document, i)
             try:

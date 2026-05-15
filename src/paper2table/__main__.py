@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from paper2table import __version__
 from paper2table.mapping import TablesMapping
+from paper2table.page_range import parse_page_range
 from paper2table.readers import (
     agent,
     camelot,
@@ -39,7 +40,12 @@ def parse_args():
     parser.add_argument(
         dest="paths",
         nargs="+",
-        help="One ore more paper paths",
+        help=(
+            "One or more paper paths. When using --split-pages, a page range "
+            "can be appended in the form PATH:FROM:TO (e.g. paper.pdf:2:5), "
+            "where FROM and TO are 1-indexed inclusive page numbers. "
+            "The range suffix is ignored without --split-pages."
+        ),
         type=str,
         metavar="PATH",
     )
@@ -139,6 +145,8 @@ def parse_args():
         help=(
             "Split the PDF into individual pages before sending to the agent."
             " Only supported with -r agent (without -H)."
+            " Input paths may include a page range suffix (PATH:FROM:TO) to"
+            " restrict processing to a subset of pages."
         ),
     )
     parser.add_argument(
@@ -259,10 +267,10 @@ def get_tables_reader(args):
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
         def read_tables(
-            paper_path: str, _mapping=None
+            paper_path: str, _mapping=None, page_range=None
         ):  # pylint: disable=function-redefined
             return split_pages.read_tables(
-                paper_path, base_agent_read, sleep=args.model_sleep
+                paper_path, base_agent_read, sleep=args.model_sleep, page_range=page_range
             )
 
     if args.hybrid:
@@ -395,24 +403,28 @@ def main():
     write_tables = get_table_writer(args)
     should_skip = get_skip_predicate(args)
 
-    for paper_path in get_paper_paths(args):
-        if should_skip(paper_path):
-            _logger.debug(f"Skipping {paper_path}, already in resultset")
+    for raw_path in get_paper_paths(args):
+        clean_path, page_range = parse_page_range(raw_path)
+        if should_skip(clean_path):
+            _logger.debug(f"Skipping {clean_path}, already in resultset")
             continue
         try:
-            result = read_tables(paper_path)
+            if args.split_pages and page_range is not None:
+                result = read_tables(clean_path, page_range=page_range)
+            else:
+                result = read_tables(clean_path)
 
-            write_tables(result, paper_path)
+            write_tables(result, clean_path)
 
-            _logger.debug(f"Paper {paper_path} processed")
+            _logger.debug(f"Paper {clean_path} processed")
         except PartialProcessingError as e:
             _logger.warning(
-                f"Paper {paper_path} failed on page {e.page_num}."
+                f"Paper {clean_path} failed on page {e.page_num}."
                 f" Writing partial results. {str(traceback.format_exc())}"
             )
-            write_tables(e.partial_result, paper_path)
+            write_tables(e.partial_result, clean_path)
         except Exception:
-            _logger.warning(f"Paper {paper_path} failed {str(traceback.format_exc())}")
+            _logger.warning(f"Paper {clean_path} failed {str(traceback.format_exc())}")
 
 
 if __name__ == "__main__":
