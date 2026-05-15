@@ -3,6 +3,7 @@ import json
 import webbrowser
 from pathlib import Path
 
+from utils.rows import is_empty_row
 from utils.table_fragments import get_table_fragments, load_papers
 
 
@@ -85,13 +86,6 @@ def build_metadata_html(metadata) -> list:
             )
         html.append("</table></div>")
     return html
-
-
-_META_KEYS = {"agreement_level_", "sources_"}
-
-
-def is_empty_row(row):
-    return all(not row.get(k) for k in row if k not in _META_KEYS)
 
 
 def agreement_css_class(level: int) -> str:
@@ -271,7 +265,9 @@ def build_html(metadata, papers):
         html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
         html.append(f"<p>Citation: {content.get('citation','')}</p>")
         paper_uuids = collect_paper_source_uuids(content)
-        paper_sources = [s for s in metadata.get("sources", []) if s.get("uuid") in paper_uuids]
+        paper_sources = [
+            s for s in metadata.get("sources", []) if s.get("uuid") in paper_uuids
+        ]
         html.extend(build_paper_sources_html(paper_sources))
         for idx, table in enumerate(content.get("tables", []), 1):
             for fragment in get_table_fragments(table):

@@ -2,6 +2,7 @@ import re
 from itertools import zip_longest
 from typing import Callable
 from unidecode import unidecode
+from utils.rows import is_empty_row
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -54,20 +55,6 @@ def make_distinct_readers_agreement(uuid_to_reader: dict[str, str]) -> Agreement
 
 class MergeError(ValueError):
     pass
-
-
-def is_empty_value(value: ColumnValue) -> bool:
-    if value is None:
-        return True
-    if isinstance(value, str):
-        return not value.strip()
-    if isinstance(value, list):
-        return all(not v.value.strip() for v in value)
-    return False
-
-
-def is_empty_row(row: Row) -> bool:
-    return all(is_empty_value(v) for v in row.get_columns().values())
 
 
 def normalize_str_value(value: str):

@@ -3,8 +3,8 @@ from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
     simple_count_agreement,
-    is_empty_row,
 )
+from utils.rows import is_empty_row
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
