@@ -6,6 +6,7 @@ from tablemerge.merge import (
     SimpleCountAgreement,
     DistinctReadersAgreement,
     filter_semantic_columns,
+    find_column_mapping,
 )
 from utils.rows import is_empty_row
 from tablevalidate.schema import (
@@ -90,8 +91,12 @@ def test_two_tables_with_different_column_names():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].table_fragments[0].rows == [
+<<<<<<< HEAD
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
         Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
+=======
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+>>>>>>> 8be5026 (Initial column allignment ideas)
     ]
 
 
@@ -103,8 +108,7 @@ def test_two_tables_with_different_column_names_and_row_agreement():
         [wrap(table_1), wrap(table_2)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].table_fragments[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
-        Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
     ]
 
 
@@ -589,8 +593,6 @@ def test_filter_semantic_columns_keeps_all_if_no_numeric():
     assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}
 
 
-# DistinctReadersAgreement unit tests
-
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():
     agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "camelot"})
@@ -634,9 +636,6 @@ def test_distinct_readers_agreement_unknown_uuid_counts_as_agent():
     left = Row(family="apiaceae", sources_=["unknown-uuid"])
     right = Row(family="apiaceae")
     assert agreement.calculate_level(left, right) == 1
-
-
-# DistinctReadersAgreement integration tests
 
 
 def test_merge_two_tables_distinct_non_agent_readers():
@@ -689,4 +688,217 @@ def test_merge_two_tables_agent_and_non_agent_reader():
             agreement_level_=2,
             sources_=["uuid-1", "uuid-2"],
         )
+    ]
+
+def make_fragment(rows: list[Row]) -> TableFragment:
+    return TableFragment(rows=rows, page=1)
+
+
+def test_find_column_mapping_right_numeric_to_left_semantic():
+    # "0" vs "family": {"apiaceae","rosaceae"} ∩ {"apiaceae","rosaceae"} = 2/2 = 1.0
+    # "1" vs "scientific_name": same → 1.0
+    left = make_fragment([
+        Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."}),
+        Row(**{"family": "Rosaceae", "scientific_name": "Rosa canina L."}),
+    ])
+    right = make_fragment([
+        Row(**{"0": "Apiaceae", "1": "Ammi majus L."}),
+        Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
+    ])
+    assert find_column_mapping(left, right) == {"0": "family", "1": "scientific_name"}
+
+
+def test_find_column_mapping_left_numeric_to_right_semantic():
+    # Symmetric direction: left is numeric, right is semantic
+    left = make_fragment([
+        Row(**{"0": "lunes", "1": "monday"}),
+        Row(**{"0": "martes", "1": "tuesday"}),
+    ])
+    right = make_fragment([
+        Row(**{"dia": "lunes", "day": "monday"}),
+        Row(**{"dia": "martes", "day": "tuesday"}),
+    ])
+    assert find_column_mapping(left, right) == {"0": "dia", "1": "day"}
+
+
+def test_find_column_mapping_both_semantic_returns_empty():
+    left = make_fragment([Row(**{"family": "Apiaceae"})])
+    right = make_fragment([Row(**{"family": "Apiaceae"})])
+    assert find_column_mapping(left, right) == {}
+
+
+def test_find_column_mapping_both_numeric_returns_empty():
+    left = make_fragment([Row(**{"0": "Apiaceae"})])
+    right = make_fragment([Row(**{"0": "Apiaceae"})])
+    assert find_column_mapping(left, right) == {}
+
+
+def test_find_column_mapping_no_value_overlap_returns_empty():
+    # "0" vs "family": {"red","blue"} ∩ {"apiaceae","rosaceae"} = 0/4 = 0.0
+    # 0.0 < 0.5 (default threshold) → no mapping
+    left = make_fragment([
+        Row(**{"family": "Apiaceae"}),
+        Row(**{"family": "Rosaceae"}),
+    ])
+    right = make_fragment([
+        Row(**{"0": "red"}),
+        Row(**{"0": "blue"}),
+    ])
+    assert find_column_mapping(left, right) == {}
+
+
+def test_find_column_mapping_partial_overlap_above_threshold():
+    # "0" vs "family": {"apiaceae"} ∩ {"apiaceae","rosaceae"} = 1/2 = 0.5
+    # 0.5 >= 0.5 (default threshold) → matches
+    left = make_fragment([
+        Row(**{"family": "Apiaceae"}),
+        Row(**{"family": "Rosaceae"}),
+    ])
+    right = make_fragment([
+        Row(**{"0": "Apiaceae"}),
+    ])
+    assert find_column_mapping(left, right) == {"0": "family"}
+
+
+@pytest.mark.parametrize("threshold,expected", [
+    # Jaccard("0" vs "family") = |{"apiaceae"}| / |{"apiaceae","rosaceae","lamiaceae"}| = 1/3 ≈ 0.33
+    (1.0,  {}),               # 0.33 < 1.0 → no match
+    (0.5,  {}),               # 0.33 < 0.5 → no match
+    (0.34, {}),               # 0.33 < 0.34 → no match
+    (0.33, {"0": "family"}),  # 0.33 >= 0.33 → match
+    (0.3,  {"0": "family"}),  # 0.33 >= 0.3 → match
+    (0.0,  {"0": "family"}),  # 0.33 >= 0.0 → match
+])
+def test_find_column_mapping_threshold_controls_match(threshold, expected):
+    # left "family" has 3 values; right "0" shares only 1 of them → Jaccard = 1/3
+    left = make_fragment([
+        Row(**{"family": "Apiaceae"}),
+        Row(**{"family": "Rosaceae"}),
+        Row(**{"family": "Lamiaceae"}),
+    ])
+    right = make_fragment([Row(**{"0": "Apiaceae"})])
+    assert find_column_mapping(left, right, threshold=threshold) == expected
+
+
+@pytest.mark.parametrize("threshold,expected", [
+    # Jaccard("0" vs "family") = |{"apiaceae"}| / |{"apiaceae","rosaceae"}| = 1/2 = 0.5
+    (0.6,  {}),               # 0.5 < 0.6 → no match
+    (0.5,  {"0": "family"}),  # 0.5 >= 0.5 → match (at boundary)
+    (0.4,  {"0": "family"}),  # 0.5 >= 0.4 → match
+])
+def test_find_column_mapping_threshold_boundary(threshold, expected):
+    # left "family" has 2 values; right "0" shares exactly 1 → Jaccard = 0.5
+    left = make_fragment([
+        Row(**{"family": "Apiaceae"}),
+        Row(**{"family": "Rosaceae"}),
+    ])
+    right = make_fragment([Row(**{"0": "Apiaceae"})])
+    assert find_column_mapping(left, right, threshold=threshold) == expected
+
+
+def test_find_column_mapping_empty_fragment():
+    left = make_fragment([])
+    right = make_fragment([Row(**{"0": "Apiaceae"})])
+    assert find_column_mapping(left, right) == {}
+
+
+def test_find_column_mapping_one_col_matches_one_does_not():
+    # "0" vs "family": {"apiaceae","rosaceae"} → 1.0 → matches
+    # "1" vs "scientific_name": {"zzz","www"} ∩ {"ammi majus l.","rosa canina l."} = 0/4 = 0.0 → no match
+    left = make_fragment([
+        Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."}),
+        Row(**{"family": "Rosaceae", "scientific_name": "Rosa canina L."}),
+    ])
+    right = make_fragment([
+        Row(**{"0": "Apiaceae", "1": "zzz"}),
+        Row(**{"0": "Rosaceae", "1": "www"}),
+    ])
+    assert find_column_mapping(left, right) == {"0": "family"}
+
+
+
+def test_merge_aligns_right_numeric_columns_multiple_rows():
+    """
+    table_1 (semantic, 3 rows), table_2 (numeric cols, 3 rows).
+    2 rows match, 1 left-only (lamiaceae), 1 right-only (betulaceae).
+    """
+    table_1 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+        Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
+    ]
+    table_2 = [
+        Row(**{"0": "Apiaceae", "1": "Ammi majus L."}),
+        Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
+        Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
+    ]
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+        Row(family="rosaceae", scientific_name="rosa canina l."),
+        Row(family="lamiaceae", scientific_name="mentha spicata l."),
+        Row(family="betulaceae", scientific_name="betula pendula l."),
+    ]
+
+
+def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
+    """Same scenario with agreement tracking."""
+    table_1 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+        Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
+    ]
+    table_2 = [
+        Row(**{"0": "Apiaceae", "1": "Ammi majus L."}),
+        Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
+        Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
+    ]
+    result = merge_tablesfiles(
+        [wrap(table_1), wrap(table_2)], agreement=simple_count_agreement
+    )
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
+        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1),
+        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1),
+    ]
+
+
+def test_merge_aligns_left_numeric_columns_multiple_rows():
+    """Symmetric: left is numeric, right is semantic.
+    2 rows match (apiaceae, rosaceae), left-only: betulaceae, right-only: lamiaceae."""
+    table_1 = [
+        Row(**{"0": "Apiaceae", "1": "Ammi majus L."}),
+        Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
+        Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
+    ]
+    table_2 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+        Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
+    ]
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+        Row(family="rosaceae", scientific_name="rosa canina l."),
+        Row(family="betulaceae", scientific_name="betula pendula l."),
+        Row(family="lamiaceae", scientific_name="mentha spicata l."),
+    ]
+
+
+def test_merge_no_alignment_both_semantic_multiple_rows():
+    """Both sides have semantic cols — no renaming, existing dedup logic unchanged."""
+    table_1 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+    table_2 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
+    ]
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l."),
+        Row(family="rosaceae", scientific_name="rosa canina l."),
+        Row(family="lamiaceae", scientific_name="mentha spicata l."),
     ]
