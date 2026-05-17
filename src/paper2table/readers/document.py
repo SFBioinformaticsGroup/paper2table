@@ -4,7 +4,7 @@ pdf document
 """
 
 import logging
-from typing import Callable, Optional, Protocol, Generator
+from typing import Callable, cast, Optional, Protocol, Generator
 
 import pandas as pd
 
@@ -157,7 +157,7 @@ def read_table(
     )
 
     def index_renamer(column):
-        return dataframe.columns.get_loc(column)
+        return int(dataframe.columns.get_loc(column))  # pyright: ignore[reportArgumentType]
 
     if table_mapping is not None:
         selected_column_names = list(
@@ -171,16 +171,16 @@ def read_table(
             for mapping in table_mapping.column_mappings
         }
 
-        dataframe = dataframe.rename(index_renamer, axis="columns")[
+        dataframe = dataframe.rename(index_renamer, axis="columns")[  # pyright: ignore[reportCallIssue]
             selected_column_names
         ].rename(columns=renamer)
 
     dataframe.rename(columns=lambda column: normalize_name(str(column)), inplace=True)
-    dataframe = dataframe.apply(
+    dataframe = cast(pd.DataFrame, dataframe.apply(
         lambda row: list(
             map(lambda v: v.replace("\n", " ") if isinstance(v, str) else v, row)
         )
-    )
+    ))
 
     return dataframe
 
@@ -197,7 +197,7 @@ def read_all_tables(
             table_fragments = page.extract_tables()
             for table_fragment in table_fragments:
                 dataframe = read_table(
-                    table_fragment if table_fragment else [],
+                    table_fragment,
                     column_names_hints=parsed_hints,
                 )
                 tables.append(DataFrameTableReader(page.page_number, dataframe))

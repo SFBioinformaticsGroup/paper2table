@@ -1,4 +1,5 @@
 import re
+from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Callable
 from unidecode import unidecode
@@ -36,7 +37,7 @@ def distinct_readers_agreement_level(
         reader = uuid_to_reader.get(uuid)
         if is_agent_reader(reader):
             agent_count += 1
-        else:
+        elif reader is not None:
             non_agent_readers.add(reader)
     return max(1, agent_count + len(non_agent_readers))
 
@@ -181,9 +182,9 @@ def merge_tablesfiles(
     # Zip tables of the same page
     # ============================
 
-    tables_clusters: list[tuple[Table]] = zip_longest(
+    tables_clusters = list(zip_longest(
         *map(lambda t: t.tables, tablesfiles)
-    )
+    ))
     for tables_cluster in tables_clusters:
         # ==============================
         # Zip fragments of the same page
@@ -261,9 +262,11 @@ def merge_tablesfiles(
     return TablesFile(tables=merged_tables, citation=citation)
 
 
-def make_fragments_clusters(tables_cluster: list[Table]):
+def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:
+        if table is None:
+            continue
         for fragment in get_table_fragments(table):
             fragments_clusters.setdefault(fragment.page, []).append(fragment)
     return fragments_clusters

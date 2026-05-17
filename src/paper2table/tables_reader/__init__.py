@@ -1,4 +1,5 @@
-from typing import Protocol
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 
 class TableReader(Protocol):
@@ -6,7 +7,7 @@ class TableReader(Protocol):
     A protocol for reading a single table
     """
     @property
-    def rows(self) -> any: ...
+    def rows(self) -> Any: ...
 
     @property
     def page(self) -> int: ...
@@ -24,9 +25,9 @@ class TablesReader(Protocol):
     """
 
     @property
-    def tables(self) -> list[TableReader]: ...
+    def tables(self) -> Sequence[TableReader]: ...
 
     @property
-    def citation(self) -> str: ...
+    def citation(self) -> str | None: ...
 
     def to_dict(self) -> dict: ...

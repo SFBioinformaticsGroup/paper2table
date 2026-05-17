@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Optional
+from typing import cast, List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -61,7 +61,7 @@ class TablesFile(BaseModel):
 
 def get_table_fragments(table: Table) -> list[TableFragment]:
     if isinstance(table, TableWithRows) and table.rows:
-        return [table]
+        return [cast(TableFragment, table)]
     if isinstance(table, TableWithFragments) and table.table_fragments:
         return table.table_fragments
     return []

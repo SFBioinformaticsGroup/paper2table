@@ -26,7 +26,7 @@ class PDFPlumberTable:
 
     def to_dataframe(self, column_names_hints: list[str], skip_first_row: bool) -> pd.DataFrame:
         if skip_first_row or first_row_is_table_header(self.rows, column_names_hints):
-            return pd.DataFrame(self.rows[1:], columns=self.rows[0])
+            return pd.DataFrame(self.rows[1:], columns=self.rows[0])  # pyright: ignore[reportArgumentType]
         return pd.DataFrame(self.rows)
 
 

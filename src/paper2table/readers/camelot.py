@@ -19,7 +19,7 @@ def read_tables(pdf_path: str) -> TablesReader:
 
     tables = []
     for table in camelot_tables:
-        page_number = table.page
+        page_number = table.page or 0
         dataframe = table.df
         tables.append(DataFrameTableReader(page_number, dataframe))
 

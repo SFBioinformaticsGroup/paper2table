@@ -41,7 +41,7 @@ class PyMuPDFPage(PDFPage):
 
     @property
     def page_number(self) -> int:
-        return self.page.number + 1
+        return (self.page.number or 0) + 1
 
 
 class PyMuPDFDocument(PDFDocument):
