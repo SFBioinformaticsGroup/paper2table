@@ -15,6 +15,29 @@ from tablevalidate.schema import (
     get_table_fragments,
 )
 
+
+def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
+    filtered_tables = []
+    for table in tablesfile.tables:
+        filtered_fragments = []
+        for fragment in get_table_fragments(table):
+            filtered_rows = [
+                Row(
+                    agreement_level_=row.agreement_level_,
+                    sources_=row.sources_,
+                    **row.get_semantic_columns(),
+                )
+                for row in fragment.rows
+            ]
+            filtered_fragments.append(TableFragment(rows=filtered_rows, page=fragment.page))
+        filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
+    return TablesFile(
+        tables=filtered_tables,
+        citation=tablesfile.citation,
+        metadata=tablesfile.metadata,
+        uuid=tablesfile.uuid,
+    )
+
 Agreement = Callable[[Row, Row], int]
 
 

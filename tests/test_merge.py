@@ -3,6 +3,7 @@ from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
     simple_count_agreement,
+    filter_semantic_columns,
 )
 from utils.rows import is_empty_row
 from tablevalidate.schema import (
@@ -541,3 +542,31 @@ def test_merge_keeps_rows_with_partial_data():
     result = merge_tablesfiles([wrap(table)])
     rows = result.tables[0].table_fragments[0].rows
     assert len(rows) == 1
+
+
+def test_is_semantic_column():
+    assert not Row.is_semantic_column("1")
+    assert not Row.is_semantic_column("2023")
+    assert not Row.is_semantic_column("3.14")
+    assert not Row.is_semantic_column("-5")
+    assert Row.is_semantic_column("family")
+    assert Row.is_semantic_column("1a")
+    assert Row.is_semantic_column("")
+
+
+def test_filter_semantic_columns_removes_numeric():
+    table = [Row(**{"family": "Apiaceae", "1": "yes", "2023": "data"})]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_semantic_columns(result)
+    rows = filtered.tables[0].table_fragments[0].rows
+    assert len(rows) == 1
+    assert rows[0].get_columns() == {"family": "apiaceae"}
+
+
+def test_filter_semantic_columns_keeps_all_if_no_numeric():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus")]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_semantic_columns(result)
+    rows = filtered.tables[0].table_fragments[0].rows
+    assert len(rows) == 1
+    assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}

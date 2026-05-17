@@ -8,6 +8,7 @@ from tablevalidate.schema import TablesFile
 
 from .merge import (
     merge_tablesfiles,
+    filter_semantic_columns,
     MergeError,
     simple_count_agreement,
     make_distinct_readers_agreement,
@@ -58,7 +59,8 @@ def write_merge_metadata(
 
 
 def merge_tablesfiles_paths(
-    basename, resultset_dirs, output_path, metadata_map: dict[str, dict], agreement
+    basename, resultset_dirs, output_path, metadata_map: dict[str, dict], agreement,
+    only_semantic_columns: bool = False,
 ):
     """
     Merge all the TablesFile of the same basename
@@ -83,6 +85,8 @@ def merge_tablesfiles_paths(
         merged_tablesfile: TablesFile = merge_tablesfiles(
             tablesfiles, agreement=agreement
         )
+        if only_semantic_columns:
+            merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -98,6 +102,7 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
+    only_semantic_columns: bool = False,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -130,7 +135,8 @@ def merge_resultsets(
 
     for basename in sorted(list(tablesfiles_basenames)):
         merge_tablesfiles_paths(
-            basename, resultset_dirs, output_path, resultset_metadata, agreement
+            basename, resultset_dirs, output_path, resultset_metadata, agreement,
+            only_semantic_columns=only_semantic_columns,
         )
 
 
@@ -159,6 +165,11 @@ def parse_args():
         default="simple-count",
         help="How to compute agreement level (default: simple-count)",
     )
+    parser.add_argument(
+        "--only-semantic-columns",
+        action="store_true",
+        help="Remove columns whose names are numeric after merging",
+    )
     return parser.parse_args()
 
 
@@ -169,6 +180,7 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
+        only_semantic_columns=args.only_semantic_columns,
     )
 
 
