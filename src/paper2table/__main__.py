@@ -192,7 +192,9 @@ def get_tables_reader(args):
             )
             sys.exit(1)
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             time.sleep(args.model_sleep)
             _logger.debug(f"Processing paper {paper_path} with model {args.model}")
             return agent.read_tables(paper_path, model=args.model, schema=schema)
@@ -208,8 +210,9 @@ def get_tables_reader(args):
             f"Using pdfplumber reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return pdfplumber.read_tables(
                 paper_path, column_names_hints, mapping=mapping
@@ -226,8 +229,9 @@ def get_tables_reader(args):
             f"Using img2table reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return img2table.read_tables(
                 paper_path, column_names_hints, mapping=mapping
@@ -244,15 +248,18 @@ def get_tables_reader(args):
             f"Using pymupdf reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return pymupdf.read_tables(paper_path, column_names_hints, mapping=mapping)
 
     elif args.reader == "camelot":
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
 
@@ -266,7 +273,7 @@ def get_tables_reader(args):
 
     base_read = read_tables
 
-    def read_tables(  # pylint: disable=function-redefined
+    def read_tables(  # pyright: ignore[reportRedeclaration]
         paper_path: str, mapping=None, page_range=None
     ):
         return split_pages.read_tables(
@@ -292,7 +299,7 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(  # pylint: disable=function-redefined,unused-argument
+        def read_tables(  # pyright: ignore[reportRedeclaration]
             paper_path: str, mapping: Optional[TablesMapping] = None, page_range=None
         ):
             time.sleep(args.model_sleep)
@@ -351,7 +358,7 @@ def get_table_writer(args):
             reader=args.reader, model=args.model, hybrid=args.hybrid, uuid=uuid
         )
 
-        def write_tables(result: TablesReader, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
             tablemerge.write_tables(
                 result,
                 paper_path,
@@ -361,7 +368,7 @@ def get_table_writer(args):
 
     elif args.output_directory:
 
-        def write_tables(result: TablesReader, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
             file.write_tables(
                 result, paper_path, output_directory=args.output_directory
             )

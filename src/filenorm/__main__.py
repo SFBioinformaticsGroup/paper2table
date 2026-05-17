@@ -26,7 +26,7 @@ def md5sum(path):
     return h.hexdigest()
 
 
-def plan_actions(files: list[str]):  # pylint: disable=too-many-locals
+def plan_actions(files: list[str]):
     checksums = {}
     duplicates = {}
     for file in files:
@@ -66,7 +66,7 @@ def plan_actions(files: list[str]):  # pylint: disable=too-many-locals
     return duplicates, renames, checksums
 
 
-def execute(  # pylint: disable=too-many-positional-arguments
+def execute(
     duplicates, renames, confirm_delete, confirm_rename, explain_delete, explain_rename
 ):
     for md5, files in duplicates.items():
@@ -92,10 +92,10 @@ def main():
     duplicates, renames, checksums = plan_actions(args.files)
     if args.yes:
 
-        def confirm_delete(_md5, _file):
+        def confirm_delete(_md5, _file):  # pyright: ignore[reportRedeclaration]
             return True
 
-        def confirm_rename(_original, _new):
+        def confirm_rename(_original, _new):  # pyright: ignore[reportRedeclaration]
             return True
 
     else:
@@ -110,10 +110,10 @@ def main():
 
     if args.quiet:
 
-        def explain_delete(_file):
+        def explain_delete(_file):  # pyright: ignore[reportRedeclaration]
             pass
 
-        def explain_rename(_original, _new):
+        def explain_rename(_original, _new):  # pyright: ignore[reportRedeclaration]
             pass
 
     else:

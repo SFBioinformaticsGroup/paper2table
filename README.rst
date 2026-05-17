@@ -149,7 +149,7 @@ Each mapping file records which model produced it and when, under a ``metadata``
         "model": "google-gla:gemini-2.5-flash",
         "date": "2026-03-23T10:00:00+00:00"
       }
-    }pylint $(git ls-files 'src/**/*.py')
+    }
 
 Merging
 =======
@@ -218,6 +218,13 @@ Running tests
 .. code-block:: bash
 
     $ tox
+
+Running type checks
+===================
+
+.. code-block:: bash
+
+    $ tox -e lint
 
 
 ``TablesFile`` format

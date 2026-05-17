@@ -164,7 +164,7 @@ def to_values_with_agreement(column_value: ColumnValue):
     )
 
 
-def merge_tablesfiles(  # pylint: disable=too-many-locals
+def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement | None = None,
     column_agreement=False,
@@ -184,7 +184,7 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
     tables_clusters: list[tuple[Table]] = zip_longest(
         *map(lambda t: t.tables, tablesfiles)
     )
-    for tables_cluster in tables_clusters:  # pylint: disable=too-many-nested-blocks
+    for tables_cluster in tables_clusters:
         # ==============================
         # Zip fragments of the same page
         # ==============================

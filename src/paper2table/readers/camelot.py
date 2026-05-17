@@ -10,7 +10,7 @@ _logger = logging.getLogger("pape2table")
 
 def read_tables(pdf_path: str) -> TablesReader:
     try:
-        camelot_tables = camelot.read_pdf(
+        camelot_tables = camelot.read_pdf(  # pyright: ignore[reportPrivateImportUsage]
             pdf_path, suppress_stdout=True, flavor="hybrid", pages="all"
         )
     except Exception as e:

@@ -46,7 +46,7 @@ class PDFDocument:
     def pages(self) -> list[PDFPage]: ...
 
     def page_at(self, index: int) -> PDFPage:
-        return self.pages[index - 1]  # pylint: disable=unsubscriptable-object
+        return self.pages[index - 1]
 
 
 _logger = logging.getLogger("pape2table")

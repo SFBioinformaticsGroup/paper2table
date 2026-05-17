@@ -4,7 +4,7 @@ from typing import Optional
 import pandas as pd
 from img2table.document import PDF
 from img2table.ocr import TesseractOCR
-from img2table.tables.objects.extraction import ExtractedTable
+from img2table.tables.objects.extraction import ExtractedTable  # pyright: ignore[reportMissingImports]
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
@@ -41,7 +41,7 @@ class Img2TablePage(PDFPage):
 
     @property
     def page_number(self) -> int:
-        return self.index  # pylint: disable=no-member
+        return self.index  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class Img2TableDocument(PDFDocument):

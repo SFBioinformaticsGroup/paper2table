@@ -14,7 +14,7 @@ class TablesModelWrapper:
 
     @property
     def tables(self) -> list[TableReader]:
-        return self.model.tables
+        return self.model.tables  # pyright: ignore[reportAttributeAccessIssue]
 
     def to_dict(self) -> str:
-        return self.model.model_dump()
+        return self.model.model_dump()  # pyright: ignore[reportReturnType]
