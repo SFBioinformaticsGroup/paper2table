@@ -41,10 +41,9 @@ def parse_args():
         dest="paths",
         nargs="+",
         help=(
-            "One or more paper paths. When using --split-pages, a page range "
-            "can be appended in the form PATH:FROM:TO (e.g. paper.pdf:2:5), "
-            "where FROM and TO are 1-indexed inclusive page numbers. "
-            "The range suffix is ignored without --split-pages."
+            "One or more paper paths. A page range can be appended in the form "
+            "PATH:FROM:TO (e.g. paper.pdf:2:5), where FROM and TO are 1-indexed "
+            "inclusive physical page numbers"
         ),
         type=str,
         metavar="PATH",
@@ -141,12 +140,14 @@ def parse_args():
     parser.add_argument(
         "--split-pages",
         dest="split_pages",
-        action="store_true",
+        type=int,
+        default=None,
+        metavar="N",
         help=(
-            "Split the PDF into individual pages before sending to the agent."
-            " Only supported with -r agent (without -H)."
-            " Input paths may include a page range suffix (PATH:FROM:TO) to"
-            " restrict processing to a subset of pages."
+            "Max pages to send per model call (e.g. --split-pages 1 for one page at a time). "
+            "Omit the flag or pass -1 to send the whole range in one call. "
+            "Page ranges (PATH:FROM:TO) work regardless of this flag. "
+            "Only supported with -r agent (without -H)."
         ),
     )
     parser.add_argument(
@@ -258,20 +259,23 @@ def get_tables_reader(args):
     else:
         raise ValueError(f"Reader {args.reader} is not implemented yet")
 
-    if args.split_pages:
+    if args.split_pages is not None:
         if args.reader != "agent" or args.hybrid:
             print("--split-pages is only supported with -r agent (without -H)")
             sys.exit(1)
 
-        def base_agent_read(paper_path: str, _mapping=None):
-            return agent.read_tables(paper_path, model=args.model, schema=schema)
+    base_read = read_tables
 
-        def read_tables(
-            paper_path: str, _mapping=None, page_range=None
-        ):  # pylint: disable=function-redefined
-            return split_pages.read_tables(
-                paper_path, base_agent_read, sleep=args.model_sleep, page_range=page_range
-            )
+    def read_tables(  # pylint: disable=function-redefined
+        paper_path: str, mapping=None, page_range=None
+    ):
+        return split_pages.read_tables(
+            paper_path,
+            lambda path: base_read(path, mapping),
+            sleep=0,
+            page_range=page_range,
+            page_size=args.split_pages,
+        )
 
     if args.hybrid:
         mappings_path = Path(args.mappings_path)
@@ -288,9 +292,9 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(
-            paper_path: str, _mapping: Optional[TablesMapping] = None
-        ):  # pylint: disable=function-redefined
+        def read_tables(  # pylint: disable=function-redefined,unused-argument
+            paper_path: str, mapping: Optional[TablesMapping] = None, page_range=None
+        ):
             time.sleep(args.model_sleep)
             _logger.debug(f"Hybrid processing paper {paper_path}...")
             return hybrid.read_tables(
@@ -409,10 +413,7 @@ def main():
             _logger.debug(f"Skipping {clean_path}, already in resultset")
             continue
         try:
-            if args.split_pages and page_range is not None:
-                result = read_tables(clean_path, page_range=page_range)
-            else:
-                result = read_tables(clean_path)
+            result = read_tables(clean_path, page_range=page_range)
 
             write_tables(result, clean_path)
 
