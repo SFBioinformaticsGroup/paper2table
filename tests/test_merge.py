@@ -6,8 +6,8 @@ from tablemerge.merge import (
     SimpleCountAgreement,
     DistinctReadersAgreement,
     filter_semantic_columns,
-    find_column_mapping,
 )
+from tablemerge.columns_aligner import find_column_mapping
 from utils.rows import is_empty_row
 from tablevalidate.schema import (
     TablesFile,
