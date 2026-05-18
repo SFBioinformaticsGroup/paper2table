@@ -2,7 +2,8 @@ import pytest
 from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
-    simple_count_agreement,
+    SimpleCountAgreement,
+    DistinctReadersAgreement,
     filter_semantic_columns,
 )
 from utils.rows import is_empty_row
@@ -43,7 +44,7 @@ def test_single_table_returns_normalized():
 def test_single_table_with_row_agreement():
     table = [Row(family=" Apiaceae ", scientific_name="Ammi majus L.")]
 
-    result = merge_tablesfiles([wrap(table)], agreement=simple_count_agreement)
+    result = merge_tablesfiles([wrap(table)], agreement=SimpleCountAgreement())
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
@@ -64,7 +65,7 @@ def test_two_identical_tables_with_row_agreement():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
 
     result = merge_tablesfiles(
-        [wrap(table), wrap(table)], agreement=simple_count_agreement
+        [wrap(table), wrap(table)], agreement=SimpleCountAgreement()
     )
     assert len(result.tables) == 1
     assert result.tables[0].table_fragments[0].rows == [
@@ -98,7 +99,7 @@ def test_two_tables_with_different_column_names_and_row_agreement():
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], agreement=simple_count_agreement
+        [wrap(table_1), wrap(table_2)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
@@ -291,7 +292,7 @@ def test_three_tables_with_conflicting_values_with_row_agreement_level():
     ]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2), wrap(table_3)], agreement=simple_count_agreement
+        [wrap(table_1), wrap(table_2), wrap(table_3)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
@@ -570,3 +571,85 @@ def test_filter_semantic_columns_keeps_all_if_no_numeric():
     rows = filtered.tables[0].table_fragments[0].rows
     assert len(rows) == 1
     assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}
+
+
+# DistinctReadersAgreement unit tests
+
+def test_distinct_readers_agreement_two_different_non_agent_readers():
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "camelot"})
+    left = Row(family="apiaceae", sources_=["uuid-1"])
+    right = Row(family="apiaceae", sources_=["uuid-2"])
+    assert agreement.calculate_level(left, right) == 2
+
+
+def test_distinct_readers_agreement_same_non_agent_reader():
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "pdfplumber"})
+    left = Row(family="apiaceae", sources_=["uuid-1"])
+    right = Row(family="apiaceae", sources_=["uuid-2"])
+    assert agreement.calculate_level(left, right) == 1
+
+
+def test_distinct_readers_agreement_two_agent_readers():
+    agreement = DistinctReadersAgreement({"uuid-1": "gemini", "uuid-2": "openai"})
+    left = Row(family="apiaceae", sources_=["uuid-1"])
+    right = Row(family="apiaceae", sources_=["uuid-2"])
+    assert agreement.calculate_level(left, right) == 2
+
+
+def test_distinct_readers_agreement_agent_and_non_agent():
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "gemini"})
+    left = Row(family="apiaceae", sources_=["uuid-1"])
+    right = Row(family="apiaceae", sources_=["uuid-2"])
+    assert agreement.calculate_level(left, right) == 2
+
+
+def test_distinct_readers_agreement_no_sources():
+    agreement = DistinctReadersAgreement({})
+    left = Row(family="apiaceae")
+    right = Row(family="apiaceae")
+    assert agreement.calculate_level(left, right) == 1
+
+
+def test_distinct_readers_agreement_unknown_uuid_counts_as_agent():
+    agreement = DistinctReadersAgreement({})
+    left = Row(family="apiaceae", sources_=["unknown-uuid"])
+    right = Row(family="apiaceae")
+    assert agreement.calculate_level(left, right) == 1
+
+
+# DistinctReadersAgreement integration tests
+
+def test_merge_two_tables_distinct_non_agent_readers():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "camelot"})
+    result = merge_tablesfiles(
+        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
+        agreement=agreement,
+    )
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
+    ]
+
+
+def test_merge_two_tables_same_non_agent_reader():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "pdfplumber"})
+    result = merge_tablesfiles(
+        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
+        agreement=agreement,
+    )
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
+
+
+def test_merge_two_tables_agent_and_non_agent_reader():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "gemini"})
+    result = merge_tablesfiles(
+        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
+        agreement=agreement,
+    )
+    assert result.tables[0].table_fragments[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
+    ]

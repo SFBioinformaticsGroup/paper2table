@@ -1,7 +1,7 @@
 import re
 from collections.abc import Sequence
 from itertools import zip_longest
-from typing import Callable
+from typing import Protocol
 from unidecode import unidecode
 from utils.rows import is_empty_row
 from tablevalidate.schema import (
@@ -38,7 +38,9 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
         uuid=tablesfile.uuid,
     )
 
-Agreement = Callable[[Row, Row], int]
+
+class Agreement(Protocol):
+    def calculate_level(self, left: Row, right: Row) -> int: ...
 
 
 def is_agent_reader(reader: str | None) -> bool:
@@ -51,30 +53,26 @@ def is_agent_reader(reader: str | None) -> bool:
     return True
 
 
-def distinct_readers_agreement_level(
-    sources: list[str], uuid_to_reader: dict[str, str]
-) -> int:
-    agent_count = 0
-    non_agent_readers: set[str] = set()
-    for uuid in sources:
-        reader = uuid_to_reader.get(uuid)
-        if is_agent_reader(reader):
-            agent_count += 1
-        elif reader is not None:
-            non_agent_readers.add(reader)
-    return max(1, agent_count + len(non_agent_readers))
+class SimpleCountAgreement:
+    def calculate_level(self, left: Row, right: Row) -> int:
+        return left.get_agreement_level() + right.get_agreement_level()
 
 
-def simple_count_agreement(left: Row, right: Row) -> int:
-    return left.get_agreement_level() + right.get_agreement_level()
+class DistinctReadersAgreement:
+    def __init__(self, uuid_to_reader: dict[str, str]):
+        self.uuid_to_reader = uuid_to_reader
 
-
-def make_distinct_readers_agreement(uuid_to_reader: dict[str, str]) -> Agreement:
-    def fn(left: Row, right: Row) -> int:
+    def calculate_level(self, left: Row, right: Row) -> int:
         sources = list(dict.fromkeys((left.sources_ or []) + (right.sources_ or [])))
-        return distinct_readers_agreement_level(sources, uuid_to_reader)
-
-    return fn
+        agent_count = 0
+        non_agent_readers: set[str] = set()
+        for uuid in sources:
+            reader = self.uuid_to_reader.get(uuid)
+            if is_agent_reader(reader):
+                agent_count += 1
+            elif reader is not None:
+                non_agent_readers.add(reader)
+        return max(1, agent_count + len(non_agent_readers))
 
 
 class MergeError(ValueError):
@@ -135,9 +133,9 @@ def same_row(left: Row, right: Row) -> bool:
 
 
 def merge_rows(
-    left: Row, right: Row, agreement: Agreement | None = None, column_agreement=False
+    left: Row, right: Row, agreement: Agreement, column_agreement=False
 ) -> Row:
-    agreement_level = agreement(left, right) if agreement else None
+    agreement_level = agreement.calculate_level(left, right)
 
     if column_agreement:
         columns = merge_columns_with_agreement(left, right)
@@ -190,7 +188,7 @@ def to_values_with_agreement(column_value: ColumnValue):
 
 def merge_tablesfiles(
     tablesfiles: list[TablesFile],
-    agreement: Agreement | None = None,
+    agreement: Agreement,
     column_agreement=False,
 ) -> TablesFile:
     """
@@ -298,14 +296,14 @@ def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
 class TableFragmentBuilder:
     rows: list[Row]
     page: int
-    agreement: Agreement | None
+    agreement: Agreement
     column_agreement: bool
 
     def __init__(
         self,
         initial_fragment: TableFragment,
         initial_uuid: str | None,
-        agreement: Agreement | None,
+        agreement: Agreement,
         column_agreement: bool,
     ):
         self.agreement = agreement

@@ -10,8 +10,8 @@ from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
     MergeError,
-    simple_count_agreement,
-    make_distinct_readers_agreement,
+    SimpleCountAgreement,
+    DistinctReadersAgreement,
 )
 
 
@@ -115,7 +115,7 @@ def merge_resultsets(
         return
 
     agreement = (
-        make_distinct_readers_agreement(
+        DistinctReadersAgreement(
             {
                 meta["uuid"]: meta["reader"]
                 for meta in resultset_metadata.values()
@@ -123,7 +123,7 @@ def merge_resultsets(
             }
         )
         if agreement_method == "distinct-readers"
-        else simple_count_agreement
+        else SimpleCountAgreement()
     )
 
     output_path.mkdir(parents=True, exist_ok=True)
