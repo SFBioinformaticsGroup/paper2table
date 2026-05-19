@@ -6,7 +6,7 @@ from typing import List, Literal
 from .validate import validate_file
 
 
-def validate_files(paths: List[Path], mode: Literal["quiet", "all", "valid"]) -> int:
+def validate_files(paths: List[Path], mode: Literal["quiet", "all", "default"]) -> int:
     for path in paths:
         if path.name == "tables.metadata.json":
             continue

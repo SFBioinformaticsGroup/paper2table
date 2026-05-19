@@ -1,10 +1,14 @@
 import pytest
+from tablevalidate.schema import TablesFile
 from tablestats.stats import compute_paper_stats
 
 
+def make_paper(tables):
+    return TablesFile.model_validate({"citation": None, "tables": tables})
+
+
 def test_empty_paper():
-    paper_data = {"tables": []}
-    stats = compute_paper_stats(paper_data)
+    stats = compute_paper_stats(make_paper([]))
     assert stats.tables == 0
     assert stats.rows == 0
     assert stats.rows_with_agreement == 0
@@ -12,8 +16,7 @@ def test_empty_paper():
 
 
 def test_paper_with_one_table_one_row():
-    paper_data = {"tables": [{"rows": [{"family": "Apiaceae"}]}]}
-    stats = compute_paper_stats(paper_data)
+    stats = compute_paper_stats(make_paper([{"rows": [{"family": "Apiaceae"}], "page": 1}]))
     assert stats.tables == 1
     assert stats.rows == 1
     assert stats.rows_with_agreement == 0
@@ -21,18 +24,14 @@ def test_paper_with_one_table_one_row():
 
 
 def test_paper_with_agreement_levels():
-    paper_data = {
-        "tables": [
-            {
-                "rows": [
-                    {"family": "Apiaceae", "agreement_level_": 0},
-                    {"family": "Rosaceae", "agreement_level_": 2},
-                    {"family": "Lamiaceae", "agreement_level_": 3},
-                ]
-            }
-        ]
-    }
-    stats = compute_paper_stats(paper_data)
+    stats = compute_paper_stats(make_paper([{
+        "page": 1,
+        "rows": [
+            {"family": "Apiaceae", "agreement_level_": 0},
+            {"family": "Rosaceae", "agreement_level_": 2},
+            {"family": "Lamiaceae", "agreement_level_": 3},
+        ],
+    }]))
     assert stats.tables == 1
     assert stats.rows == 3
     assert stats.rows_with_agreement == 2
@@ -40,13 +39,10 @@ def test_paper_with_agreement_levels():
 
 
 def test_multiple_tables():
-    paper_data = {
-        "tables": [
-            {"rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]},
-            {"rows": [{"family": "Lamiaceae", "agreement_level_": 2}]},
-        ]
-    }
-    stats = compute_paper_stats(paper_data)
+    stats = compute_paper_stats(make_paper([
+        {"page": 1, "rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]},
+        {"page": 2, "rows": [{"family": "Lamiaceae", "agreement_level_": 2}]},
+    ]))
     assert stats.tables == 2
     assert stats.rows == 3
     assert stats.rows_with_agreement == 1

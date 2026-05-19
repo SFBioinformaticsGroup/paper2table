@@ -149,7 +149,7 @@ Each mapping file records which model produced it and when, under a ``metadata``
         "model": "google-gla:gemini-2.5-flash",
         "date": "2026-03-23T10:00:00+00:00"
       }
-    }pylint $(git ls-files 'src/**/*.py')
+    }
 
 Merging
 =======
@@ -163,6 +163,16 @@ same ``paper2table`` command:
     # this command will create a new directory with the resultset, adding a metadata file
     # suitable for use with tablemerge command
     $ paper2table -t -o tests/data/tables tests/data/demo_table.pdf
+
+To resume an interrupted run or add new papers to an existing resultset, use ``--append`` with the UUID of the resultset:
+
+.. code-block:: bash
+
+    # append new papers to an existing resultset
+    # papers already present in the resultset are skipped automatically
+    $ paper2table -t -o tests/data/tables --append <uuid> new_papers/*.pdf
+
+``--append`` aborts if the reader or model of the current invocation does not match the one recorded in the existing resultset.
 
 After doing this, you can merge tables like this:
 
@@ -208,6 +218,13 @@ Running tests
 .. code-block:: bash
 
     $ tox
+
+Running type checks
+===================
+
+.. code-block:: bash
+
+    $ tox -e lint
 
 
 ``TablesFile`` format

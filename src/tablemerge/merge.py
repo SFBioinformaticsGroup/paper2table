@@ -1,6 +1,9 @@
 import re
+from collections.abc import Sequence
 from itertools import zip_longest
+from typing import Protocol
 from unidecode import unidecode
+from utils.rows import is_empty_row
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -11,6 +14,67 @@ from tablevalidate.schema import (
     Row,
     get_table_fragments,
 )
+
+
+def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
+    filtered_tables = []
+    for table in tablesfile.tables:
+        filtered_fragments = []
+        for fragment in get_table_fragments(table):
+            filtered_rows = [
+                Row(
+                    agreement_level_=row.agreement_level_,
+                    sources_=row.sources_,
+                    **row.get_semantic_columns(),
+                )
+                for row in fragment.rows
+            ]
+            filtered_fragments.append(
+                TableFragment(rows=filtered_rows, page=fragment.page)
+            )
+        filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
+    return TablesFile(
+        tables=filtered_tables,
+        citation=tablesfile.citation,
+        metadata=tablesfile.metadata,
+        uuid=tablesfile.uuid,
+    )
+
+
+class Agreement(Protocol):
+    def calculate_level(self, left: Row, right: Row) -> int: ...
+
+
+def is_agent_reader(reader: str | None) -> bool:
+    if not reader:
+        return True
+    if reader in ("pdfplumber", "camelot", "pymupdf"):
+        return False
+    if reader.startswith("hybrid-"):
+        return False
+    return True
+
+
+class SimpleCountAgreement:
+    def calculate_level(self, left: Row, right: Row) -> int:
+        return left.get_agreement_level() + right.get_agreement_level()
+
+
+class DistinctReadersAgreement:
+    def __init__(self, uuid_to_reader: dict[str, str]):
+        self.uuid_to_reader = uuid_to_reader
+
+    def calculate_level(self, left: Row, right: Row) -> int:
+        sources = list(dict.fromkeys((left.sources_ or []) + (right.sources_ or [])))
+        agent_count = 0
+        non_agent_readers: set[str] = set()
+        for uuid in sources:
+            reader = self.uuid_to_reader.get(uuid)
+            if is_agent_reader(reader):
+                agent_count += 1
+            elif reader is not None:
+                non_agent_readers.add(reader)
+        return max(1, agent_count + len(non_agent_readers))
 
 
 class MergeError(ValueError):
@@ -71,13 +135,12 @@ def same_row(left: Row, right: Row) -> bool:
 
 
 def merge_rows(
-    left: Row, right: Row, row_agreement=False, column_agreement=False
+    left: Row,
+    right: Row,
+    agreement: Agreement = SimpleCountAgreement(),
+    column_agreement=False,
 ) -> Row:
-    agreement_level = (
-        left.get_agreement_level() + right.get_agreement_level()
-        if row_agreement
-        else None
-    )
+    agreement_level = agreement.calculate_level(left, right)
 
     if column_agreement:
         columns = merge_columns_with_agreement(left, right)
@@ -128,9 +191,9 @@ def to_values_with_agreement(column_value: ColumnValue):
     )
 
 
-def merge_tablesfiles(  # pylint: disable=too-many-locals
+def merge_tablesfiles(
     tablesfiles: list[TablesFile],
-    row_agreement=False,
+    agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
 ) -> TablesFile:
     """
@@ -145,10 +208,8 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
     # Zip tables of the same page
     # ============================
 
-    tables_clusters: list[tuple[Table]] = zip_longest(
-        *map(lambda t: t.tables, tablesfiles)
-    )
-    for tables_cluster in tables_clusters:  # pylint: disable=too-many-nested-blocks
+    tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
+    for tables_cluster in tables_clusters:
         # ==============================
         # Zip fragments of the same page
         # ==============================
@@ -168,7 +229,7 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, tablesfiles[0].uuid, row_agreement, column_agreement
+                left_fragment, tablesfiles[0].uuid, agreement, column_agreement
             )
 
             for right_fragment, right_tablesfile in zip(
@@ -225,9 +286,11 @@ def merge_tablesfiles(  # pylint: disable=too-many-locals
     return TablesFile(tables=merged_tables, citation=citation)
 
 
-def make_fragments_clusters(tables_cluster: list[Table]):
+def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:
+        if table is None:
+            continue
         for fragment in get_table_fragments(table):
             fragments_clusters.setdefault(fragment.page, []).append(fragment)
     return fragments_clusters
@@ -236,25 +299,26 @@ def make_fragments_clusters(tables_cluster: list[Table]):
 class TableFragmentBuilder:
     rows: list[Row]
     page: int
-    row_agreement: bool
+    agreement: Agreement
     column_agreement: bool
 
     def __init__(
         self,
         initial_fragment: TableFragment,
         initial_uuid: str | None,
-        row_agreement: bool,
+        agreement: Agreement,
         column_agreement: bool,
     ):
-        self.row_agreement = row_agreement
+        self.agreement = agreement
         self.column_agreement = column_agreement
         self.page = initial_fragment.page
+        do_agreement = agreement is not None
         self.rows = [
             row.model_copy(
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, row_agreement), initial_fragment.rows
+                lambda r: normalize_row(r, do_agreement), initial_fragment.rows
             )
         ]
 
@@ -264,7 +328,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.row_agreement)
+        new = normalize_row(row, self.agreement is not None)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row], source_uuid: str | None):
@@ -298,10 +362,12 @@ class TableFragmentBuilder:
             merge_rows(
                 left,
                 right,
-                row_agreement=self.row_agreement,
+                agreement=self.agreement,
                 column_agreement=self.column_agreement,
             )
         )
 
     def build(self):
-        return TableFragment(rows=self.rows, page=self.page)
+        return TableFragment(
+            rows=[r for r in self.rows if not is_empty_row(r)], page=self.page
+        )

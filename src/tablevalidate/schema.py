@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Optional
+from typing import cast, List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -21,6 +21,17 @@ class Row(BaseModel):
 
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {k: v for k, v in self if k not in ("agreement_level_", "sources_")}
+
+    @staticmethod
+    def is_semantic_column(name: str) -> bool:
+        try:
+            float(name)
+            return False
+        except ValueError:
+            return True
+
+    def get_semantic_columns(self) -> Dict[str, ColumnValue]:
+        return {k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)}
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
@@ -60,8 +71,8 @@ class TablesFile(BaseModel):
 
 
 def get_table_fragments(table: Table) -> list[TableFragment]:
-    if hasattr(table, "rows") and table.rows:
-        return [table]
-    if hasattr(table, "table_fragments") and table.table_fragments:
+    if isinstance(table, TableWithRows) and table.rows:
+        return [cast(TableFragment, table)]
+    if isinstance(table, TableWithFragments) and table.table_fragments:
         return table.table_fragments
     return []

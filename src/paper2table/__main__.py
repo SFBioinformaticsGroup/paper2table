@@ -1,15 +1,18 @@
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
 from typing import Optional
+from uuid import UUID
 import traceback
 
 from tqdm import tqdm
 
 from paper2table import __version__
 from paper2table.mapping import TablesMapping
+from paper2table.page_range import parse_page_range
 from paper2table.readers import (
     agent,
     camelot,
@@ -37,7 +40,11 @@ def parse_args():
     parser.add_argument(
         dest="paths",
         nargs="+",
-        help="One ore more paper paths",
+        help=(
+            "One or more paper paths. A page range can be appended in the form "
+            "PATH:FROM:TO (e.g. paper.pdf:2:5), where FROM and TO are 1-indexed "
+            "inclusive physical page numbers"
+        ),
         type=str,
         metavar="PATH",
     )
@@ -125,12 +132,22 @@ def parse_args():
         help="Generates a tablemerge directory. Must be used with -o",
     )
     parser.add_argument(
+        "--append",
+        type=str,
+        metavar="UUID",
+        help="Append to an existing resultset. Must be used with -t and -o",
+    )
+    parser.add_argument(
         "--split-pages",
         dest="split_pages",
-        action="store_true",
+        type=int,
+        default=None,
+        metavar="N",
         help=(
-            "Split the PDF into individual pages before sending to the agent."
-            " Only supported with -r agent (without -H)."
+            "Max pages to send per model call (e.g. --split-pages 1 for one page at a time). "
+            "Omit the flag or pass -1 to send the whole range in one call. "
+            "Page ranges (PATH:FROM:TO) work regardless of this flag. "
+            "Only supported with -r agent (without -H)."
         ),
     )
     parser.add_argument(
@@ -175,7 +192,9 @@ def get_tables_reader(args):
             )
             sys.exit(1)
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             time.sleep(args.model_sleep)
             _logger.debug(f"Processing paper {paper_path} with model {args.model}")
             return agent.read_tables(paper_path, model=args.model, schema=schema)
@@ -191,8 +210,9 @@ def get_tables_reader(args):
             f"Using pdfplumber reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return pdfplumber.read_tables(
                 paper_path, column_names_hints, mapping=mapping
@@ -209,8 +229,9 @@ def get_tables_reader(args):
             f"Using img2table reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return img2table.read_tables(
                 paper_path, column_names_hints, mapping=mapping
@@ -227,35 +248,41 @@ def get_tables_reader(args):
             f"Using pymupdf reader with column names hints {column_names_hints}"
         )
 
-        def read_tables(paper_path: str, mapping: Optional[TablesMapping] = None):
-
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return pymupdf.read_tables(paper_path, column_names_hints, mapping=mapping)
 
     elif args.reader == "camelot":
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
 
-        def read_tables(paper_path: str, _mapping: Optional[TablesMapping] = None):
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None
+        ):
             _logger.debug(f"Processing paper {paper_path}...")
             return camelot.read_tables(paper_path)
 
     else:
         raise ValueError(f"Reader {args.reader} is not implemented yet")
 
-    if args.split_pages:
+    if args.split_pages is not None:
         if args.reader != "agent" or args.hybrid:
             print("--split-pages is only supported with -r agent (without -H)")
             sys.exit(1)
 
-        def base_agent_read(paper_path: str, _mapping=None):
-            return agent.read_tables(paper_path, model=args.model, schema=schema)
+    base_read = read_tables
 
-        def read_tables(
-            paper_path: str, _mapping=None
-        ):  # pylint: disable=function-redefined
-            return split_pages.read_tables(
-                paper_path, base_agent_read, sleep=args.model_sleep
-            )
+    def read_tables(  # pyright: ignore[reportRedeclaration]
+        paper_path: str, mapping=None, page_range=None
+    ):
+        return split_pages.read_tables(
+            paper_path,
+            lambda path: base_read(path, mapping),
+            sleep=0,
+            page_range=page_range,
+            page_size=args.split_pages,
+        )
 
     if args.hybrid:
         mappings_path = Path(args.mappings_path)
@@ -272,9 +299,9 @@ def get_tables_reader(args):
 
         base_reader = read_tables
 
-        def read_tables(
-            paper_path: str, _mapping: Optional[TablesMapping] = None
-        ):  # pylint: disable=function-redefined
+        def read_tables(  # pyright: ignore[reportRedeclaration]
+            paper_path: str, mapping: Optional[TablesMapping] = None, page_range=None
+        ):
             time.sleep(args.model_sleep)
             _logger.debug(f"Hybrid processing paper {paper_path}...")
             return hybrid.read_tables(
@@ -297,17 +324,41 @@ def read_schema(args):
     )
 
 
+def get_skip_predicate(args):
+    if not args.append:
+        return lambda _: False
+
+    resultset_dir = os.path.join(args.output_directory, args.append)
+
+    def should_skip(paper_path):
+        # TODO this is duplicated
+        basename = os.path.basename(paper_path).replace(".pdf", ".tables.json")
+        return os.path.exists(os.path.join(resultset_dir, basename))
+
+    return should_skip
+
+
 def get_table_writer(args):
     if args.tablemerge and not args.output_directory:
         print("--tablemerge requires also --output-directory")
         sys.exit(1)
 
+    if args.append and not (args.tablemerge and args.output_directory):
+        print("--append requires --tablemerge and --output-directory")
+        sys.exit(1)
+
     if args.tablemerge:
+        if args.append:
+            validate_existing_resultset(args)
+            uuid = UUID(args.append)
+        else:
+            uuid = None
+
         metadata = TablemergeMetadata(
-            reader=args.reader, model=args.model, hybrid=args.hybrid
+            reader=args.reader, model=args.model, hybrid=args.hybrid, uuid=uuid
         )
 
-        def write_tables(result: TablesReader, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
             tablemerge.write_tables(
                 result,
                 paper_path,
@@ -317,7 +368,7 @@ def get_table_writer(args):
 
     elif args.output_directory:
 
-        def write_tables(result: TablesReader, paper_path: str):
+        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
             file.write_tables(
                 result, paper_path, output_directory=args.output_directory
             )
@@ -330,8 +381,27 @@ def get_table_writer(args):
     return write_tables
 
 
+def validate_existing_resultset(args):
+    try:
+        existing = tablemerge.load_metadata(args.output_directory, args.append)
+    except FileNotFoundError:
+        print("--append: resultset doesn't exist or doesn't contain valid metadata")
+        sys.exit(1)
+
+    current_reader = TablemergeMetadata(
+        reader=args.reader, model=args.model, hybrid=args.hybrid
+    ).get_reader()
+
+    if existing["reader"] != current_reader:
+        print(
+            "--append: reader mismatch."
+            f" Existing: {existing['reader']}, current: {current_reader}"
+        )
+        sys.exit(1)
+
+
 def get_paper_paths(args):
-    return args.paths if args.quiet else tqdm(args.paths)
+    return args.paths if args.quiet else tqdm(args.paths, miniters=1, mininterval=0)
 
 
 def main():
@@ -342,22 +412,27 @@ def main():
 
     read_tables = get_tables_reader(args)
     write_tables = get_table_writer(args)
+    should_skip = get_skip_predicate(args)
 
-    for paper_path in get_paper_paths(args):
+    for raw_path in get_paper_paths(args):
+        clean_path, page_range = parse_page_range(raw_path)
+        if should_skip(clean_path):
+            _logger.debug(f"Skipping {clean_path}, already in resultset")
+            continue
         try:
-            result = read_tables(paper_path)
+            result = read_tables(clean_path, page_range=page_range)
 
-            write_tables(result, paper_path)
+            write_tables(result, clean_path)
 
-            _logger.debug(f"Paper {paper_path} processed")
+            _logger.debug(f"Paper {clean_path} processed")
         except PartialProcessingError as e:
             _logger.warning(
-                f"Paper {paper_path} failed on page {e.page_num}."
+                f"Paper {clean_path} failed on page {e.page_num}."
                 f" Writing partial results. {str(traceback.format_exc())}"
             )
-            write_tables(e.partial_result, paper_path)
+            write_tables(e.partial_result, clean_path)
         except Exception:
-            _logger.warning(f"Paper {paper_path} failed {str(traceback.format_exc())}")
+            _logger.warning(f"Paper {clean_path} failed {str(traceback.format_exc())}")
 
 
 if __name__ == "__main__":

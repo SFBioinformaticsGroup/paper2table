@@ -5,12 +5,13 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
 
+from tablevalidate.schema import TablesFile
 from .stats import GlobalStats, update_papers_stats
 
 
-def read_paper(paper_path):
+def read_paper(paper_path: Path) -> TablesFile:
     with open(paper_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return TablesFile.model_validate(json.load(f))
 
 
 def compute_papers_stats(path: str) -> GlobalStats:
