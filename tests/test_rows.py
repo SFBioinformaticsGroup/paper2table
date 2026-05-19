@@ -1,8 +1,6 @@
 from utils.rows import is_empty_value, is_empty_row
 
 
-# ── is_empty_value ────────────────────────────────────────────────────────────
-
 def test_is_empty_value_none():
     assert is_empty_value(None)
 
@@ -37,8 +35,6 @@ def test_is_empty_value_list_mixed_empty_and_non_empty():
         {"value": "Apiaceae", "agreement_level": 1},
     ])
 
-
-# ── is_empty_row (dict form) ──────────────────────────────────────────────────
 
 def test_is_empty_row_all_empty():
     assert is_empty_row({"family": "", "scientific_name": None})

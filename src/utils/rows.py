@@ -15,7 +15,7 @@ def is_empty_value(value) -> bool:
         return all(not _str_from_value(v).strip() for v in value)
     return False
 
-
+# TODO row should always be of type Row
 def is_empty_row(row) -> bool:
     pairs = row.items() if isinstance(row, dict) else dict(row).items()
     return all(is_empty_value(v) for k, v in pairs if not k.endswith("_"))

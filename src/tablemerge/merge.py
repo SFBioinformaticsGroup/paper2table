@@ -29,7 +29,9 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
                 )
                 for row in fragment.rows
             ]
-            filtered_fragments.append(TableFragment(rows=filtered_rows, page=fragment.page))
+            filtered_fragments.append(
+                TableFragment(rows=filtered_rows, page=fragment.page)
+            )
         filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
     return TablesFile(
         tables=filtered_tables,
@@ -133,7 +135,10 @@ def same_row(left: Row, right: Row) -> bool:
 
 
 def merge_rows(
-    left: Row, right: Row, agreement: Agreement, column_agreement=False
+    left: Row,
+    right: Row,
+    agreement: Agreement = SimpleCountAgreement(),
+    column_agreement=False,
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
@@ -188,7 +193,7 @@ def to_values_with_agreement(column_value: ColumnValue):
 
 def merge_tablesfiles(
     tablesfiles: list[TablesFile],
-    agreement: Agreement,
+    agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
 ) -> TablesFile:
     """
@@ -203,9 +208,7 @@ def merge_tablesfiles(
     # Zip tables of the same page
     # ============================
 
-    tables_clusters = list(zip_longest(
-        *map(lambda t: t.tables, tablesfiles)
-    ))
+    tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
     for tables_cluster in tables_clusters:
         # ==============================
         # Zip fragments of the same page
