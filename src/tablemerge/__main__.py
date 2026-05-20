@@ -59,8 +59,13 @@ def write_merge_metadata(
 
 
 def merge_tablesfiles_paths(
-    basename, resultset_dirs, output_path, metadata_map: dict[str, dict], agreement,
+    basename,
+    resultset_dirs,
+    output_path,
+    metadata_map: dict[str, dict],
+    agreement,
     only_semantic_columns: bool = False,
+    pretty: bool = False,
 ):
     """
     Merge all the TablesFile of the same basename
@@ -92,7 +97,12 @@ def merge_tablesfiles_paths(
             f" into {len(merged_tablesfile.tables)} tables"
         )
         with open(output_path / basename, "w", encoding="utf-8") as outfile:
-            json.dump(merged_tablesfile.model_dump(), outfile, ensure_ascii=False)
+            json.dump(
+                merged_tablesfile.model_dump(),
+                outfile,
+                ensure_ascii=False,
+                indent=2 if pretty else None,
+            )
     except MergeError as e:
         print(f"{basename}: MERGE FAILED:", str(e))
 
@@ -103,6 +113,7 @@ def merge_resultsets(
     metadata_only=False,
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
+    pretty: bool = False,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -135,8 +146,13 @@ def merge_resultsets(
 
     for basename in sorted(list(tablesfiles_basenames)):
         merge_tablesfiles_paths(
-            basename, resultset_dirs, output_path, resultset_metadata, agreement,
+            basename,
+            resultset_dirs,
+            output_path,
+            resultset_metadata,
+            agreement,
             only_semantic_columns=only_semantic_columns,
+            pretty=pretty,
         )
 
 
@@ -170,6 +186,11 @@ def parse_args():
         action="store_true",
         help="Remove columns whose names are numeric after merging",
     )
+    parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print merged output files with indentation",
+    )
     return parser.parse_args()
 
 
@@ -181,6 +202,7 @@ def main():
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
         only_semantic_columns=args.only_semantic_columns,
+        pretty=args.pretty,
     )
 
 
