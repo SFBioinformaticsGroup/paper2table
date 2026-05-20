@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from utils.table_fragments import get_table_fragments
+from utils.rows import is_empty_row
 from tablevalidate.schema import TablesFile
 
 
@@ -11,6 +12,7 @@ class PaperStats:
     rows: int
     rows_with_agreement: int
     agreement_percentage: Optional[float] = None
+    empty_rows_percentage: Optional[float] = None
 
     def to_dict(self):
         return {
@@ -18,6 +20,7 @@ class PaperStats:
             "rows": self.rows,
             "rows_with_agreement": self.rows_with_agreement,
             "agreement_percentage": self.agreement_percentage,
+            "empty_rows_percentage": self.empty_rows_percentage,
         }
 
 
@@ -64,14 +67,22 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         for table in tables
         for fragment in get_table_fragments(table)
     )
+    empty_rows_count = sum(
+        sum(1 for row in fragment.rows if is_empty_row(row))
+        for table in tables
+        for fragment in get_table_fragments(table)
+    )
 
     agreement_percentage = None
+    empty_rows_percentage = None
     if rows_count > 0:
         agreement_percentage = rows_with_agreement / rows_count * 100
+        empty_rows_percentage = empty_rows_count / rows_count * 100
 
     return PaperStats(
         tables=tables_count,
         rows=rows_count,
         rows_with_agreement=rows_with_agreement,
         agreement_percentage=agreement_percentage,
+        empty_rows_percentage=empty_rows_percentage,
     )

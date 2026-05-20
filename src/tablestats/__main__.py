@@ -85,6 +85,10 @@ def format_stats(stats: GlobalStats) -> str:
             lines.append(
                 f"    Agreement percentage: {paper_stats.agreement_percentage:.2f}%"
             )
+        if paper_stats.empty_rows_percentage is not None:
+            lines.append(
+                f"    Empty rows percentage: {paper_stats.empty_rows_percentage:.2f}%"
+            )
     return "\n".join(lines)
 
 
