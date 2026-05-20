@@ -14,12 +14,7 @@ from tablevalidate.schema import (
     Row,
     get_table_fragments,
 )
-from tablemerge.columns_aligner import (
-    find_column_mapping,
-    rename_row_columns,
-    rename_fragment_columns,
-    all_column_names,
-)
+from tablemerge.columns_aligner import ColumnAligner
 
 
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
@@ -235,11 +230,11 @@ def merge_tablesfiles(
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             first_right = next((f for f in fragments_cluster[1:] if f is not None), None)
-            if first_right is not None:
-                left_mapping = find_column_mapping(left_fragment, first_right)
-                left_col_names = set(all_column_names(left_fragment.rows[:1]))
-                if left_mapping and left_col_names & set(left_mapping.keys()):
-                    left_fragment = rename_fragment_columns(left_fragment, left_mapping)
+            aligner = ColumnAligner(left_fragment, first_right)
+            left_fragment = TableFragment(
+                rows=[aligner.rename_row(r) for r in left_fragment.rows],
+                page=left_fragment.page,
+            )
 
             table_fragment_builder = TableFragmentBuilder(
                 left_fragment, tablesfiles[0].uuid, agreement, column_agreement
@@ -257,12 +252,7 @@ def merge_tablesfiles(
                     )
 
                 right_uuid = right_tablesfile.uuid
-                right_rows = right_fragment.rows
-                left_for_align = TableFragment(rows=table_fragment_builder.rows, page=right_fragment.page)
-                right_mapping = find_column_mapping(left_for_align, right_fragment)
-                right_col_names = set(all_column_names(right_fragment.rows[:1]))
-                if right_mapping and right_col_names & set(right_mapping.keys()):
-                    right_rows = [rename_row_columns(r, right_mapping) for r in right_rows]
+                right_rows = [aligner.rename_row(r) for r in right_fragment.rows]
                 left_rows = table_fragment_builder.next_left_rows()
                 start_right_index = 0
 
