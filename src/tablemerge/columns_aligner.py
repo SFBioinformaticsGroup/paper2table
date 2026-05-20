@@ -11,13 +11,9 @@ class ColumnAligner:
         threshold: float = 0.5,
         max_sample: int = 50,
     ):
-        self.mapping = (
-            self._build_mapping(
-                left, right, threshold=threshold, max_sample=max_sample
-            )
-            if right is not None
-            else {}
-        )
+        self.threshold = threshold
+        self.max_sample = max_sample
+        self.mapping = self._build_mapping(left, right) if right is not None else {}
 
     def rename_row(self, row: Row) -> Row:
         if not self.mapping:
@@ -55,11 +51,7 @@ class ColumnAligner:
         return list(dict.fromkeys(c for row in rows for c in row.get_columns()))
 
     def _build_mapping(
-        self,
-        left: TableFragment,
-        right: TableFragment,
-        threshold: float,
-        max_sample: int,
+        self, left: TableFragment, right: TableFragment
     ) -> dict[str, str]:
         """
         Detect correspondences between numeric and semantic column names across two
@@ -70,21 +62,12 @@ class ColumnAligner:
         exclusively semantic ones; returns {} otherwise (both numeric, both semantic,
         or mixed).
 
-        Two columns are considered equivalent when their Jaccard index is >= threshold.
+        Two columns are considered equivalent when their Jaccard index is >= self.threshold.
         Matching is one-to-one: the best-scoring pair is assigned first, then those
         columns are excluded from subsequent pairings (greedy descending order).
-
-        Args:
-            left: one of the two fragments to compare.
-            right: the other fragment to compare.
-            threshold: minimum Jaccard similarity to consider two columns equivalent.
-                0.0 maps everything; 1.0 requires identical value sets. Default 0.5
-                tolerates up to half of the values being different (e.g. one table
-                has extra rows the other doesn't).
-            max_sample: number of rows sampled per fragment for efficiency.
         """
-        left_rows = left.rows[:max_sample]
-        right_rows = right.rows[:max_sample]
+        left_rows = left.rows[: self.max_sample]
+        right_rows = right.rows[: self.max_sample]
         if not left_rows or not right_rows:
             return {}
 
@@ -112,7 +95,7 @@ class ColumnAligner:
             (self._jaccard(num_sets[nc], sem_sets[sc]), nc, sc)
             for nc in numeric_cols
             for sc in semantic_cols
-            if self._jaccard(num_sets[nc], sem_sets[sc]) >= threshold
+            if self._jaccard(num_sets[nc], sem_sets[sc]) >= self.threshold
         ]
         scores.sort(key=lambda x: -x[0])
 

@@ -12,8 +12,6 @@ def wrap(rows: list[Row]) -> TableFragment:
 
 
 def test_column_aligner_right_numeric_to_left_semantic():
-    # "0" vs "family": {"apiaceae","rosaceae"} ∩ {"apiaceae","rosaceae"} = 2/2 = 1.0
-    # "1" vs "scientific_name": same → 1.0
     left = wrap(
         [
             Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."}),
@@ -30,7 +28,6 @@ def test_column_aligner_right_numeric_to_left_semantic():
 
 
 def test_column_aligner_left_numeric_to_right_semantic():
-    # Symmetric direction: left is numeric, right is semantic
     left = wrap(
         [
             Row(**{"0": "lunes", "1": "monday"}),
@@ -59,8 +56,6 @@ def test_column_aligner_both_numeric_returns_empty():
 
 
 def test_column_aligner_no_value_overlap_returns_empty():
-    # "0" vs "family": {"red","blue"} ∩ {"apiaceae","rosaceae"} = 0/4 = 0.0
-    # 0.0 < 0.5 (default threshold) → no mapping
     left = wrap(
         [
             Row(**{"family": "Apiaceae"}),
@@ -77,8 +72,6 @@ def test_column_aligner_no_value_overlap_returns_empty():
 
 
 def test_column_aligner_partial_overlap_above_threshold():
-    # "0" vs "family": {"apiaceae"} ∩ {"apiaceae","rosaceae"} = 1/2 = 0.5
-    # 0.5 >= 0.5 (default threshold) → matches
     left = wrap(
         [
             Row(**{"family": "Apiaceae"}),
@@ -96,45 +89,13 @@ def test_column_aligner_partial_overlap_above_threshold():
 @pytest.mark.parametrize(
     "threshold,expected",
     [
-        # Jaccard("0" vs "family") = |{"apiaceae"}| / |{"apiaceae","rosaceae","lamiaceae"}| = 1/3 ≈ 0.33
-        (1.0, {}),  # 0.33 < 1.0 → no match
-        (0.5, {}),  # 0.33 < 0.5 → no match
-        (0.34, {}),  # 0.33 < 0.34 → no match
-        (0.33, {"0": "family"}),  # 0.33 >= 0.33 → match
-        (0.3, {"0": "family"}),  # 0.33 >= 0.3 → match
-        (0.0, {"0": "family"}),  # 0.33 >= 0.0 → match
+        (0.6, {}),
+        (0.5, {"0": "family"}),
+        (0.4, {"0": "family"}),
     ],
 )
-def test_column_aligner_threshold_controls_match(threshold, expected):
-    # left "family" has 3 values; right "0" shares only 1 of them → Jaccard = 1/3
-    left = wrap(
-        [
-            Row(**{"family": "Apiaceae"}),
-            Row(**{"family": "Rosaceae"}),
-            Row(**{"family": "Lamiaceae"}),
-        ]
-    )
-    right = wrap([Row(**{"0": "Apiaceae"})])
-    assert ColumnAligner(left, right, threshold=threshold).mapping == expected
-
-
-@pytest.mark.parametrize(
-    "threshold,expected",
-    [
-        # Jaccard("0" vs "family") = |{"apiaceae"}| / |{"apiaceae","rosaceae"}| = 1/2 = 0.5
-        (0.6, {}),  # 0.5 < 0.6 → no match
-        (0.5, {"0": "family"}),  # 0.5 >= 0.5 → match (at boundary)
-        (0.4, {"0": "family"}),  # 0.5 >= 0.4 → match
-    ],
-)
-def test_column_aligner_threshold_boundary(threshold, expected):
-    # left "family" has 2 values; right "0" shares exactly 1 → Jaccard = 0.5
-    left = wrap(
-        [
-            Row(**{"family": "Apiaceae"}),
-            Row(**{"family": "Rosaceae"}),
-        ]
-    )
+def test_column_aligner_threshold(threshold, expected):
+    left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"})])
     assert ColumnAligner(left, right, threshold=threshold).mapping == expected
 
@@ -146,8 +107,6 @@ def test_column_aligner_empty_fragment():
 
 
 def test_column_aligner_one_col_matches_one_does_not():
-    # "0" vs "family": {"apiaceae","rosaceae"} → 1.0 → matches
-    # "1" vs "scientific_name": {"zzz","www"} ∩ {"ammi majus l.","rosa canina l."} = 0/4 = 0.0 → no match
     left = wrap(
         [
             Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."}),
@@ -182,13 +141,105 @@ def test_column_aligner_rename_row_renames_columns():
     right = wrap([Row(**{"0": "Apiaceae", "1": "Ammi majus L."})])
     aligner = ColumnAligner(left, right)
     row = Row(**{"0": "Rosaceae", "1": "Rosa canina L."})
-    assert aligner.rename_row(row) == Row(family="Rosaceae", scientific_name="Rosa canina L.")
+    assert aligner.rename_row(row) == Row(
+        family="Rosaceae", scientific_name="Rosa canina L."
+    )
 
 
 def test_column_aligner_rename_row_noop_when_no_mapping():
-    # Both semantic → empty mapping → rename_row returns the same object
     left = wrap([Row(**{"family": "Apiaceae"})])
     right = wrap([Row(**{"genus": "Ammi"})])
     aligner = ColumnAligner(left, right)
     row = Row(family="Rosaceae")
     assert aligner.rename_row(row) is row
+
+
+_SPECIES = [
+    ("Ammi majus L.", "45.2", "Apiaceae", "Greater ammi"),
+    ("Rosa canina L.", "12.8", "Rosaceae", "Dog rose"),
+    ("Mentha spicata L.", "67.3", "Lamiaceae", "Spearmint"),
+    ("Betula pendula Roth", "89.1", "Betulaceae", "Silver birch"),
+    ("Quercus robur L.", "23.4", "Fagaceae", "English oak"),
+    ("Taraxacum officinale F.H.Wigg.", "56.7", "Asteraceae", "Dandelion"),
+    ("Urtica dioica L.", "34.9", "Urticaceae", "Stinging nettle"),
+    ("Sambucus nigra L.", "78.2", "Adoxaceae", "Black elder"),
+    ("Hypericum perforatum L.", "41.5", "Hypericaceae", "St John's wort"),
+    ("Achillea millefolium L.", "93.6", "Asteraceae", "Yarrow"),
+    ("Plantago lanceolata L.", "17.3", "Plantaginaceae", "Ribwort plantain"),
+    ("Matricaria chamomilla L.", "52.8", "Asteraceae", "German chamomile"),
+    ("Lavandula angustifolia Mill.", "61.4", "Lamiaceae", "Lavender"),
+    ("Rosmarinus officinalis L.", "38.7", "Lamiaceae", "Rosemary"),
+    ("Thymus vulgaris L.", "25.1", "Lamiaceae", "Common thyme"),
+    ("Origanum vulgare L.", "72.9", "Lamiaceae", "Oregano"),
+    ("Salvia officinalis L.", "44.6", "Lamiaceae", "Common sage"),
+    ("Foeniculum vulgare Mill.", "83.2", "Apiaceae", "Fennel"),
+    ("Melissa officinalis L.", "19.5", "Lamiaceae", "Lemon balm"),
+    ("Echinacea purpurea (L.) Moench", "67.8", "Asteraceae", "Purple coneflower"),
+]
+
+_SPECIES_WITH_EDITS = [
+    ("Ammi majus", "45.2", "Apiaceae", "Greater ammi spp."),
+    ("Rosa canina, L.", "12.8", "Rosaceae", "Dog-rose"),
+    ("Mentha spicata", "67.3", "Lamiaceae", "Spearmint herb"),
+    ("Betula pendula Rot", "89.1", "Betulaceae", "Silver-birch"),
+    ("Quercus robur", "23.4", "Fagaceae", "Eng. oak"),
+    ("T. officinale F.H.Wigg.", "56.7", "Asteraceae", "Dandelyon"),
+    *_SPECIES[6:],
+]
+
+_ALL_FOUR = {"0": "scientific_name", "1": "area", "2": "family", "3": "vernacular_name"}
+
+
+@pytest.mark.parametrize("threshold", [0.3, 0.4, 0.5, 0.6])
+def test_column_aligner_four_columns_exact(threshold):
+    left = wrap(
+        [
+            Row(scientific_name=s, area=a, family=f, vernacular_name=v)
+            for s, a, f, v in _SPECIES
+        ]
+    )
+    right = wrap([Row(**{"0": s, "1": a, "2": f, "3": v}) for s, a, f, v in _SPECIES])
+    assert ColumnAligner(left, right, threshold=threshold).mapping == _ALL_FOUR
+
+
+@pytest.mark.parametrize(
+    "threshold,expected",
+    [
+        (0.3, _ALL_FOUR),
+        (0.4, _ALL_FOUR),
+        (0.5, _ALL_FOUR),
+        (0.6, {"1": "area", "2": "family"}),
+    ],
+)
+def test_column_aligner_four_columns_with_text_edits(threshold, expected):
+    left = wrap(
+        [
+            Row(scientific_name=s, area=a, family=f, vernacular_name=v)
+            for s, a, f, v in _SPECIES
+        ]
+    )
+    right = wrap(
+        [Row(**{"0": s, "1": a, "2": f, "3": v}) for s, a, f, v in _SPECIES_WITH_EDITS]
+    )
+    assert ColumnAligner(left, right, threshold=threshold).mapping == expected
+
+
+@pytest.mark.parametrize("threshold", [0.3, 0.4, 0.5, 0.6])
+def test_column_aligner_four_columns_partial_column_match(threshold):
+    left = wrap(
+        [
+            Row(scientific_name=s, area=a, family=f, vernacular_name=v)
+            for s, a, f, v in _SPECIES
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": s, "1": a, "2": f"REF{i:04d}", "3": v})
+            for i, (s, a, f, v) in enumerate(_SPECIES)
+        ]
+    )
+    assert ColumnAligner(left, right, threshold=threshold).mapping == {
+        "0": "scientific_name",
+        "1": "area",
+        "3": "vernacular_name",
+    }
