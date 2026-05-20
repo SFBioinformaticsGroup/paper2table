@@ -91,12 +91,7 @@ def test_two_tables_with_different_column_names():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].table_fragments[0].rows == [
-<<<<<<< HEAD
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1),
-        Row(**{"0": "apiaceae", "1": "ammi majus l."}, agreement_level_=1),
-=======
-        Row(family="apiaceae", scientific_name="ammi majus l."),
->>>>>>> 8be5026 (Initial column allignment ideas)
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
     ]
 
 
@@ -818,10 +813,6 @@ def test_find_column_mapping_one_col_matches_one_does_not():
 
 
 def test_merge_aligns_right_numeric_columns_multiple_rows():
-    """
-    table_1 (semantic, 3 rows), table_2 (numeric cols, 3 rows).
-    2 rows match, 1 left-only (lamiaceae), 1 right-only (betulaceae).
-    """
     table_1 = [
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
@@ -834,15 +825,14 @@ def test_merge_aligns_right_numeric_columns_multiple_rows():
     ]
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].table_fragments[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l."),
-        Row(family="rosaceae", scientific_name="rosa canina l."),
-        Row(family="lamiaceae", scientific_name="mentha spicata l."),
-        Row(family="betulaceae", scientific_name="betula pendula l."),
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
+        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1),
+        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1),
     ]
 
 
 def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
-    """Same scenario with agreement tracking."""
     table_1 = [
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
@@ -854,7 +844,7 @@ def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
         Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], agreement=simple_count_agreement
+        [wrap(table_1), wrap(table_2)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
@@ -865,8 +855,6 @@ def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
 
 
 def test_merge_aligns_left_numeric_columns_multiple_rows():
-    """Symmetric: left is numeric, right is semantic.
-    2 rows match (apiaceae, rosaceae), left-only: betulaceae, right-only: lamiaceae."""
     table_1 = [
         Row(**{"0": "Apiaceae", "1": "Ammi majus L."}),
         Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
@@ -879,15 +867,14 @@ def test_merge_aligns_left_numeric_columns_multiple_rows():
     ]
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].table_fragments[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l."),
-        Row(family="rosaceae", scientific_name="rosa canina l."),
-        Row(family="betulaceae", scientific_name="betula pendula l."),
-        Row(family="lamiaceae", scientific_name="mentha spicata l."),
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
+        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1),
+        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1),
     ]
 
 
 def test_merge_no_alignment_both_semantic_multiple_rows():
-    """Both sides have semantic cols — no renaming, existing dedup logic unchanged."""
     table_1 = [
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
@@ -898,7 +885,7 @@ def test_merge_no_alignment_both_semantic_multiple_rows():
     ]
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].table_fragments[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l."),
-        Row(family="rosaceae", scientific_name="rosa canina l."),
-        Row(family="lamiaceae", scientific_name="mentha spicata l."),
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1),
+        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1),
     ]
