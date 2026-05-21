@@ -14,6 +14,7 @@ from tablevalidate.schema import (
     Row,
     get_table_fragments,
 )
+from tablemerge.columns_aligner import ColumnAligner
 
 
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
@@ -195,6 +196,8 @@ def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
+    align_columns: bool = False,
+    column_alignment_threshold: float = 0.5,
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -228,6 +231,17 @@ def merge_tablesfiles(
             if not left_fragment:
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
+            first_right = next((f for f in fragments_cluster[1:] if f is not None), None)
+            aligner = ColumnAligner(
+                left_fragment,
+                first_right if align_columns else None, # TODO hack
+                threshold=column_alignment_threshold,
+            )
+            left_fragment = TableFragment(
+                rows=[aligner.rename_row(r) for r in left_fragment.rows],
+                page=left_fragment.page,
+            )
+
             table_fragment_builder = TableFragmentBuilder(
                 left_fragment, tablesfiles[0].uuid, agreement, column_agreement
             )
@@ -244,7 +258,7 @@ def merge_tablesfiles(
                     )
 
                 right_uuid = right_tablesfile.uuid
-                right_rows = right_fragment.rows
+                right_rows = [aligner.rename_row(r) for r in right_fragment.rows]
                 left_rows = table_fragment_builder.next_left_rows()
                 start_right_index = 0
 

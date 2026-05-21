@@ -66,6 +66,8 @@ def merge_tablesfiles_paths(
     agreement,
     only_semantic_columns: bool = False,
     pretty: bool = False,
+    align_columns: bool = False,
+    column_alignment_threshold: float = 0.5,
 ):
     """
     Merge all the TablesFile of the same basename
@@ -88,7 +90,10 @@ def merge_tablesfiles_paths(
 
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles, agreement=agreement
+            tablesfiles,
+            agreement=agreement,
+            align_columns=align_columns,
+            column_alignment_threshold=column_alignment_threshold,
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -114,6 +119,8 @@ def merge_resultsets(
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
     pretty: bool = False,
+    align_columns: bool = False,
+    column_alignment_threshold: float = 0.5,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -153,6 +160,8 @@ def merge_resultsets(
             agreement,
             only_semantic_columns=only_semantic_columns,
             pretty=pretty,
+            align_columns=align_columns,
+            column_alignment_threshold=column_alignment_threshold,
         )
 
 
@@ -191,6 +200,17 @@ def parse_args():
         action="store_true",
         help="Pretty-print merged output files with indentation",
     )
+    parser.add_argument(
+        "--align-columns",
+        action="store_true",
+        help="Align numeric column names to semantic ones using value similarity",
+    )
+    parser.add_argument(
+        "--column-alignment-threshold",
+        type=float,
+        default=0.5,
+        help="Minimum Jaccard similarity for column alignment (default: 0.5)",
+    )
     return parser.parse_args()
 
 
@@ -203,6 +223,8 @@ def main():
         agreement_method=args.agreement_method,
         only_semantic_columns=args.only_semantic_columns,
         pretty=args.pretty,
+        align_columns=args.align_columns,
+        column_alignment_threshold=args.column_alignment_threshold,
     )
 
 
