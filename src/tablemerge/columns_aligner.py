@@ -21,10 +21,10 @@ class ColumnAligner:
         return Row(
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,
-            **{self._rename(k): v for k, v in row.get_columns().items()},
+            **{self.rename_column(k): v for k, v in row.get_columns().items()},
         )
 
-    def _rename(self, col_name: str) -> str:
+    def rename_column(self, col_name: str) -> str:
         return self.mapping.get(col_name, col_name)
 
     def _extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
