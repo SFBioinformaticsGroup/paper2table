@@ -1,3 +1,4 @@
+# pyright: reportCallIssue=false
 from table2html.__main__ import (
     agreement_css_class,
     build_css,

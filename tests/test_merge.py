@@ -1,3 +1,4 @@
+# pyright: reportCallIssue=false
 import pytest
 from tablemerge.merge import (
     merge_tablesfiles,
