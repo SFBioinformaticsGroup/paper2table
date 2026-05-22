@@ -13,7 +13,10 @@ def run_paper2table(*args):
         text=True,
         cwd=PROJECT_ROOT,
     )
-    return json.loads(result.stdout)
+    try:
+        return json.loads(result.stdout)
+    except:
+        return result.stdout
 
 
 def test_pdfplumber_cli():
@@ -229,7 +232,10 @@ def test_hybrid_pymupdf_cli():
                             {"name": "Maple", "species": "saccharum"},
                             {"name": "Dandelion", "species": "officinale"},
                             {"name": "Bamboo", "species": "vulgaris"},
-                            {"name": "Cactus (Prickly Pear)", "species": "ficus-indica"},
+                            {
+                                "name": "Cactus (Prickly Pear)",
+                                "species": "ficus-indica",
+                            },
                             {"name": "Coffee", "species": "arabica"},
                         ],
                         "page": 1,
