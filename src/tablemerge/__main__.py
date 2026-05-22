@@ -32,7 +32,7 @@ def write_merge_metadata(
     resultset_dirs: list[str],
     output_path: Path,
     resultset_metadata: dict[str, dict],
-    agreement_method: str = "simple-count",
+    settings: dict,
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -48,7 +48,7 @@ def write_merge_metadata(
         "reader": "tablemerge",
         "uuid": str(uuid4()),
         "datetime": dt.now().isoformat(),
-        "agreement_method": agreement_method,
+        "settings": settings,
         "sources": sources,
     }
 
@@ -136,8 +136,15 @@ def merge_resultsets(
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
 
+    settings = {
+        "agreement_method": agreement_method,
+        "only_semantic_columns": only_semantic_columns,
+        "align_columns": align_columns,
+        "column_alignment_threshold": column_alignment_threshold,
+        "post_processor": post_processor.settings,
+    }
     write_merge_metadata(
-        resultset_dirs, output_path, resultset_metadata, agreement_method
+        resultset_dirs, output_path, resultset_metadata, settings
     )
 
     if metadata_only:
