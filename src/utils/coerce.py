@@ -2,6 +2,7 @@ _BOOL_TRUE = {"true", "1", "yes", "on"}
 _BOOL_FALSE = {"false", "0", "no", "off"}
 
 
+# TODO we should probably use pandas here
 def coerce_str(value: str, target_type: type) -> str:
     """Try to parse value as target_type and return its canonical string form.
 
