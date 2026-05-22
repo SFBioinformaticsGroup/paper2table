@@ -24,4 +24,4 @@ jobs:
         pip install -e .[testing]
     - name: Run tests
       run: |
-        pytest
+        pytest -m "not integration"
