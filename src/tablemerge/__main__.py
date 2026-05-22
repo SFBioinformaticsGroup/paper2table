@@ -1,10 +1,12 @@
 import argparse
 import json
+import sys
 from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
+from utils.columns_schema import parse_schema
 
 from .merge import (
     merge_tablesfiles,
@@ -13,6 +15,7 @@ from .merge import (
     SimpleCountAgreement,
     DistinctReadersAgreement,
 )
+from .schema import PostProcessor, SchemaPostProcessor, NullPostProcessor
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -29,7 +32,7 @@ def write_merge_metadata(
     resultset_dirs: list[str],
     output_path: Path,
     resultset_metadata: dict[str, dict],
-    agreement_method: str = "simple-count",
+    settings: dict,
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -45,7 +48,7 @@ def write_merge_metadata(
         "reader": "tablemerge",
         "uuid": str(uuid4()),
         "datetime": dt.now().isoformat(),
-        "agreement_method": agreement_method,
+        "settings": settings,
         "sources": sources,
     }
 
@@ -58,6 +61,11 @@ def write_merge_metadata(
     return merge_metadata
 
 
+def load_schema(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return parse_schema(f.read())
+
+
 def merge_tablesfiles_paths(
     basename,
     resultset_dirs,
@@ -68,6 +76,7 @@ def merge_tablesfiles_paths(
     pretty: bool = False,
     align_columns: bool = False,
     column_alignment_threshold: float = 0.5,
+    post_processor: PostProcessor = NullPostProcessor(),
 ):
     """
     Merge all the TablesFile of the same basename
@@ -97,6 +106,7 @@ def merge_tablesfiles_paths(
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
+        merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -121,12 +131,20 @@ def merge_resultsets(
     pretty: bool = False,
     align_columns: bool = False,
     column_alignment_threshold: float = 0.5,
+    post_processor: PostProcessor = NullPostProcessor(),
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
 
+    settings = {
+        "agreement_method": agreement_method,
+        "only_semantic_columns": only_semantic_columns,
+        "align_columns": align_columns,
+        "column_alignment_threshold": column_alignment_threshold,
+        "post_processor": post_processor.settings,
+    }
     write_merge_metadata(
-        resultset_dirs, output_path, resultset_metadata, agreement_method
+        resultset_dirs, output_path, resultset_metadata, settings
     )
 
     if metadata_only:
@@ -162,6 +180,7 @@ def merge_resultsets(
             pretty=pretty,
             align_columns=align_columns,
             column_alignment_threshold=column_alignment_threshold,
+            post_processor=post_processor,
         )
 
 
@@ -211,11 +230,68 @@ def parse_args():
         default=0.5,
         help="Minimum Jaccard similarity for column alignment (default: 0.5)",
     )
+    parser.add_argument(
+        "-p",
+        "--schema-path",
+        type=str,
+        help=(
+            "Path to a schema file with column:type pairs (one per line). "
+            "Same format as paper2table's -p. "
+            "Required by --filter-schema-columns, --order-schema-columns, "
+            "and --coerce-schema-column-types."
+        ),
+    )
+    parser.add_argument(
+        "--filter-schema-columns",
+        action="store_true",
+        help=(
+            "Drop merged tables whose rows share no column names with the schema. "
+            "Requires -p."
+        ),
+    )
+    parser.add_argument(
+        "--order-schema-columns",
+        action="store_true",
+        help=(
+            "Reorder output columns so schema columns come first (in schema order), "
+            "followed by any remaining columns. Requires -p."
+        ),
+    )
+    parser.add_argument(
+        "--coerce-schema-column-types",
+        action="store_true",
+        help=(
+            "Normalize cell string values in schema columns to the declared type "
+            "(e.g. '42.0' → '42' for int). Values that cannot be converted are left "
+            "unchanged. Requires -p."
+        ),
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    schema_flags = [
+        args.filter_schema_columns,
+        args.order_schema_columns,
+        args.coerce_schema_column_types,
+    ]
+    if any(schema_flags) and not args.schema_path:
+        print(
+            "Error: --filter-schema-columns, --order-schema-columns, and "
+            "--coerce-schema-column-types all require -p/--schema-path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if args.schema_path:
+        post_processor = SchemaPostProcessor(
+            load_schema(args.schema_path),
+            filter_columns=args.filter_schema_columns,
+            order_columns=args.order_schema_columns,
+            coerce_types=args.coerce_schema_column_types,
+        )
+    else:
+        post_processor = NullPostProcessor()
     merge_resultsets(
         args.paths,
         args.output_directory,
@@ -225,6 +301,7 @@ def main():
         pretty=args.pretty,
         align_columns=args.align_columns,
         column_alignment_threshold=args.column_alignment_threshold,
+        post_processor=post_processor,
     )
 
 
