@@ -73,12 +73,33 @@ def build_toc(papers: dict[str, TablesFile]) -> list[str]:
     return html
 
 
+def flatten_metadata_rows(metadata: dict) -> list[tuple[str, str]]:
+    rows = []
+    for key, value in metadata.items():
+        if key == "sources":
+            continue
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, dict):
+                    for k2, v2 in subvalue.items():
+                        rows.append((f"{subkey}.{k2}", str(v2)))
+                elif isinstance(subvalue, list):
+                    rows.append((subkey, ", ".join(str(v) for v in subvalue)))
+                else:
+                    rows.append((subkey, str(subvalue)))
+        elif isinstance(value, list):
+            rows.append((key, ", ".join(str(v) for v in value)))
+        else:
+            rows.append((key, str(value)))
+    return rows
+
+
 def build_metadata_html(metadata: dict) -> list[str]:
     html = ["<h2>Metadata</h2>"]
-    scalar_fields = {k: v for k, v in metadata.items() if k != "sources"}
-    if scalar_fields:
+    rows = flatten_metadata_rows(metadata)
+    if rows:
         html.append("<div class='table-wrapper'><table class='table metadata-table'>")
-        for key, value in scalar_fields.items():
+        for key, value in rows:
             html.append(f"<tr><th>{key}</th><td>{value}</td></tr>")
         html.append("</table></div>")
     sources = metadata.get("sources")
