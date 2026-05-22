@@ -5,7 +5,8 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
 
-from tablevalidate.schema import TablesFile
+from tablevalidate.schema import ColumnValue, TablesFile
+from utils.table_fragments import get_table_fragments
 from .stats import GlobalStats, update_papers_stats
 
 
@@ -42,6 +43,41 @@ def write_stats(stats: GlobalStats, output_file):
         json.dump(stats.to_dict(), f, ensure_ascii=False)
 
 
+def infer_type(value: ColumnValue) -> str:
+    raw = value if isinstance(value, str) else (value[0].value if value else "")
+    stripped = raw.strip()
+    if stripped.lower() in ("true", "false"):
+        return "bool"
+    try:
+        int(stripped)
+        return "int"
+    except ValueError:
+        pass
+    try:
+        float(stripped)
+        return "float"
+    except ValueError:
+        pass
+    return "str"
+
+
+def collect_unique_columns(path: str) -> dict[str, str]:
+    input_path = Path(path)
+    columns: dict[str, str] = {}
+    for paper_file in input_path.glob("*.tables.json"):
+        paper_data = read_paper(paper_file)
+        for table in paper_data.tables:
+            for fragment in get_table_fragments(table):
+                if not fragment.rows:
+                    continue
+                first_row = fragment.rows[0]
+                for col_name, col_value in first_row.get_semantic_columns().items():
+                    if col_name not in columns:
+                        columns[col_name] = infer_type(col_value)
+                break
+    return columns
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Compute stats for JSON tables directory."
@@ -65,10 +101,16 @@ def parse_args():
         action="store_true",
         help="Only output the names of the empty files. Can't be used with --out",
     )
+    parser.add_argument(
+        "-C",
+        "--columns",
+        action="store_true",
+        help="Append unique column names and inferred types to the report",
+    )
     return parser.parse_args()
 
 
-def format_stats(stats: GlobalStats) -> str:
+def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> str:
     lines = []
     lines.append("Global Stats:")
     lines.append(f"  Papers: {stats.papers}")
@@ -89,6 +131,11 @@ def format_stats(stats: GlobalStats) -> str:
             lines.append(
                 f"    Empty rows percentage: {paper_stats.empty_rows_percentage:.2f}%"
             )
+    if columns is not None:
+        lines.append("")
+        lines.append("Unique Columns:")
+        for col_name, col_type in sorted(columns.items()):
+            lines.append(f"{col_name}:{col_type}")
     return "\n".join(lines)
 
 
@@ -111,7 +158,8 @@ def main():
     elif args.out:
         write_stats(stats, args.out)
     else:
-        print(format_stats(stats))
+        columns = collect_unique_columns(args.path) if args.columns else None
+        print(format_stats(stats, columns))
 
 
 if __name__ == "__main__":
