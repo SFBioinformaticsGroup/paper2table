@@ -107,7 +107,7 @@ def merge_tablesfiles_paths(
     agreement,
     only_semantic_columns: bool = False,
     pretty: bool = False,
-    analyzers: list[Analyzer] | None = None,
+    analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
 ):
     """
@@ -160,7 +160,7 @@ def merge_resultsets(
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
     pretty: bool = False,
-    analyzers: list[Analyzer] | None = None,
+    analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
 ):
     output_path = Path(output_dir)
@@ -169,7 +169,7 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
-        "analyzers": [type(a).__name__ for a in (analyzers or [])],
+        "analyzers": [type(a).__name__ for a in analyzers],
         "post_processor": post_processor.settings,
     }
     write_merge_metadata(

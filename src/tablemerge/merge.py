@@ -197,7 +197,7 @@ def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
-    analyzers: list[Analyzer] | None = None,
+    analyzers: list[Analyzer] = [],
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -232,11 +232,10 @@ def merge_tablesfiles(
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
             first_right = next((f for f in fragments_cluster[1:] if f is not None), None)
-            effective_analyzers = analyzers or []
             aligner = ColumnAligner(
                 left_fragment,
-                first_right if effective_analyzers else None,
-                analyzers=effective_analyzers,
+                first_right if analyzers else None,
+                analyzers=analyzers,
             )
             left_fragment = TableFragment(
                 rows=[aligner.rename_row(r) for r in left_fragment.rows],
