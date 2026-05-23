@@ -1,4 +1,4 @@
-from typing import cast, List, Union, Dict, Optional
+from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -31,24 +31,39 @@ class Row(BaseModel):
             return True
 
     def get_semantic_columns(self) -> Dict[str, ColumnValue]:
-        return {k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)}
+        return {
+            k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)
+        }
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
+
+    @staticmethod
+    def column_names(rows: "List[Row]") -> "List[str]":
+        return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
 
 
 class TableFragment(BaseModel):
     rows: List[Row]
     page: int
 
+    def get_column_names(self) -> List[str]:
+        return Row.column_names(self.rows)
+
 
 class TableWithRows(BaseModel):
     rows: List[Row]
     page: int
 
+    def get_table_fragments(self) -> List[TableFragment]:
+        return [TableFragment(rows=self.rows, page=self.page)]
+
 
 class TableWithFragments(BaseModel):
     table_fragments: List[TableFragment]
+
+    def get_table_fragments(self) -> List[TableFragment]:
+        return list(self.table_fragments)
 
 
 Table = Union[TableWithRows, TableWithFragments]
@@ -68,11 +83,3 @@ class TablesFile(BaseModel):
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
-
-
-def get_table_fragments(table: Table) -> list[TableFragment]:
-    if isinstance(table, TableWithRows) and table.rows:
-        return [cast(TableFragment, table)]
-    if isinstance(table, TableWithFragments) and table.table_fragments:
-        return table.table_fragments
-    return []

@@ -7,7 +7,7 @@ from tablevalidate.schema import (
     Row,
     ValueWithAgreement,
     ColumnValue,
-    get_table_fragments,
+
 )
 from utils.coerce import coerce_str
 
@@ -71,7 +71,7 @@ class SchemaPostProcessor:
     def _table_column_names(self, table) -> set[str]:
         return {
             col
-            for fragment in get_table_fragments(table)
+            for fragment in table.get_table_fragments()
             for row in fragment.rows
             for col in row.get_columns()
         }
@@ -94,7 +94,7 @@ class SchemaPostProcessor:
             return TableFragment(rows=list(map(reorder_row, fragment.rows)), page=fragment.page)
 
         tables = [
-            TableWithFragments(table_fragments=list(map(reorder_fragment, get_table_fragments(t))))
+            TableWithFragments(table_fragments=list(map(reorder_fragment, t.get_table_fragments())))
             for t in tablesfile.tables
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
@@ -126,7 +126,7 @@ class SchemaPostProcessor:
             return TableFragment(rows=list(map(coerce_row, fragment.rows)), page=fragment.page)
 
         tables = [
-            TableWithFragments(table_fragments=list(map(coerce_fragment, get_table_fragments(t))))
+            TableWithFragments(table_fragments=list(map(coerce_fragment, t.get_table_fragments())))
             for t in tablesfile.tables
         ]
         return self._rebuild_tablesfile(tablesfile, tables)

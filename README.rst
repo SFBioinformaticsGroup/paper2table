@@ -180,6 +180,61 @@ After doing this, you can merge tables like this:
 
     $ tablemerge -o tests/data/merges tests/data/demo_resultsets/*
 
+Column alignment
+----------------
+
+When different ``paper2table`` runs produce numeric column names (``0``, ``1``, ``2``) instead of semantic ones, ``tablemerge`` can align them automatically.
+
+``--align-columns`` uses Jaccard similarity on column values to detect which numeric column corresponds to which semantic column:
+
+.. code-block:: bash
+
+    $ tablemerge --align-columns tests/data/demo_resultsets/*
+
+``--column-alignment-threshold`` sets the minimum similarity score (default: 0.5):
+
+.. code-block:: bash
+
+    $ tablemerge --align-columns --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
+
+``--semantic-column-alignment`` adds an NLP-based pass (spaCy) after Jaccard, comparing column values semantically against column names. Requires a spaCy model:
+
+.. code-block:: bash
+
+    $ python -m spacy download en_core_web_md
+    $ tablemerge --align-columns --semantic-column-alignment tests/data/demo_resultsets/*
+
+Use ``--semantic-language`` to select the spaCy model language (``en`` or ``es``, default ``en``):
+
+.. code-block:: bash
+
+    $ python -m spacy download es_core_news_md
+    $ tablemerge --align-columns --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
+
+Column aliases
+--------------
+
+``--column-aliases`` and ``--column-aliases-path`` let you define explicit renames applied during merging. The format is ``alias:target`` (same as the schema format):
+
+.. code-block:: bash
+
+    $ tablemerge --column-aliases "familia:family especie:species" tests/data/demo_resultsets/*
+
+    $ tablemerge --column-aliases-path aliases.txt tests/data/demo_resultsets/*
+
+Both flags can be used together; the file takes precedence on conflicts.
+
+Schema
+------
+
+``-p`` accepts either a file path or an inline schema string:
+
+.. code-block:: bash
+
+    $ tablemerge -p "family:str species:str" --filter-schema-columns tests/data/demo_resultsets/*
+
+    $ tablemerge -p tests/data/demo_schema.txt --filter-schema-columns tests/data/demo_resultsets/*
+
 
 Generating stats
 ================

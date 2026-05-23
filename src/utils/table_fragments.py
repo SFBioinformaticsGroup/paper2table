@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 from tablevalidate.schema import TablesFile
-from tablevalidate.schema import get_table_fragments as get_table_fragments  # re-export
 
 
 def load_papers(directory: Path) -> dict[str, TablesFile]:

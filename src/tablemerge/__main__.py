@@ -6,8 +6,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
-from utils.columns_schema import parse_schema
+from utils.columns_schema import parse_schema, tokenize_schema
 
+from .analyzers import Analyzer, JaccardAnalyzer, AliasAnalyzer, SemanticAnalyzer
 from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
@@ -61,9 +62,41 @@ def write_merge_metadata(
     return merge_metadata
 
 
-def load_schema(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return parse_schema(f.read())
+def load_text_or_file(value: str) -> str:
+    path = Path(value)
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return value
+
+
+def load_schema(value: str) -> dict:
+    return parse_schema(load_text_or_file(value))
+
+
+def parse_aliases(text: str) -> dict[str, str]:
+    aliases = {}
+    for part in tokenize_schema(text):
+        if ":" in part:
+            alias, target = part.split(":", 1)
+            aliases[alias] = target
+    return aliases
+
+
+def build_analyzers(
+    align_columns: bool,
+    threshold: float,
+    use_semantic: bool,
+    language: str,
+    aliases: dict[str, str],
+) -> list[Analyzer]:
+    result: list[Analyzer] = []
+    if align_columns:
+        result.append(JaccardAnalyzer(threshold))
+    if aliases:
+        result.append(AliasAnalyzer(aliases))
+    if use_semantic:
+        result.append(SemanticAnalyzer(threshold, language))
+    return result
 
 
 def merge_tablesfiles_paths(
@@ -74,8 +107,7 @@ def merge_tablesfiles_paths(
     agreement,
     only_semantic_columns: bool = False,
     pretty: bool = False,
-    align_columns: bool = False,
-    column_alignment_threshold: float = 0.5,
+    analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
 ):
     """
@@ -101,8 +133,7 @@ def merge_tablesfiles_paths(
         merged_tablesfile: TablesFile = merge_tablesfiles(
             tablesfiles,
             agreement=agreement,
-            align_columns=align_columns,
-            column_alignment_threshold=column_alignment_threshold,
+            analyzers=analyzers,
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -129,8 +160,7 @@ def merge_resultsets(
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
     pretty: bool = False,
-    align_columns: bool = False,
-    column_alignment_threshold: float = 0.5,
+    analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
 ):
     output_path = Path(output_dir)
@@ -139,8 +169,7 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
-        "align_columns": align_columns,
-        "column_alignment_threshold": column_alignment_threshold,
+        "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
     }
     write_merge_metadata(
@@ -178,8 +207,7 @@ def merge_resultsets(
             agreement,
             only_semantic_columns=only_semantic_columns,
             pretty=pretty,
-            align_columns=align_columns,
-            column_alignment_threshold=column_alignment_threshold,
+            analyzers=analyzers,
             post_processor=post_processor,
         )
 
@@ -228,15 +256,35 @@ def parse_args():
         "--column-alignment-threshold",
         type=float,
         default=0.5,
-        help="Minimum Jaccard similarity for column alignment (default: 0.5)",
+        help="Minimum similarity threshold for column alignment (default: 0.5)",
+    )
+    parser.add_argument(
+        "--semantic-column-alignment",
+        action="store_true",
+        help="Add NLP-based semantic alignment after Jaccard alignment",
+    )
+    parser.add_argument(
+        "--semantic-language",
+        choices=["en", "es"],
+        default="en",
+        help="Language for spaCy model used by --semantic-column-alignment (default: en)",
+    )
+    parser.add_argument(
+        "--column-aliases",
+        type=str,
+        help='Inline alias mappings, e.g. "familia:family especie:species"',
+    )
+    parser.add_argument(
+        "--column-aliases-path",
+        type=str,
+        help="Path to a file with alias:target mappings (one per line)",
     )
     parser.add_argument(
         "-p",
         "--schema-path",
         type=str,
         help=(
-            "Path to a schema file with column:type pairs (one per line). "
-            "Same format as paper2table's -p. "
+            "Schema with column:type pairs (file path or inline string). "
             "Required by --filter-schema-columns, --order-schema-columns, "
             "and --coerce-schema-column-types."
         ),
@@ -261,9 +309,8 @@ def parse_args():
         "--coerce-schema-column-types",
         action="store_true",
         help=(
-            "Normalize cell string values in schema columns to the declared type "
-            "(e.g. '42.0' → '42' for int). Values that cannot be converted are left "
-            "unchanged. Requires -p."
+            "Normalize cell string values in schema columns to the declared type. "
+            "Requires -p."
         ),
     )
     return parser.parse_args()
@@ -292,6 +339,21 @@ def main():
         )
     else:
         post_processor = NullPostProcessor()
+
+    aliases: dict[str, str] = {}
+    if args.column_aliases:
+        aliases.update(parse_aliases(args.column_aliases))
+    if args.column_aliases_path:
+        aliases.update(parse_aliases(load_text_or_file(args.column_aliases_path)))
+
+    analyzers = build_analyzers(
+        align_columns=args.align_columns,
+        threshold=args.column_alignment_threshold,
+        use_semantic=args.semantic_column_alignment,
+        language=args.semantic_language,
+        aliases=aliases,
+    )
+
     merge_resultsets(
         args.paths,
         args.output_directory,
@@ -299,8 +361,7 @@ def main():
         agreement_method=args.agreement_method,
         only_semantic_columns=args.only_semantic_columns,
         pretty=args.pretty,
-        align_columns=args.align_columns,
-        column_alignment_threshold=args.column_alignment_threshold,
+        analyzers=analyzers,
         post_processor=post_processor,
     )
 

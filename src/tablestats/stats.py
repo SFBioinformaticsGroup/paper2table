@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from utils.table_fragments import get_table_fragments
 from utils.rows import is_empty_row
 from tablevalidate.schema import TablesFile
 
@@ -60,17 +59,17 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
     rows_count = sum(
         len(fragment.rows)
         for table in tables
-        for fragment in get_table_fragments(table)
+        for fragment in table.get_table_fragments()
     )
     rows_with_agreement = sum(
         sum(1 for row in fragment.rows if (row.agreement_level_ or 0) > 1)
         for table in tables
-        for fragment in get_table_fragments(table)
+        for fragment in table.get_table_fragments()
     )
     empty_rows_count = sum(
         sum(1 for row in fragment.rows if is_empty_row(row))
         for table in tables
-        for fragment in get_table_fragments(table)
+        for fragment in table.get_table_fragments()
     )
 
     agreement_percentage = None

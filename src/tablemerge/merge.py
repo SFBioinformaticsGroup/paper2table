@@ -12,16 +12,17 @@ from tablevalidate.schema import (
     ValueWithAgreement,
     ColumnValue,
     Row,
-    get_table_fragments,
+
 )
 from tablemerge.columns_aligner import ColumnAligner
+from tablemerge.analyzers import Analyzer
 
 
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:
         filtered_fragments = []
-        for fragment in get_table_fragments(table):
+        for fragment in table.get_table_fragments():
             filtered_rows = [
                 Row(
                     agreement_level_=row.agreement_level_,
@@ -128,10 +129,10 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    left_cols = normalize_row(left).get_columns()
-    right_cols = normalize_row(right).get_columns()
-    return {k: transliterate_value(v) for k, v in left_cols.items()} == {
-        k: transliterate_value(v) for k, v in right_cols.items()
+    left_columns = normalize_row(left).get_columns()
+    right_columns = normalize_row(right).get_columns()
+    return {k: transliterate_value(v) for k, v in left_columns.items()} == {
+        k: transliterate_value(v) for k, v in right_columns.items()
     }
 
 
@@ -196,8 +197,7 @@ def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
-    align_columns: bool = False,
-    column_alignment_threshold: float = 0.5,
+    analyzers: list[Analyzer] = [],
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -231,11 +231,13 @@ def merge_tablesfiles(
             if not left_fragment:
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
-            first_right = next((f for f in fragments_cluster[1:] if f is not None), None)
+            first_right = next(
+                (f for f in fragments_cluster[1:] if f is not None), None
+            )
             aligner = ColumnAligner(
                 left_fragment,
-                first_right if align_columns else None, # TODO hack
-                threshold=column_alignment_threshold,
+                first_right if analyzers else None,
+                analyzers=analyzers,
             )
             left_fragment = TableFragment(
                 rows=[aligner.rename_row(r) for r in left_fragment.rows],
@@ -305,7 +307,7 @@ def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
     for table in tables_cluster:
         if table is None:
             continue
-        for fragment in get_table_fragments(table):
+        for fragment in table.get_table_fragments():
             fragments_clusters.setdefault(fragment.page, []).append(fragment)
     return fragments_clusters
 
