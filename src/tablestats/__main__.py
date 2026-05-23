@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 from tablevalidate.schema import ColumnValue, TablesFile
-from utils.table_fragments import get_table_fragments
 from .stats import GlobalStats, update_papers_stats
 
 
@@ -67,7 +66,7 @@ def collect_unique_columns(path: str) -> dict[str, str]:
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
         for table in paper_data.tables:
-            for fragment in get_table_fragments(table):
+            for fragment in table.get_table_fragments():
                 if not fragment.rows:
                     continue
                 first_row = fragment.rows[0]

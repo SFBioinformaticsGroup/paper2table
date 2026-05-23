@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 import pandas as pd
-from utils.table_fragments import get_table_fragments, load_papers
+from utils.table_fragments import load_papers
 from tablevalidate.schema import TablesFile
 
 
@@ -11,7 +11,7 @@ def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFra
         csvs[basename] = []
         for table in tablesfile.tables:
             rows = []
-            for fragment in get_table_fragments(table):
+            for fragment in table.get_table_fragments():
                 for row in fragment.rows:
                     rows.append({**dict(row.get_columns()), "$page": fragment.page})
             csvs[basename].append(pd.DataFrame(rows))

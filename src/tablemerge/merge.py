@@ -12,7 +12,7 @@ from tablevalidate.schema import (
     ValueWithAgreement,
     ColumnValue,
     Row,
-    get_table_fragments,
+
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
@@ -22,7 +22,7 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:
         filtered_fragments = []
-        for fragment in get_table_fragments(table):
+        for fragment in table.get_table_fragments():
             filtered_rows = [
                 Row(
                     agreement_level_=row.agreement_level_,
@@ -307,7 +307,7 @@ def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
     for table in tables_cluster:
         if table is None:
             continue
-        for fragment in get_table_fragments(table):
+        for fragment in table.get_table_fragments():
             fragments_clusters.setdefault(fragment.page, []).append(fragment)
     return fragments_clusters
 

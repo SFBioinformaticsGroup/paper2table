@@ -4,7 +4,7 @@ import webbrowser
 from pathlib import Path
 
 from utils.rows import is_empty_row
-from utils.table_fragments import get_table_fragments, load_papers
+from utils.table_fragments import load_papers
 from tablevalidate.schema import (
     Citation,
     Row,
@@ -58,7 +58,7 @@ def build_toc(papers: dict[str, TablesFile]) -> list[str]:
         fragments = [
             (idx, fragment)
             for idx, table in enumerate(content.tables, 1)
-            for fragment in get_table_fragments(table)
+            for fragment in table.get_table_fragments()
         ]
         if fragments:
             html.append("<ul>")
@@ -164,7 +164,7 @@ def build_data_row(
 def collect_paper_source_uuids(content: TablesFile) -> set[str]:
     uuids: set[str] = set()
     for table in content.tables:
-        for fragment in get_table_fragments(table):
+        for fragment in table.get_table_fragments():
             for row in fragment.rows:
                 for uid in row.sources_ or []:
                     uuids.add(uid)
@@ -328,7 +328,7 @@ def build_html(metadata: dict, papers: dict[str, TablesFile]) -> str:
         ]
         html.extend(build_paper_sources_html(paper_sources))
         for idx, table in enumerate(content.tables, 1):
-            for fragment in get_table_fragments(table):
+            for fragment in table.get_table_fragments():
                 frag_id = f"paper-{paper_i}-table-{idx}-page-{fragment.page}"
                 html.extend(
                     build_fragment_html(idx, fragment, uuid_to_reader, anchor_id=frag_id)

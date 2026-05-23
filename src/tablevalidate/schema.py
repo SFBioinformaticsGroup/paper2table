@@ -1,4 +1,4 @@
-from typing import cast, List, Union, Dict, Optional
+from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -55,9 +55,15 @@ class TableWithRows(BaseModel):
     rows: List[Row]
     page: int
 
+    def get_table_fragments(self) -> List[TableFragment]:
+        return [TableFragment(rows=self.rows, page=self.page)]
+
 
 class TableWithFragments(BaseModel):
     table_fragments: List[TableFragment]
+
+    def get_table_fragments(self) -> List[TableFragment]:
+        return list(self.table_fragments)
 
 
 Table = Union[TableWithRows, TableWithFragments]
@@ -77,11 +83,3 @@ class TablesFile(BaseModel):
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
-
-
-def get_table_fragments(table: Table) -> list[TableFragment]:
-    if isinstance(table, TableWithRows) and table.rows:
-        return [cast(TableFragment, table)]
-    if isinstance(table, TableWithFragments) and table.table_fragments:
-        return table.table_fragments
-    return []
