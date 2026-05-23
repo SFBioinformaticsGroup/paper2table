@@ -31,7 +31,9 @@ class Row(BaseModel):
             return True
 
     def get_semantic_columns(self) -> Dict[str, ColumnValue]:
-        return {k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)}
+        return {
+            k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)
+        }
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
@@ -40,6 +42,11 @@ class Row(BaseModel):
 class TableFragment(BaseModel):
     rows: List[Row]
     page: int
+
+    def get_column_names(self) -> List[str]:
+        return list(
+            dict.fromkeys(col for row in self.rows for col in row.get_columns())
+        )
 
 
 class TableWithRows(BaseModel):

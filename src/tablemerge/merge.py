@@ -129,10 +129,10 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    left_cols = normalize_row(left).get_columns()
-    right_cols = normalize_row(right).get_columns()
-    return {k: transliterate_value(v) for k, v in left_cols.items()} == {
-        k: transliterate_value(v) for k, v in right_cols.items()
+    left_columns = normalize_row(left).get_columns()
+    right_columns = normalize_row(right).get_columns()
+    return {k: transliterate_value(v) for k, v in left_columns.items()} == {
+        k: transliterate_value(v) for k, v in right_columns.items()
     }
 
 
@@ -231,7 +231,9 @@ def merge_tablesfiles(
             if not left_fragment:
                 raise MergeError(f"no left fragment in {fragments_cluster}")
 
-            first_right = next((f for f in fragments_cluster[1:] if f is not None), None)
+            first_right = next(
+                (f for f in fragments_cluster[1:] if f is not None), None
+            )
             aligner = ColumnAligner(
                 left_fragment,
                 first_right if analyzers else None,
