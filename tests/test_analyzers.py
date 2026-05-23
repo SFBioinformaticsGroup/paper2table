@@ -11,19 +11,21 @@ from test_columns_aligner import FOUR_COLUMNS_MAPPING, SPECIES, SPECIES_WITH_EDI
 @pytest.fixture(scope="session")
 def en_spacy_model():
     import spacy
+
     try:
         spacy.load("en_core_web_md")
     except OSError:
-        spacy.cli.download("en_core_web_md")
+        spacy.cli.download("en_core_web_md") # pyright: ignore[reportAttributeAccessIssue]
 
 
 @pytest.fixture(scope="session")
 def es_spacy_model():
     import spacy
+
     try:
         spacy.load("es_core_news_md")
     except OSError:
-        spacy.cli.download("es_core_news_md")
+        spacy.cli.download("es_core_news_md") # pyright: ignore[reportAttributeAccessIssue]
 
 
 def wrap(rows: list[Row]) -> TableFragment:
@@ -166,37 +168,123 @@ def test_semantic_returns_empty_both_semantic_species_data():
 
 
 @pytest.mark.integration
-def test_semantic_maps_color_values_to_color_column(en_spacy_model):
+def test_semantic_maps_color_and_animal_columns(en_spacy_model):
+    left_colors = [
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "orange",
+        "purple",
+        "cyan",
+        "brown",
+    ]
+    left_animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    left_codes = ["A1", "B2", "C3", "D4", "E5", "F6", "G7", "H8"]
+    right_colors = [
+        "magenta",
+        "violet",
+        "maroon",
+        "indigo",
+        "turquoise",
+        "crimson",
+        "teal",
+        "beige",
+    ]
+    right_animals = [
+        "lion",
+        "tiger",
+        "bear",
+        "elephant",
+        "giraffe",
+        "zebra",
+        "monkey",
+        "eagle",
+    ]
+    right_codes = [
+        "REF001",
+        "REF002",
+        "REF003",
+        "REF004",
+        "REF005",
+        "REF006",
+        "REF007",
+        "REF008",
+    ]
+
     left = wrap(
         [
-            Row(**{"color": color_value})
-            for color_value in ["red", "blue", "green", "yellow"]
+            Row(color=color, animal=animal, identifier=code)
+            for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color_value})
-            for color_value in ["orange", "purple", "cyan", "brown"]
+            Row(**{"0": color, "1": animal, "2": code})
+            for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
     result = SemanticAnalyzer(threshold=0.3).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
-    assert result == {"0": "color"}
+    assert result == {"0": "color", "1": "animal"}
 
 
 @pytest.mark.integration
 def test_semantic_does_not_map_below_threshold(en_spacy_model):
+    left_colors = [
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "orange",
+        "purple",
+        "cyan",
+        "brown",
+    ]
+    left_animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    left_codes = ["A1", "B2", "C3", "D4", "E5", "F6", "G7", "H8"]
+    right_colors = [
+        "magenta",
+        "violet",
+        "maroon",
+        "indigo",
+        "turquoise",
+        "crimson",
+        "teal",
+        "beige",
+    ]
+    right_animals = [
+        "lion",
+        "tiger",
+        "bear",
+        "elephant",
+        "giraffe",
+        "zebra",
+        "monkey",
+        "eagle",
+    ]
+    right_codes = [
+        "REF001",
+        "REF002",
+        "REF003",
+        "REF004",
+        "REF005",
+        "REF006",
+        "REF007",
+        "REF008",
+    ]
+
     left = wrap(
         [
-            Row(**{"color": color_value})
-            for color_value in ["red", "blue", "green", "yellow"]
+            Row(color=color, animal=animal, identifier=code)
+            for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color_value})
-            for color_value in ["orange", "purple", "cyan", "brown"]
+            Row(**{"0": color, "1": animal, "2": code})
+            for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
     result = SemanticAnalyzer(threshold=0.99).build_mapping(
@@ -206,37 +294,141 @@ def test_semantic_does_not_map_below_threshold(en_spacy_model):
 
 
 @pytest.mark.integration
-def test_semantic_maps_color_values_to_color_column_in_spanish(es_spacy_model):
+def test_semantic_maps_color_and_animal_columns_in_spanish(es_spacy_model):
+    left_colors = [
+        "rojo",
+        "azul",
+        "verde",
+        "amarillo",
+        "naranja",
+        "morado",
+        "rosa",
+        "blanco",
+    ]
+    left_animals = [
+        "perro",
+        "gato",
+        "pájaro",
+        "caballo",
+        "conejo",
+        "lobo",
+        "ciervo",
+        "zorro",
+    ]
+    left_codes = ["A1", "B2", "C3", "D4", "E5", "F6", "G7", "H8"]
+    right_colors = [
+        "magenta",
+        "violeta",
+        "marrón",
+        "índigo",
+        "turquesa",
+        "carmesí",
+        "negro",
+        "gris",
+    ]
+    right_animals = [
+        "león",
+        "tigre",
+        "oso",
+        "elefante",
+        "jirafa",
+        "cebra",
+        "mono",
+        "águila",
+    ]
+    right_codes = [
+        "REF001",
+        "REF002",
+        "REF003",
+        "REF004",
+        "REF005",
+        "REF006",
+        "REF007",
+        "REF008",
+    ]
+
     left = wrap(
         [
-            Row(**{"color": color_value})
-            for color_value in ["rojo", "azul", "verde", "amarillo"]
+            Row(color=color, animal=animal, identificador=code)
+            for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color_value})
-            for color_value in ["naranja", "morado", "rosa", "blanco"]
+            Row(**{"0": color, "1": animal, "2": code})
+            for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
     result = SemanticAnalyzer(threshold=0.3, language="es").build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
-    assert result == {"0": "color"}
+    assert result == {"0": "color", "1": "animal"}
 
 
 @pytest.mark.integration
 def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
+    left_colors = [
+        "rojo",
+        "azul",
+        "verde",
+        "amarillo",
+        "naranja",
+        "morado",
+        "rosa",
+        "blanco",
+    ]
+    left_animals = [
+        "perro",
+        "gato",
+        "pájaro",
+        "caballo",
+        "conejo",
+        "lobo",
+        "ciervo",
+        "zorro",
+    ]
+    left_codes = ["A1", "B2", "C3", "D4", "E5", "F6", "G7", "H8"]
+    right_colors = [
+        "magenta",
+        "violeta",
+        "marrón",
+        "índigo",
+        "turquesa",
+        "carmesí",
+        "negro",
+        "gris",
+    ]
+    right_animals = [
+        "león",
+        "tigre",
+        "oso",
+        "elefante",
+        "jirafa",
+        "cebra",
+        "mono",
+        "águila",
+    ]
+    right_codes = [
+        "REF001",
+        "REF002",
+        "REF003",
+        "REF004",
+        "REF005",
+        "REF006",
+        "REF007",
+        "REF008",
+    ]
+
     left = wrap(
         [
-            Row(**{"color": color_value})
-            for color_value in ["rojo", "azul", "verde", "amarillo"]
+            Row(color=color, animal=animal, identificador=code)
+            for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color_value})
-            for color_value in ["naranja", "morado", "rosa", "blanco"]
+            Row(**{"0": color, "1": animal, "2": code})
+            for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
     result = SemanticAnalyzer(threshold=0.99, language="es").build_mapping(
