@@ -34,8 +34,8 @@ class ColumnAligner:
         if not left_rows or not right_rows:
             return {}
 
-        remaining_left = self._all_column_names(left_rows)
-        remaining_right = self._all_column_names(right_rows)
+        remaining_left = left.get_column_names()
+        remaining_right = right.get_column_names()
         accumulated: dict[str, str] = {}
 
         for analyzer in self.analyzers:
@@ -55,6 +55,3 @@ class ColumnAligner:
             remaining_right = [c for c in remaining_right if c not in mapped]
 
         return accumulated
-
-    def _all_column_names(self, rows: list[Row]) -> list[str]:
-        return list(dict.fromkeys(c for row in rows for c in row.get_columns()))
