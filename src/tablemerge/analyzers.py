@@ -113,15 +113,15 @@ class SemanticAnalyzer:
 
     def build_mapping(
         self,
-        left_cols: list[str],
-        right_cols: list[str],
+        left_column_names: list[str],
+        right_column_names: list[str],
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_numeric = [c for c in left_cols if not Row.is_semantic_column(c)]
-        right_numeric = [c for c in right_cols if not Row.is_semantic_column(c)]
-        left_semantic = [c for c in left_cols if Row.is_semantic_column(c)]
-        right_semantic = [c for c in right_cols if Row.is_semantic_column(c)]
+        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
+        right_numeric = [c for c in right_column_names if not Row.is_semantic_column(c)]
+        left_semantic = [c for c in left_column_names if Row.is_semantic_column(c)]
+        right_semantic = [c for c in right_column_names if Row.is_semantic_column(c)]
 
         if right_numeric and left_semantic and not left_numeric:
             numeric_cols, numeric_rows = right_numeric, right_rows

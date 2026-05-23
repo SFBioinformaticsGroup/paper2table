@@ -102,45 +102,208 @@ def test_alias_deduplicates_when_col_in_both_sides():
     left = wrap([Row(**{"familia": "Apiaceae"})])
     right = wrap([Row(**{"familia": "Rosaceae"})])
     result = AliasAnalyzer({"familia": "family"}).build_mapping(
-        cols(left), cols(right), left.rows, right.rows
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"familia": "family"}
 
 
-@pytest.mark.integration
-def test_semantic_analyzer_warns_and_returns_empty_when_model_missing(caplog):
-    analyzer = SemanticAnalyzer(language="en")
-    left = wrap([Row(**{"family": "Apiaceae"})])
-    right = wrap([Row(**{"0": "Apiaceae"})])
-    with patch("spacy.load", side_effect=OSError("model not found")):
-        with caplog.at_level(logging.WARNING, logger="tablemerge.analyzers"):
-            result = analyzer.build_mapping(
-                cols(left), cols(right), left.rows, right.rows
-            )
+def test_semantic_returns_empty_when_both_numeric():
+    left = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
+    right = wrap([Row(**{"1": "Apiaceae"}), Row(**{"1": "Rosaceae"})])
+    result = SemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
     assert result == {}
-    assert "en_core_web_md" in caplog.text
+
+
+def test_semantic_returns_empty_when_both_semantic():
+    left = wrap([Row(**{"family": "Apiaceae"})])
+    right = wrap([Row(**{"genus": "Ammi"})])
+    result = SemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_semantic_returns_empty_when_numeric_rows_are_empty():
+    left = wrap([Row(**{"family": "Apiaceae"})])
+    right = wrap([])
+    result = SemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_semantic_returns_empty_both_numeric_species_data():
+    rows = [
+        Row(**{"0": scientific_name, "1": area, "2": family, "3": vernacular_name})
+        for scientific_name, area, family, vernacular_name in SPECIES
+    ]
+    left = wrap(rows)
+    right = wrap(rows)
+    result = SemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_semantic_returns_empty_both_semantic_species_data():
+    rows = [
+        Row(
+            scientific_name=scientific_name,
+            area=area,
+            family=family,
+            vernacular_name=vernacular_name,
+        )
+        for scientific_name, area, family, vernacular_name in SPECIES
+    ]
+    left = wrap(rows)
+    right = wrap(rows)
+    result = SemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
 
 
 @pytest.mark.integration
-def test_semantic_analyzer_warns_on_missing_spacy(caplog):
-    analyzer = SemanticAnalyzer(language="en")
-    left = wrap([Row(**{"family": "Apiaceae"})])
-    right = wrap([Row(**{"0": "Apiaceae"})])
-    with patch.dict("sys.modules", {"spacy": None}):
-        analyzer._nlp = None
-        analyzer._load_failed = False
-        with caplog.at_level(logging.WARNING, logger="tablemerge.analyzers"):
-            result = analyzer.build_mapping(
-                cols(left), cols(right), left.rows, right.rows
-            )
+def test_semantic_maps_color_values_to_color_column(en_spacy_model):
+    left = wrap(
+        [
+            Row(**{"color": color_value})
+            for color_value in ["red", "blue", "green", "yellow"]
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": color_value})
+            for color_value in ["orange", "purple", "cyan", "brown"]
+        ]
+    )
+    result = SemanticAnalyzer(threshold=0.3).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "color"}
+
+
+@pytest.mark.integration
+def test_semantic_does_not_map_below_threshold(en_spacy_model):
+    left = wrap(
+        [
+            Row(**{"color": color_value})
+            for color_value in ["red", "blue", "green", "yellow"]
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": color_value})
+            for color_value in ["orange", "purple", "cyan", "brown"]
+        ]
+    )
+    result = SemanticAnalyzer(threshold=0.99).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
     assert result == {}
+
+
+@pytest.mark.integration
+def test_semantic_maps_color_values_to_color_column_in_spanish(es_spacy_model):
+    left = wrap(
+        [
+            Row(**{"color": color_value})
+            for color_value in ["rojo", "azul", "verde", "amarillo"]
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": color_value})
+            for color_value in ["naranja", "morado", "rosa", "blanco"]
+        ]
+    )
+    result = SemanticAnalyzer(threshold=0.3, language="es").build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "color"}
+
+
+@pytest.mark.integration
+def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
+    left = wrap(
+        [
+            Row(**{"color": color_value})
+            for color_value in ["rojo", "azul", "verde", "amarillo"]
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": color_value})
+            for color_value in ["naranja", "morado", "rosa", "blanco"]
+        ]
+    )
+    result = SemanticAnalyzer(threshold=0.99, language="es").build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+@pytest.mark.integration
+def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model):
+    left = wrap(
+        [
+            Row(
+                scientific_name=scientific_name,
+                area=area,
+                family=family,
+                vernacular_name=vernacular_name,
+            )
+            for scientific_name, area, family, vernacular_name in SPECIES
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": scientific_name, "1": area, "2": family, "3": vernacular_name})
+            for scientific_name, area, family, vernacular_name in SPECIES
+        ]
+    )
+    aligner = ColumnAligner(
+        left, right, analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3)]
+    )
+    assert aligner.mapping == FOUR_COLUMNS_MAPPING
+
+
+@pytest.mark.integration
+def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model):
+    left = wrap(
+        [
+            Row(
+                scientific_name=scientific_name,
+                area=area,
+                family=family,
+                vernacular_name=vernacular_name,
+            )
+            for scientific_name, area, family, vernacular_name in SPECIES
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": scientific_name, "1": area, "2": family, "3": vernacular_name})
+            for scientific_name, area, family, vernacular_name in SPECIES_WITH_EDITS
+        ]
+    )
+    jaccard_mapping = ColumnAligner(
+        left, right, analyzers=[JaccardAnalyzer(0.6)]
+    ).mapping
+    assert jaccard_mapping == {"1": "area", "2": "family"}
+
+    chain_mapping = ColumnAligner(
+        left, right, analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1)]
+    ).mapping
+    assert chain_mapping["1"] == "area"
+    assert chain_mapping["2"] == "family"
 
 
 def test_chain_transitivity():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
-    from tablemerge.columns_aligner import ColumnAligner
-
     aligner = ColumnAligner(
         left,
         right,
