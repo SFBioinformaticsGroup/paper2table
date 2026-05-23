@@ -15,6 +15,9 @@ SPACY_MODELS = {
 
 
 class Analyzer(Protocol):
+    @property
+    def settings(self) -> dict: ...
+
     def build_mapping(
         self,
         left_column_names: list[str],
@@ -27,6 +30,10 @@ class Analyzer(Protocol):
 class JaccardAnalyzer:
     def __init__(self, threshold: float = 0.5):
         self.threshold = threshold
+
+    @property
+    def settings(self) -> dict:
+        return {"threshold": self.threshold}
 
     def build_mapping(
         self,
@@ -93,6 +100,10 @@ class AliasAnalyzer:
     def __init__(self, aliases: dict[str, str]):
         self.aliases = aliases
 
+    @property
+    def settings(self) -> dict:
+        return {"aliases": self.aliases}
+
     def build_mapping(
         self,
         left_column_names: list[str],
@@ -110,6 +121,10 @@ class SemanticAnalyzer:
         self.language = language
         self._nlp = None
         self._load_failed = False
+
+    @property
+    def settings(self) -> dict:
+        return {"threshold": self.threshold, "language": self.language}
 
     def build_mapping(
         self,

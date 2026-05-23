@@ -73,20 +73,24 @@ def build_toc(papers: dict[str, TablesFile]) -> list[str]:
     return html
 
 
+def flatten_dict(data: dict, prefix: str, rows: list[tuple[str, str]]) -> None:
+    for key, value in data.items():
+        full_key = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            flatten_dict(value, full_key, rows)
+        elif isinstance(value, list):
+            rows.append((full_key, ", ".join(str(v) for v in value)))
+        else:
+            rows.append((full_key, str(value)))
+
+
 def flatten_metadata_rows(metadata: dict) -> list[tuple[str, str]]:
     rows = []
     for key, value in metadata.items():
         if key == "sources":
             continue
         if isinstance(value, dict):
-            for subkey, subvalue in value.items():
-                if isinstance(subvalue, dict):
-                    for k2, v2 in subvalue.items():
-                        rows.append((f"{subkey}.{k2}", str(v2)))
-                elif isinstance(subvalue, list):
-                    rows.append((subkey, ", ".join(str(v) for v in subvalue)))
-                else:
-                    rows.append((subkey, str(subvalue)))
+            flatten_dict(value, "", rows)
         elif isinstance(value, list):
             rows.append((key, ", ".join(str(v) for v in value)))
         else:

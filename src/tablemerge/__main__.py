@@ -169,7 +169,7 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
-        "analyzers": [type(a).__name__ for a in analyzers],
+        "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
     }
     write_merge_metadata(
