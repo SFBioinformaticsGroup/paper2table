@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_row, is_empty_value
+from utils.rows import is_empty_value
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -424,5 +424,5 @@ class TableFragmentBuilder:
 
     def build(self):
         return TableFragment(
-            rows=[r for r in self.rows if not is_empty_row(r)], page=self.page
+            rows=[r for r in self.rows if not r.is_empty()], page=self.page
         )

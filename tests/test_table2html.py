@@ -8,7 +8,6 @@ from table2html.__main__ import (
     build_metadata_html,
     render_citation,
 )
-from utils.rows import is_empty_row
 from tablevalidate.schema import Row, TableFragment, TablesFile, ValueWithAgreement
 
 
@@ -79,10 +78,10 @@ def test_fragment_non_common_column_ordering():
     )
     out = joined(build_fragment_html(1, fragment))
     headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
-    assert headers[0] == "species"       # common first
+    assert headers[0] == "species"  # common first
     assert "family" in headers
     assert "note" in headers
-    assert headers.index("species") < headers.index("family")   # common before extra
+    assert headers.index("species") < headers.index("family")  # common before extra
     assert headers.index("species") < headers.index("note")
 
 
@@ -202,15 +201,15 @@ def test_build_html_includes_paper():
 
 
 def test_is_empty_row_true_when_only_meta():
-    assert is_empty_row(Row(agreement_level_=2, sources_=["s1"]))
+    assert Row(agreement_level_=2, sources_=["s1"]).is_empty()
 
 
 def test_is_empty_row_true_when_blank_content():
-    assert is_empty_row(Row(species="", agreement_level_=1))
+    assert Row(species="", agreement_level_=1).is_empty()
 
 
 def test_is_empty_row_false_when_has_content():
-    assert not is_empty_row(Row(species="Rosa", agreement_level_=1))
+    assert not Row(species="Rosa", agreement_level_=1).is_empty()
 
 
 def test_fragment_skips_empty_rows_and_shows_legend():

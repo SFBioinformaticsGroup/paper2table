@@ -11,7 +11,6 @@ from tablemerge.merge import (
     filter_header_rows,
     is_header_row,
 )
-from utils.rows import is_empty_row
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -498,33 +497,31 @@ def test_merge_different_rows_that_already_have_agreement_with_column_agreement(
 
 
 def test_is_empty_row_all_empty_strings():
-    assert is_empty_row(Row(family="", scientific_name=""))
+    assert Row(family="", scientific_name="").is_empty()
 
 
 def test_is_empty_row_whitespace_only():
-    assert is_empty_row(Row(family="  ", scientific_name="\t"))
+    assert Row(family="  ", scientific_name="\t").is_empty()
 
 
 def test_is_empty_row_none_values():
-    assert is_empty_row(Row(family=None, scientific_name=None))
+    assert Row(family=None, scientific_name=None).is_empty()
 
 
 def test_is_empty_row_metadata_fields_ignored():
-    assert is_empty_row(Row(family="", agreement_level_=2, sources_=["abc"]))
+    assert Row(family="", agreement_level_=2, sources_=["abc"]).is_empty()
 
 
 def test_is_empty_row_not_empty_when_has_data():
-    assert not is_empty_row(Row(family="Apiaceae", scientific_name=""))
+    assert not Row(family="Apiaceae", scientific_name="").is_empty()
 
 
 def test_is_empty_row_value_with_agreement_all_empty():
-    assert is_empty_row(Row(family=[ValueWithAgreement(value="", agreement_level=1)]))
+    assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_empty()
 
 
 def test_is_empty_row_value_with_agreement_has_data():
-    assert not is_empty_row(
-        Row(family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)])
-    )
+    assert not Row(family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]).is_empty()
 
 
 def test_merge_filters_empty_rows_from_single_table():

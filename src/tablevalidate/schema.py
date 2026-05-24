@@ -1,5 +1,6 @@
 from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
+from utils.rows import is_empty_value
 
 
 class ValueWithAgreement(BaseModel):
@@ -34,6 +35,9 @@ class Row(BaseModel):
         return {
             k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)
         }
+
+    def is_empty(self) -> bool:
+        return all(is_empty_value(v) for v in self.get_columns().values())
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_

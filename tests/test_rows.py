@@ -1,4 +1,5 @@
-from utils.rows import is_empty_value, is_empty_row
+from utils.rows import is_empty_value
+from tablevalidate.schema import Row, ValueWithAgreement
 
 
 def test_is_empty_value_none():
@@ -30,35 +31,35 @@ def test_is_empty_value_list_of_dicts_non_empty():
 
 
 def test_is_empty_value_list_mixed_empty_and_non_empty():
-    assert not is_empty_value([
-        {"value": "", "agreement_level": 1},
-        {"value": "Apiaceae", "agreement_level": 1},
-    ])
+    assert not is_empty_value(
+        [
+            {"value": "", "agreement_level": 1},
+            {"value": "Apiaceae", "agreement_level": 1},
+        ]
+    )
 
 
 def test_is_empty_row_all_empty():
-    assert is_empty_row({"family": "", "scientific_name": None})
+    assert Row(family="", scientific_name=None).is_empty()
 
 
 def test_is_empty_row_whitespace_only():
-    assert is_empty_row({"family": "  ", "scientific_name": "\t"})
+    assert Row(family="  ", scientific_name="\t").is_empty()
 
 
 def test_is_empty_row_metadata_keys_ignored():
-    assert is_empty_row({"family": "", "agreement_level_": 2, "sources_": ["uuid"]})
-
-
-def test_is_empty_row_any_key_ending_underscore_ignored():
-    assert is_empty_row({"family": "", "custom_meta_": "something"})
+    assert Row(family="", agreement_level_=2, sources_=["uuid"]).is_empty()
 
 
 def test_is_empty_row_has_data():
-    assert not is_empty_row({"family": "Apiaceae", "scientific_name": ""})
+    assert not Row(family="Apiaceae", scientific_name="").is_empty()
 
 
 def test_is_empty_row_list_value_empty():
-    assert is_empty_row({"family": [{"value": "", "agreement_level": 1}]})
+    assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_empty()
 
 
 def test_is_empty_row_list_value_non_empty():
-    assert not is_empty_row({"family": [{"value": "Apiaceae", "agreement_level": 1}]})
+    assert not Row(
+        family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]
+    ).is_empty()
