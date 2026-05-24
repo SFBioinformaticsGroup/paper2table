@@ -1,9 +1,8 @@
-import re
 from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_value
+from utils.rows import is_empty_value, normalize_str_value
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -120,10 +119,6 @@ class DistinctReadersAgreement:
 
 class MergeError(ValueError):
     pass
-
-
-def normalize_str_value(value: str):
-    return re.sub(r"\s+", " ", value.strip()).lower()
 
 
 def normalize_value(value: ColumnValue) -> ColumnValue:
