@@ -23,6 +23,11 @@ def parse_schema(schema_str: str) -> dict[str, tuple[Any, ...]]:
     return fields
 
 
+def serialize_schema(schema: dict[str, tuple[Any, ...]]) -> dict[str, str]:
+    reverse_map = {v: k for k, v in types_map.items()}
+    return {col: reverse_map[type_tuple[0]] for col, type_tuple in schema.items()}
+
+
 def tokenize_schema(hints: str) -> list[str]:
     return [
         part.strip()
