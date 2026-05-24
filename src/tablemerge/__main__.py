@@ -18,6 +18,7 @@ from .merge import (
     DistinctReadersAgreement,
 )
 from .schema import PostProcessor, SchemaPostProcessor, NullPostProcessor
+from .value_transformer import NullValueTransformer, ValueReverser, ValueTransformer
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -111,6 +112,7 @@ def merge_tablesfiles_paths(
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
+    transformer: ValueTransformer = NullValueTransformer(),
 ):
     """
     Merge all the TablesFile of the same basename
@@ -136,6 +138,7 @@ def merge_tablesfiles_paths(
             tablesfiles,
             agreement=agreement,
             analyzers=analyzers,
+            transformer=transformer,
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -167,6 +170,7 @@ def merge_resultsets(
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
+    transformer: ValueTransformer = NullValueTransformer(),
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -177,6 +181,7 @@ def merge_resultsets(
         "remove_header_rows": remove_header_rows,
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
+        "value_transformer": transformer.settings,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -214,6 +219,7 @@ def merge_resultsets(
             pretty=pretty,
             analyzers=analyzers,
             post_processor=post_processor,
+            transformer=transformer,
         )
 
 
@@ -325,6 +331,14 @@ def parse_args():
             "Requires -p."
         ),
     )
+    parser.add_argument(
+        "--fix-reversed-column-values",
+        action="store_true",
+        help=(
+            "Detect and correct character-reversed cell values using spaCy vocabulary lookup. "
+            "Uses --semantic-language for the model."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -366,6 +380,12 @@ def main():
         aliases=aliases,
     )
 
+    transformer = (
+        ValueReverser(args.semantic_language)
+        if args.fix_reversed_column_values
+        else NullValueTransformer()
+    )
+
     merge_resultsets(
         args.paths,
         args.output_directory,
@@ -376,6 +396,7 @@ def main():
         pretty=args.pretty,
         analyzers=analyzers,
         post_processor=post_processor,
+        transformer=transformer,
     )
 
 

@@ -1,4 +1,3 @@
-import logging
 import re
 from typing import Protocol
 
@@ -6,13 +5,7 @@ from unidecode import unidecode
 import spacy
 
 from tablevalidate.schema import ColumnValue, Row
-
-logger = logging.getLogger(__name__)
-
-SPACY_MODELS = {
-    "en": "en_core_web_md",
-    "es": "es_core_news_md",
-}
+from tablemerge.spacy_utils import load_spacy_model
 
 
 class Analyzer(Protocol):
@@ -121,7 +114,6 @@ class SemanticAnalyzer:
         self.threshold = threshold
         self.language = language
         self._nlp = None
-        self._load_failed = False
 
     @property
     def settings(self) -> dict:
@@ -149,9 +141,6 @@ class SemanticAnalyzer:
             return {}
 
         nlp = self.load_model()
-        if nlp is None:
-            return {}
-
         scores = []
         for nc in numeric_cols:
             values = self.sample_values(numeric_rows, nc)
@@ -172,21 +161,8 @@ class SemanticAnalyzer:
         return mapping
 
     def load_model(self):
-        if self._load_failed:
-            return None
-        if self._nlp is not None:
-            return self._nlp
-        model = SPACY_MODELS.get(self.language, f"{self.language}_core_web_md")
-        try:
-            self._nlp = spacy.load(model)
-        except OSError:
-            logger.warning(
-                "spaCy model %r not found. Run: python -m spacy download %s",
-                model,
-                model,
-            )
-            self._load_failed = True
-            return None
+        if self._nlp is None:
+            self._nlp = load_spacy_model(self.language)
         return self._nlp
 
     def sample_values(self, rows: list[Row], col: str) -> list[str]:
@@ -204,7 +180,9 @@ class SemanticAnalyzer:
                 values.append(s)
         return values
 
-    def semantic_score(self, nlp: spacy.language.Language, values: list[str], col_name: str) -> float:
+    def semantic_score(
+        self, nlp: spacy.language.Language, values: list[str], col_name: str
+    ) -> float:
         col_doc = nlp(col_name.replace("_", " "))
         if not col_doc.has_vector:
             return 0.0
