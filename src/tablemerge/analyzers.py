@@ -3,6 +3,7 @@ import re
 from typing import Protocol
 
 from unidecode import unidecode
+import spacy
 
 from tablevalidate.schema import ColumnValue, Row
 
@@ -177,13 +178,7 @@ class SemanticAnalyzer:
             return self._nlp
         model = SPACY_MODELS.get(self.language, f"{self.language}_core_web_md")
         try:
-            import spacy
-
             self._nlp = spacy.load(model)
-        except ImportError:
-            logger.warning("spaCy is not installed. Run: pip install spacy")
-            self._load_failed = True
-            return None
         except OSError:
             logger.warning(
                 "spaCy model %r not found. Run: python -m spacy download %s",
@@ -209,7 +204,7 @@ class SemanticAnalyzer:
                 values.append(s)
         return values
 
-    def semantic_score(self, nlp, values: list[str], col_name: str) -> float:
+    def semantic_score(self, nlp: spacy.language.Language, values: list[str], col_name: str) -> float:
         col_doc = nlp(col_name.replace("_", " "))
         if not col_doc.has_vector:
             return 0.0
