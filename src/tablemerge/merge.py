@@ -14,7 +14,7 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
-from tablemerge.value_transformer import NullValueTransformer, ValueTransformer
+from tablemerge.row_transformer import NullRowTransformer, RowTransformer
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
@@ -122,15 +122,13 @@ class MergeError(ValueError):
     pass
 
 
-def normalize_value(value: ColumnValue, transformer: ValueTransformer) -> ColumnValue:
+def normalize_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
-        return normalize_str_value(transformer.transform(value))
+        return normalize_str_value(value)
     if isinstance(value, list):
         return [
             ValueWithAgreement(
-                value=normalize_str_value(
-                    transformer.transform(value_with_agreement.value)
-                ),
+                value=normalize_str_value(value_with_agreement.value),
                 agreement_level=value_with_agreement.agreement_level,
             )
             for value_with_agreement in value
@@ -141,11 +139,11 @@ def normalize_value(value: ColumnValue, transformer: ValueTransformer) -> Column
 def normalize_row(
     row: Row,
     row_agreement: bool = False,
-    transformer: ValueTransformer = NullValueTransformer(),
+    transformer: RowTransformer = NullRowTransformer(),
 ) -> Row:
-    return Row(
+    normalized = Row(
         **{
-            column: normalize_value(value, transformer)
+            column: normalize_value(value)
             for column, value in row.get_columns().items()
         },
         agreement_level_=(
@@ -153,6 +151,7 @@ def normalize_row(
         ),
         sources_=row.sources_,
     )
+    return transformer.transform(normalized)
 
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
@@ -168,7 +167,7 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
     return value
 
 
-def same_row(left: Row, right: Row, transformer: ValueTransformer) -> bool:
+def same_row(left: Row, right: Row, transformer: RowTransformer) -> bool:
     # TODO compare using a broader similarity criteria
     left_columns = normalize_row(left, False, transformer).get_columns()
     right_columns = normalize_row(right, False, transformer).get_columns()
@@ -182,7 +181,7 @@ def merge_rows(
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
-    transformer: ValueTransformer = NullValueTransformer(),
+    transformer: RowTransformer = NullRowTransformer(),
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
@@ -199,7 +198,7 @@ def merge_rows(
 
 
 def merge_columns_without_agreement(
-    left: Row, right: Row, transformer: ValueTransformer
+    left: Row, right: Row, transformer: RowTransformer
 ):
     return {
         **normalize_row(right, False, transformer).get_columns(),
@@ -207,7 +206,7 @@ def merge_columns_without_agreement(
     }
 
 
-def merge_columns_with_agreement(left: Row, right: Row, transformer: ValueTransformer):
+def merge_columns_with_agreement(left: Row, right: Row, transformer: RowTransformer):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
         for column_name, column_value in (
@@ -244,7 +243,7 @@ def merge_tablesfiles(
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
     analyzers: list[Analyzer] = [],
-    transformer: ValueTransformer = NullValueTransformer(),
+    transformer: RowTransformer = NullRowTransformer(),
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -368,7 +367,7 @@ class TableFragmentBuilder:
     page: int
     agreement: Agreement
     column_agreement: bool
-    transformer: ValueTransformer
+    transformer: RowTransformer
 
     def __init__(
         self,
@@ -376,7 +375,7 @@ class TableFragmentBuilder:
         initial_uuid: str | None,
         agreement: Agreement,
         column_agreement: bool,
-        transformer: ValueTransformer,
+        transformer: RowTransformer,
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
