@@ -12,6 +12,7 @@ from .analyzers import Analyzer, JaccardAnalyzer, AliasAnalyzer, SemanticAnalyze
 from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
+    filter_header_rows,
     MergeError,
     SimpleCountAgreement,
     DistinctReadersAgreement,
@@ -106,6 +107,7 @@ def merge_tablesfiles_paths(
     metadata_map: dict[str, dict],
     agreement,
     only_semantic_columns: bool = False,
+    remove_header_rows: bool = False,
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
@@ -137,6 +139,8 @@ def merge_tablesfiles_paths(
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
+        if remove_header_rows:
+            merged_tablesfile = filter_header_rows(merged_tablesfile)
         merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{basename}: MERGED: {len(tablesfiles)} files"
@@ -159,6 +163,7 @@ def merge_resultsets(
     metadata_only=False,
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
+    remove_header_rows: bool = False,
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
@@ -169,12 +174,11 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
+        "remove_header_rows": remove_header_rows,
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
     }
-    write_merge_metadata(
-        resultset_dirs, output_path, resultset_metadata, settings
-    )
+    write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
     if metadata_only:
         return
@@ -206,6 +210,7 @@ def merge_resultsets(
             resultset_metadata,
             agreement,
             only_semantic_columns=only_semantic_columns,
+            remove_header_rows=remove_header_rows,
             pretty=pretty,
             analyzers=analyzers,
             post_processor=post_processor,
@@ -241,6 +246,13 @@ def parse_args():
         "--only-semantic-columns",
         action="store_true",
         help="Remove columns whose names are numeric after merging",
+    )
+    parser.add_argument(
+        "--remove-header-rows",
+        action="store_true",
+        help=(
+            "Remove rows whose non-empty values all match their column header after normalization"
+        ),
     )
     parser.add_argument(
         "--pretty",
@@ -360,6 +372,7 @@ def main():
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
         only_semantic_columns=args.only_semantic_columns,
+        remove_header_rows=args.remove_header_rows,
         pretty=args.pretty,
         analyzers=analyzers,
         post_processor=post_processor,

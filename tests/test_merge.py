@@ -8,6 +8,8 @@ from tablemerge.merge import (
     SimpleCountAgreement,
     DistinctReadersAgreement,
     filter_semantic_columns,
+    filter_header_rows,
+    is_header_row,
 )
 from utils.rows import is_empty_row
 from tablevalidate.schema import (
@@ -90,7 +92,9 @@ def test_two_tables_with_different_column_names_and_alignment():
     table_1 = [Row(family=" Apiaceae ", scientific_name=" Ammi majus L. ")]
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
-    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()])
+    result = merge_tablesfiles(
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+    )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
     ]
@@ -700,7 +704,9 @@ def test_merge_aligns_right_numeric_columns_multiple_rows():
         Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
         Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
     ]
-    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()])
+    result = merge_tablesfiles(
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+    )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
         Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
@@ -752,7 +758,9 @@ def test_merge_aligns_left_numeric_columns_multiple_rows():
         Row(family="Rosaceae", scientific_name="Rosa canina L."),
         Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
     ]
-    result = merge_tablesfiles([wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()])
+    result = merge_tablesfiles(
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+    )
     assert result.tables[0].table_fragments[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2),
         Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2),
@@ -782,3 +790,101 @@ def test_merge_no_alignment_both_semantic_multiple_rows():
             family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1
         ),
     ]
+
+
+def test_is_header_row_all_values_match_columns():
+    assert is_header_row(Row(family="family", scientific_name="scientific_name"))
+
+
+def test_is_header_row_case_insensitive():
+    assert is_header_row(Row(family="Family", scientific_name="Scientific_Name"))
+
+
+def test_is_header_row_with_extra_whitespace():
+    assert is_header_row(Row(family="  family  ", scientific_name=" scientific_name "))
+
+
+def test_is_header_row_true_when_one_value_matches():
+    assert is_header_row(Row(family="Apiaceae", scientific_name="scientific_name"))
+
+
+def test_is_header_row_false_when_no_value_matches():
+    assert not is_header_row(Row(family="Apiaceae", scientific_name="Ammi majus L."))
+
+
+def test_is_header_row_false_when_only_numeric_column_matches():
+    assert not is_header_row(Row(**{"0": "0", "1": "1"}))
+
+
+def test_is_header_row_true_when_semantic_column_matches_alongside_numeric():
+    assert is_header_row(Row(**{"0": "0", "family": "family"}))
+
+
+def test_is_header_row_false_when_all_empty():
+    assert not is_header_row(Row(family="", scientific_name=""))
+
+
+def test_is_header_row_with_empty_cells_ignores_them():
+    assert is_header_row(Row(family="family", scientific_name=""))
+
+
+def test_is_header_row_value_with_agreement_matches():
+    assert is_header_row(
+        Row(family=[ValueWithAgreement(value="family", agreement_level=1)])
+    )
+
+
+def test_is_header_row_value_with_agreement_does_not_match():
+    assert not is_header_row(
+        Row(family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)])
+    )
+
+
+def test_is_header_row_value_with_agreement_all_empty():
+    assert not is_header_row(
+        Row(family=[ValueWithAgreement(value="", agreement_level=1)])
+    )
+
+
+def test_filter_header_rows_removes_header_row():
+    table = [
+        Row(family="family", scientific_name="scientific_name"),
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result)
+    rows = filtered.tables[0].table_fragments[0].rows
+    assert rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
+
+
+def test_filter_header_rows_keeps_data_rows():
+    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result)
+    rows = filtered.tables[0].table_fragments[0].rows
+    assert rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
+
+
+def test_filter_header_rows_with_partial_empty_cells():
+    table = [
+        Row(family="family", scientific_name=""),
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result)
+    rows = filtered.tables[0].table_fragments[0].rows
+    assert rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
+
+
+def test_filter_header_rows_preserves_citation_and_metadata():
+    table = [Row(family="Apiaceae")]
+    tablesfile = wrap(table, citation="some citation")
+    result = merge_tablesfiles([tablesfile])
+    filtered = filter_header_rows(result)
+    assert filtered.citation == "some citation"
