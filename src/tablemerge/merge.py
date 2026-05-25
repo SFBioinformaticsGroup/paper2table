@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_row
+from utils.rows import is_empty_value
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -12,10 +12,49 @@ from tablevalidate.schema import (
     ValueWithAgreement,
     ColumnValue,
     Row,
-
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
+
+
+def value_matches_header(column_name: str, value: ColumnValue) -> bool:
+    normalized_name = normalize_str_value(column_name)
+    if isinstance(value, str):
+        return normalize_str_value(value) == normalized_name
+    non_empty = [v.value for v in value if v.value.strip()]
+    return bool(non_empty) and all(
+        normalize_str_value(v) == normalized_name for v in non_empty
+    )
+
+
+def is_header_row(row: Row) -> bool:
+    non_empty_pairs = [
+        (column_name, value)
+        for column_name, value in row.get_columns().items()
+        if not is_empty_value(value) and Row.is_semantic_column(column_name)
+    ]
+    return any(
+        value_matches_header(column_name, value)
+        for column_name, value in non_empty_pairs
+    )
+
+
+def filter_header_rows(tablesfile: TablesFile) -> TablesFile:
+    filtered_tables = []
+    for table in tablesfile.tables:
+        filtered_fragments = []
+        for fragment in table.get_table_fragments():
+            filtered_rows = [row for row in fragment.rows if not is_header_row(row)]
+            filtered_fragments.append(
+                TableFragment(rows=filtered_rows, page=fragment.page)
+            )
+        filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
+    return TablesFile(
+        tables=filtered_tables,
+        citation=tablesfile.citation,
+        metadata=tablesfile.metadata,
+        uuid=tablesfile.uuid,
+    )
 
 
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
@@ -385,5 +424,5 @@ class TableFragmentBuilder:
 
     def build(self):
         return TableFragment(
-            rows=[r for r in self.rows if not is_empty_row(r)], page=self.page
+            rows=[r for r in self.rows if not r.is_empty()], page=self.page
         )

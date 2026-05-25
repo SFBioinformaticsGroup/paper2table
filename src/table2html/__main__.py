@@ -3,7 +3,6 @@ import json
 import webbrowser
 from pathlib import Path
 
-from utils.rows import is_empty_row
 from utils.table_fragments import load_papers
 from tablevalidate.schema import (
     Citation,
@@ -206,7 +205,7 @@ def build_fragment_html(
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
     html = [f"<h4{id_attr}>Table {idx}, page {fragment.page}</h4>"]
     all_rows = fragment.rows
-    rows = [r for r in all_rows if not is_empty_row(r)]
+    rows = [r for r in all_rows if not r.is_empty()]
     skipped = len(all_rows) - len(rows)
     if not rows:
         html.append("<p><i>No rows</i></p>")

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from utils.rows import is_empty_row
 from tablevalidate.schema import TablesFile
 
 
@@ -67,7 +66,7 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         for fragment in table.get_table_fragments()
     )
     empty_rows_count = sum(
-        sum(1 for row in fragment.rows if is_empty_row(row))
+        sum(1 for row in fragment.rows if row.is_empty())
         for table in tables
         for fragment in table.get_table_fragments()
     )
