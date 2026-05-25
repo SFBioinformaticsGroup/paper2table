@@ -87,6 +87,12 @@ def test_row_reverser_reverses_list_values():
     )
 
 
+def test_row_reverser_skips_row_with_multiple_sources():
+    reverser = make_reverser({"john", "smith"})
+    row = Row(full_name="htims nhoj", sources_=["uuid-a", "uuid-b"])
+    assert reverser.transform(row) == Row(full_name="htims nhoj", sources_=["uuid-a", "uuid-b"])
+
+
 def test_null_row_transformer_keeps_row_unchanged():
     transformer = NullRowTransformer()
     row = Row(full_name="htims nhoj", country="acirema htuos")

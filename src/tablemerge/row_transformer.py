@@ -52,6 +52,8 @@ class RowReverser:
         return value
 
     def transform(self, row: Row) -> Row:
+        if row.sources_ is not None and len(row.sources_) > 1:
+            return row
         reversed_row = Row(
             **{col: self.reverse_cell(value) for col, value in row.get_columns().items()},
             agreement_level_=row.agreement_level_,
