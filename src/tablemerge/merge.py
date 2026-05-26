@@ -139,9 +139,8 @@ def normalize_value(value: ColumnValue) -> ColumnValue:
 def normalize_row(
     row: Row,
     row_agreement: bool = False,
-    transformer: RowTransformer = NullRowTransformer(),
 ) -> Row:
-    normalized = Row(
+    return Row(
         **{
             column: normalize_value(value)
             for column, value in row.get_columns().items()
@@ -151,7 +150,6 @@ def normalize_row(
         ),
         sources_=row.sources_,
     )
-    return transformer.transform(normalized)
 
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
@@ -167,10 +165,10 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
     return value
 
 
-def same_row(left: Row, right: Row, transformer: RowTransformer) -> bool:
+def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    left_columns = normalize_row(left, False, transformer).get_columns()
-    right_columns = normalize_row(right, False, transformer).get_columns()
+    left_columns = normalize_row(left).get_columns()
+    right_columns = normalize_row(right).get_columns()
     return {k: transliterate_value(v) for k, v in left_columns.items()} == {
         k: transliterate_value(v) for k, v in right_columns.items()
     }
@@ -181,14 +179,13 @@ def merge_rows(
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
-    transformer: RowTransformer = NullRowTransformer(),
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
     if column_agreement:
-        columns = merge_columns_with_agreement(left, right, transformer)
+        columns = merge_columns_with_agreement(left, right)
     else:
-        columns = merge_columns_without_agreement(left, right, transformer)
+        columns = merge_columns_without_agreement(left, right)
 
     left_sources = left.sources_ or []
     right_sources = right.sources_ or []
@@ -197,20 +194,18 @@ def merge_rows(
     return Row(agreement_level_=agreement_level, sources_=sources, **columns)
 
 
-def merge_columns_without_agreement(
-    left: Row, right: Row, transformer: RowTransformer
-):
+def merge_columns_without_agreement(left: Row, right: Row):
     return {
-        **normalize_row(right, False, transformer).get_columns(),
-        **normalize_row(left, False, transformer).get_columns(),
+        **normalize_row(right).get_columns(),
+        **normalize_row(left).get_columns(),
     }
 
 
-def merge_columns_with_agreement(left: Row, right: Row, transformer: RowTransformer):
+def merge_columns_with_agreement(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
         for column_name, column_value in (
-            normalize_row(row, False, transformer).get_columns().items()
+            normalize_row(row).get_columns().items()
         ):
             values = column_values.setdefault(column_name, {})
             values_with_agreement = to_values_with_agreement(column_value)
@@ -264,7 +259,7 @@ def merge_tablesfiles(
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters = make_fragments_clusters(tables_cluster)
+        fragments_clusters = make_fragments_clusters(tables_cluster, transformer)
 
         for fragments_cluster in fragments_clusters.values():
 
@@ -295,7 +290,6 @@ def merge_tablesfiles(
                 tablesfiles[0].uuid,
                 agreement,
                 column_agreement,
-                transformer,
             )
 
             for right_fragment, right_tablesfile in zip(
@@ -317,7 +311,7 @@ def merge_tablesfiles(
                 for left_row in left_rows:
                     found = False
                     for right_index in range(start_right_index, len(right_rows)):
-                        if same_row(left_row, right_rows[right_index], transformer):
+                        if same_row(left_row, right_rows[right_index]):
                             table_fragment_builder.append_skipped(
                                 right_rows[start_right_index:right_index], right_uuid
                             )
@@ -352,13 +346,26 @@ def merge_tablesfiles(
     return TablesFile(tables=merged_tables, citation=citation)
 
 
-def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
+def normalize_fragment(
+    fragment: TableFragment, transformer: RowTransformer
+) -> TableFragment:
+    return TableFragment(
+        rows=[transformer.transform(row) for row in fragment.rows],
+        page=fragment.page,
+    )
+
+
+def make_fragments_clusters(
+    tables_cluster: Sequence[Table | None], transformer: RowTransformer
+):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:
         if table is None:
             continue
         for fragment in table.get_table_fragments():
-            fragments_clusters.setdefault(fragment.page, []).append(fragment)
+            fragments_clusters.setdefault(fragment.page, []).append(
+                normalize_fragment(fragment, transformer)
+            )
     return fragments_clusters
 
 
@@ -367,7 +374,6 @@ class TableFragmentBuilder:
     page: int
     agreement: Agreement
     column_agreement: bool
-    transformer: RowTransformer
 
     def __init__(
         self,
@@ -375,11 +381,9 @@ class TableFragmentBuilder:
         initial_uuid: str | None,
         agreement: Agreement,
         column_agreement: bool,
-        transformer: RowTransformer,
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
-        self.transformer = transformer
         self.page = initial_fragment.page
         do_agreement = agreement is not None
         self.rows = [
@@ -387,7 +391,7 @@ class TableFragmentBuilder:
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, do_agreement, transformer),
+                lambda r: normalize_row(r, do_agreement),
                 initial_fragment.rows,
             )
         ]
@@ -398,7 +402,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.agreement is not None, self.transformer)
+        new = normalize_row(row, self.agreement is not None)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row], source_uuid: str | None):
@@ -418,7 +422,7 @@ class TableFragmentBuilder:
         an skipped range
         """
         if not any(
-            same_row(merged_row, row, self.transformer) for merged_row in self.rows
+            same_row(merged_row, row) for merged_row in self.rows
         ):
             self._append(row)
         else:
@@ -436,7 +440,6 @@ class TableFragmentBuilder:
                 right,
                 agreement=self.agreement,
                 column_agreement=self.column_agreement,
-                transformer=self.transformer,
             )
         )
 
