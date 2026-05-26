@@ -350,7 +350,7 @@ def normalize_fragment(
     fragment: TableFragment, transformer: RowTransformer
 ) -> TableFragment:
     return TableFragment(
-        rows=[transformer.transform(row) for row in fragment.rows],
+        rows=[transformer.transform_row(row) for row in fragment.rows],
         page=fragment.page,
     )
 

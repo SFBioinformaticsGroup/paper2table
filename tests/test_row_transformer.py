@@ -40,7 +40,7 @@ def make_reverser(known: set[str]) -> RowReverser:
 def test_row_reverser_reverses_row_when_total_score_improves():
     reverser = make_reverser({"john", "smith", "south", "america"})
     row = Row(full_name="htims nhoj", country="acirema htuos")
-    assert reverser.transform(row) == Row(full_name="john smith", country="south america")
+    assert reverser.transform_row(row) == Row(full_name="john smith", country="south america")
 
 
 def test_row_reverser_keeps_row_when_reversal_lowers_total_score():
@@ -52,7 +52,7 @@ def test_row_reverser_keeps_row_when_reversal_lowers_total_score():
     # Wait: reversed of "john smith" = "htims nhoj", reversed of "acirema htuos" = "south america"
     # but "south" and "america" are NOT in known set → reversed country score=0
     # reversed total = 0+0 = 0 < 2 → keep original
-    assert reverser.transform(row) == Row(full_name="john smith", country="acirema htuos")
+    assert reverser.transform_row(row) == Row(full_name="john smith", country="acirema htuos")
 
 
 def test_row_reverser_keeps_row_when_total_score_does_not_improve():
@@ -61,19 +61,19 @@ def test_row_reverser_keeps_row_when_total_score_does_not_improve():
     # 0 < 2 → keep original
     reverser = make_reverser({"john", "smith"})
     row = Row(full_name="john smith", country="acirema htuos")
-    assert reverser.transform(row) == Row(full_name="john smith", country="acirema htuos")
+    assert reverser.transform_row(row) == Row(full_name="john smith", country="acirema htuos")
 
 
 def test_row_reverser_handles_none_cell_value():
     reverser = make_reverser({"john", "smith"})
     row = Row(full_name="htims nhoj", country=None)
-    assert reverser.transform(row) == Row(full_name="john smith", country=None)
+    assert reverser.transform_row(row) == Row(full_name="john smith", country=None)
 
 
 def test_row_reverser_keeps_row_when_scores_are_tied():
     reverser = make_reverser(set())
     row = Row(full_name="eaecaipa", scientific_name="imma sujam")
-    assert reverser.transform(row) == Row(full_name="eaecaipa", scientific_name="imma sujam")
+    assert reverser.transform_row(row) == Row(full_name="eaecaipa", scientific_name="imma sujam")
 
 
 def test_row_reverser_reverses_list_values():
@@ -81,22 +81,17 @@ def test_row_reverser_reverses_list_values():
     row = Row(
         full_name=[ValueWithAgreement(value="htims nhoj", agreement_level=2)]
     )
-    result = reverser.transform(row)
+    result = reverser.transform_row(row)
     assert result == Row(
         full_name=[ValueWithAgreement(value="john smith", agreement_level=2)]
     )
 
 
-def test_row_reverser_skips_row_with_multiple_sources():
-    reverser = make_reverser({"john", "smith"})
-    row = Row(full_name="htims nhoj", sources_=["uuid-a", "uuid-b"])
-    assert reverser.transform(row) == Row(full_name="htims nhoj", sources_=["uuid-a", "uuid-b"])
-
 
 def test_null_row_transformer_keeps_row_unchanged():
     transformer = NullRowTransformer()
     row = Row(full_name="htims nhoj", country="acirema htuos")
-    assert transformer.transform(row) == row
+    assert transformer.transform_row(row) == row
 
 
 def test_null_row_transformer_settings_is_empty():
@@ -112,7 +107,7 @@ def test_row_reverser_settings_contains_language():
 def test_row_reverser_corrects_fully_reversed_row(en_spacy_model):
     reverser = RowReverser("en")
     row = Row(full_name="htimS nhoJ", country="acirema htuoS")
-    result = reverser.transform(row)
+    result = reverser.transform_row(row)
     assert result == Row(full_name="John Smith", country="South america")
 
 
@@ -120,11 +115,11 @@ def test_row_reverser_corrects_fully_reversed_row(en_spacy_model):
 def test_row_reverser_keeps_natural_row(en_spacy_model):
     reverser = RowReverser("en")
     row = Row(full_name="John Smith", country="South America")
-    assert reverser.transform(row) == Row(full_name="John Smith", country="South America")
+    assert reverser.transform_row(row) == Row(full_name="John Smith", country="South America")
 
 
 @pytest.mark.integration
 def test_row_reverser_keeps_row_with_unknown_terms(en_spacy_model):
     reverser = RowReverser("en")
     row = Row(col_a="xkzqpwb vnrmt", col_b="qptnmrv bwpqzkx")
-    assert reverser.transform(row) == Row(col_a="xkzqpwb vnrmt", col_b="qptnmrv bwpqzkx")
+    assert reverser.transform_row(row) == Row(col_a="xkzqpwb vnrmt", col_b="qptnmrv bwpqzkx")

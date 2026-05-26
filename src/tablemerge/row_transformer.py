@@ -8,7 +8,7 @@ class RowTransformer(Protocol):
     @property
     def settings(self) -> dict: ...
 
-    def transform(self, row: Row) -> Row: ...
+    def transform_row(self, row: Row) -> Row: ...
 
 
 class NullRowTransformer:
@@ -16,7 +16,7 @@ class NullRowTransformer:
     def settings(self) -> dict:
         return {}
 
-    def transform(self, row: Row) -> Row:
+    def transform_row(self, row: Row) -> Row:
         return row
 
 
@@ -51,9 +51,7 @@ class RowReverser:
             ]
         return value
 
-    def transform(self, row: Row) -> Row:
-        if row.sources_ is not None and len(row.sources_) > 1:
-            return row
+    def transform_row(self, row: Row) -> Row:
         reversed_row = Row(
             **{col: self.reverse_cell(value) for col, value in row.get_columns().items()},
             agreement_level_=row.agreement_level_,
