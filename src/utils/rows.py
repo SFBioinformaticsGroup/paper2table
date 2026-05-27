@@ -1,8 +1,14 @@
 import re
 
+# TODO handle other languages
+NO_DATA_EXPRESSIONS = {"no data", "none"}
+
 
 def normalize_str_value(value: str) -> str:
-    return re.sub(r"\s+", " ", value.strip()).lower()
+    normalized = re.sub(r"\s+", " ", value.strip()).lower()
+    if normalized in NO_DATA_EXPRESSIONS:
+        return ""
+    return normalized
 
 
 def _str_from_value(v) -> str:
