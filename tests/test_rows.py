@@ -1,5 +1,33 @@
-from utils.rows import is_empty_value
+from utils.rows import is_empty_value, normalize_str_value
 from tablevalidate.schema import Row, ValueWithAgreement
+
+
+def test_normalize_str_value_no_data_lowercase():
+    assert normalize_str_value("no data") == ""
+
+
+def test_normalize_str_value_no_data_uppercase():
+    assert normalize_str_value("No Data") == ""
+
+
+def test_normalize_str_value_no_data_extra_whitespace():
+    assert normalize_str_value("  no  data  ") == ""
+
+
+def test_normalize_str_value_none():
+    assert normalize_str_value("None") == ""
+
+
+def test_normalize_str_value_regular_value():
+    assert normalize_str_value("Apiaceae") == "apiaceae"
+
+
+def test_is_empty_value_no_data_string():
+    assert is_empty_value("no data")
+
+
+def test_is_empty_value_no_data_uppercase():
+    assert is_empty_value("No Data")
 
 
 def test_is_empty_value_none():
