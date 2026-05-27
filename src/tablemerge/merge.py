@@ -14,6 +14,7 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
+from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
@@ -135,7 +136,10 @@ def normalize_value(value: ColumnValue) -> ColumnValue:
     return value
 
 
-def normalize_row(row: Row, row_agreement: bool = False) -> Row:
+def normalize_row(
+    row: Row,
+    row_agreement: bool = False,
+) -> Row:
     return Row(
         **{
             column: normalize_value(value)
@@ -174,7 +178,7 @@ def merge_rows(
     left: Row,
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
-    column_agreement=False,
+    column_agreement: bool = False,
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
@@ -232,6 +236,7 @@ def merge_tablesfiles(
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
     analyzers: list[Analyzer] = [],
+    transformer: FragmentTransformer = NullFragmentTransformer(),
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -252,7 +257,7 @@ def merge_tablesfiles(
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters = make_fragments_clusters(tables_cluster)
+        fragments_clusters = make_fragments_clusters(tables_cluster, transformer)
 
         for fragments_cluster in fragments_clusters.values():
 
@@ -279,7 +284,10 @@ def merge_tablesfiles(
             )
 
             table_fragment_builder = TableFragmentBuilder(
-                left_fragment, tablesfiles[0].uuid, agreement, column_agreement
+                left_fragment,
+                tablesfiles[0].uuid,
+                agreement,
+                column_agreement,
             )
 
             for right_fragment, right_tablesfile in zip(
@@ -336,13 +344,23 @@ def merge_tablesfiles(
     return TablesFile(tables=merged_tables, citation=citation)
 
 
-def make_fragments_clusters(tables_cluster: Sequence[Table | None]):
+def normalize_fragment(
+    fragment: TableFragment, transformer: FragmentTransformer
+) -> TableFragment:
+    return transformer.transform_fragment(fragment)
+
+
+def make_fragments_clusters(
+    tables_cluster: Sequence[Table | None], transformer: FragmentTransformer
+):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:
         if table is None:
             continue
         for fragment in table.get_table_fragments():
-            fragments_clusters.setdefault(fragment.page, []).append(fragment)
+            fragments_clusters.setdefault(fragment.page, []).append(
+                normalize_fragment(fragment, transformer)
+            )
     return fragments_clusters
 
 
@@ -368,7 +386,8 @@ class TableFragmentBuilder:
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, do_agreement), initial_fragment.rows
+                lambda r: normalize_row(r, do_agreement),
+                initial_fragment.rows,
             )
         ]
 
