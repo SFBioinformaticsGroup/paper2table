@@ -12,7 +12,7 @@ class ColumnAligner:
     ):
         self.analyzers = analyzers
         self.max_sample = max_sample
-        self.mapping = self._build_mapping(left, right) if right is not None else {}
+        self.mapping = self._build_mapping(left, right)
 
     def rename_row(self, row: Row) -> Row:
         if not self.mapping:
@@ -27,15 +27,15 @@ class ColumnAligner:
         return self.mapping.get(col_name, col_name)
 
     def _build_mapping(
-        self, left: TableFragment, right: TableFragment
+        self, left: TableFragment, right: TableFragment | None
     ) -> dict[str, str]:
         left_rows = left.rows[: self.max_sample]
-        right_rows = right.rows[: self.max_sample]
-        if not left_rows or not right_rows:
+        right_rows = right.rows[: self.max_sample] if right is not None else []
+        if not left_rows:
             return {}
 
         remaining_left = left.get_column_names()
-        remaining_right = right.get_column_names()
+        remaining_right = right.get_column_names() if right is not None else []
         accumulated: dict[str, str] = {}
 
         for analyzer in self.analyzers:

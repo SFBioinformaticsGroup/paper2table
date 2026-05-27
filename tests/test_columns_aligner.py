@@ -330,3 +330,15 @@ def test_column_aligner_jaccard_then_alias_transitivity():
         analyzers=[JaccardAnalyzer(), AliasAnalyzer({"family": "official_family"})],
     )
     assert aligner.mapping == {"0": "official_family", "family": "official_family"}
+
+
+def test_column_aligner_alias_applies_without_right_fragment():
+    left = wrap([Row(**{"familia": "Apiaceae"}), Row(**{"familia": "Rosaceae"})])
+    aligner = ColumnAligner(left, None, analyzers=[AliasAnalyzer({"familia": "family"})])
+    assert aligner.mapping == {"familia": "family"}
+
+
+def test_column_aligner_jaccard_no_op_without_right_fragment():
+    left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
+    aligner = ColumnAligner(left, None, analyzers=[JaccardAnalyzer()])
+    assert aligner.mapping == {}

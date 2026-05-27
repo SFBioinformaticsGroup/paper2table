@@ -1,7 +1,7 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
-from tablemerge.analyzers import JaccardAnalyzer
+from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
@@ -885,6 +885,30 @@ def test_filter_header_rows_preserves_citation_and_metadata():
     result = merge_tablesfiles([tablesfile])
     filtered = filter_header_rows(result)
     assert filtered.citation == "some citation"
+
+
+def test_alias_applies_with_single_tablesfile():
+    table = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
+    result = merge_tablesfiles(
+        [wrap(table)], analyzers=[AliasAnalyzer({"familia": "family"})]
+    )
+    rows = result.tables[0].table_fragments[0].rows
+    assert rows == [Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)]
+
+
+def test_alias_applies_to_left_only_page_in_multi_file_merge():
+    # File A has page 1; file B has page 2 only. Page 1 has no right counterpart.
+    # The alias should still be applied to the left-only page 1 fragment.
+    table_a = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
+    table_b = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
+    result = merge_tablesfiles(
+        [wrap(table_a, page=1), wrap(table_b, page=2)],
+        analyzers=[AliasAnalyzer({"familia": "family"})],
+    )
+    page1_rows = result.tables[0].table_fragments[0].rows
+    assert page1_rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]
 
 
 def test_sources_correct_when_middle_tablesfile_is_on_different_page():

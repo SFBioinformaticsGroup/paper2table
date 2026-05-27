@@ -277,7 +277,7 @@ def merge_tablesfiles(
             )
             aligner = ColumnAligner(
                 left_fragment,
-                first_right if analyzers else None,
+                first_right,
                 analyzers=analyzers,
             )
             left_fragment = TableFragment(
