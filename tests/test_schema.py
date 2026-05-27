@@ -29,7 +29,7 @@ def wrap_two_tables(rows1: list[Row], rows2: list[Row], citation="") -> TablesFi
 
 
 def rows_of(tf: TablesFile, table=0, fragment=0):
-    return tf.tables[table].table_fragments[fragment].rows
+    return tf.tables[table].get_table_fragments()[fragment].rows
 
 
 
