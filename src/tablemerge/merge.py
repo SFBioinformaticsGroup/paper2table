@@ -14,7 +14,7 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
-from tablemerge.row_transformer import NullRowTransformer, RowTransformer
+from tablemerge.row_transformer import NullFragmentTransformer, TableFragmentTransformer
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
@@ -238,7 +238,7 @@ def merge_tablesfiles(
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
     analyzers: list[Analyzer] = [],
-    transformer: RowTransformer = NullRowTransformer(),
+    transformer: TableFragmentTransformer = NullFragmentTransformer(),
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -347,16 +347,13 @@ def merge_tablesfiles(
 
 
 def normalize_fragment(
-    fragment: TableFragment, transformer: RowTransformer
+    fragment: TableFragment, transformer: TableFragmentTransformer
 ) -> TableFragment:
-    return TableFragment(
-        rows=[transformer.transform_row(row) for row in fragment.rows],
-        page=fragment.page,
-    )
+    return transformer.transform_fragment(fragment)
 
 
 def make_fragments_clusters(
-    tables_cluster: Sequence[Table | None], transformer: RowTransformer
+    tables_cluster: Sequence[Table | None], transformer: TableFragmentTransformer
 ):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:

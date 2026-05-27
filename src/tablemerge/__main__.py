@@ -18,7 +18,7 @@ from .merge import (
     DistinctReadersAgreement,
 )
 from .schema import PostProcessor, SchemaPostProcessor, NullPostProcessor
-from .row_transformer import NullRowTransformer, RowReverser, RowTransformer
+from .row_transformer import NullFragmentTransformer, TableFragmentTransformer, TableFragmentValuesReverser
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -112,7 +112,7 @@ def merge_tablesfiles_paths(
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
-    transformer: RowTransformer = NullRowTransformer(),
+    transformer: TableFragmentTransformer = NullFragmentTransformer(),
 ):
     """
     Merge all the TablesFile of the same basename
@@ -170,7 +170,7 @@ def merge_resultsets(
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
-    transformer: RowTransformer = NullRowTransformer(),
+    transformer: TableFragmentTransformer = NullFragmentTransformer(),
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -181,7 +181,7 @@ def merge_resultsets(
         "remove_header_rows": remove_header_rows,
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
-        "row_transformer": transformer.settings,
+        "fragment_transformer": transformer.settings,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -381,9 +381,9 @@ def main():
     )
 
     transformer = (
-        RowReverser(args.semantic_language)
+        TableFragmentValuesReverser(args.semantic_language)
         if args.fix_reversed_column_values
-        else NullRowTransformer()
+        else NullFragmentTransformer()
     )
 
     merge_resultsets(

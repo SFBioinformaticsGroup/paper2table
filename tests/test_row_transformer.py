@@ -1,8 +1,8 @@
 # pyright: reportCallIssue=false
 import pytest
 
-from tablemerge.row_transformer import NullRowTransformer, RowReverser
-from tablevalidate.schema import Row, ValueWithAgreement
+from tablemerge.row_transformer import NullFragmentTransformer, TableFragmentValuesReverser
+from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 
 
 class FakeVocab:
@@ -30,96 +30,96 @@ def en_spacy_model():
         )
 
 
-def make_reverser(known: set[str]) -> RowReverser:
-    reverser = object.__new__(RowReverser)
+def make_reverser(known: set[str]) -> TableFragmentValuesReverser:
+    reverser = object.__new__(TableFragmentValuesReverser)
     reverser.language = "en"
     reverser._nlp = FakeNlp(known)  # pyright: ignore[reportAttributeAccessIssue]
     return reverser
 
 
-def test_row_reverser_reverses_row_when_total_score_improves():
+def make_fragment(*rows: Row) -> TableFragment:
+    return TableFragment(rows=list(rows), page=1)
+
+
+def test_fragment_values_reverser_reverses_when_score_improves():
     reverser = make_reverser({"john", "smith", "south", "america"})
-    row = Row(full_name="htims nhoj", country="acirema htuos")
-    assert reverser.transform_row(row) == Row(full_name="john smith", country="south america")
+    fragment = make_fragment(Row(full_name="htims nhoj"), Row(country="acirema htuos"))
+    assert reverser.transform_fragment(fragment) == make_fragment(
+        Row(full_name="john smith"), Row(country="south america")
+    )
 
 
-def test_row_reverser_keeps_row_when_reversal_lowers_total_score():
-    # "john" and "smith" are known; reversing "john smith" → "htims nhoj" would score 0
+def test_fragment_values_reverser_keeps_when_score_does_not_improve():
     reverser = make_reverser({"john", "smith"})
-    row = Row(full_name="john smith", country="acirema htuos")
-    # original score: full_name=2, country=0 → total=2
-    # reversed score: full_name=0, country=0 → total=0  (htims nhoj → john smith loses 2, htuos acirema stays 0)
-    # Wait: reversed of "john smith" = "htims nhoj", reversed of "acirema htuos" = "south america"
-    # but "south" and "america" are NOT in known set → reversed country score=0
-    # reversed total = 0+0 = 0 < 2 → keep original
-    assert reverser.transform_row(row) == Row(full_name="john smith", country="acirema htuos")
+    # original: row1=2, row2=0 → total=2; reversed: row1=0, row2=0 → total=0
+    fragment = make_fragment(Row(full_name="john smith"), Row(country="acirema htuos"))
+    assert reverser.transform_fragment(fragment) == fragment
 
 
-def test_row_reverser_keeps_row_when_total_score_does_not_improve():
-    # original: "john"=1, "smith"=1 → total=2
-    # reversed: "htims nhoj" → "htims"=0, "nhoj"=0 → total=0; "acirema htuos" → 0
-    # 0 < 2 → keep original
-    reverser = make_reverser({"john", "smith"})
-    row = Row(full_name="john smith", country="acirema htuos")
-    assert reverser.transform_row(row) == Row(full_name="john smith", country="acirema htuos")
-
-
-def test_row_reverser_handles_none_cell_value():
-    reverser = make_reverser({"john", "smith"})
-    row = Row(full_name="htims nhoj", country=None)
-    assert reverser.transform_row(row) == Row(full_name="john smith", country=None)
-
-
-def test_row_reverser_keeps_row_when_scores_are_tied():
+def test_fragment_values_reverser_keeps_when_scores_are_tied():
     reverser = make_reverser(set())
-    row = Row(full_name="eaecaipa", scientific_name="imma sujam")
-    assert reverser.transform_row(row) == Row(full_name="eaecaipa", scientific_name="imma sujam")
+    fragment = make_fragment(Row(full_name="eaecaipa"), Row(scientific_name="imma sujam"))
+    assert reverser.transform_fragment(fragment) == fragment
 
 
-def test_row_reverser_reverses_list_values():
+def test_fragment_values_reverser_all_or_nothing():
+    # Row 1 benefits from reversal (+2), row 2 loses (-2) → net tie → keep original
+    reverser = make_reverser({"john", "smith", "north", "south"})
+    fragment = make_fragment(Row(full_name="htims nhoj"), Row(country="north south"))
+    assert reverser.transform_fragment(fragment) == fragment
+
+
+def test_fragment_values_reverser_handles_none_cell_value():
     reverser = make_reverser({"john", "smith"})
-    row = Row(
-        full_name=[ValueWithAgreement(value="htims nhoj", agreement_level=2)]
-    )
-    result = reverser.transform_row(row)
-    assert result == Row(
-        full_name=[ValueWithAgreement(value="john smith", agreement_level=2)]
+    fragment = make_fragment(Row(full_name="htims nhoj", country=None))
+    assert reverser.transform_fragment(fragment) == make_fragment(
+        Row(full_name="john smith", country=None)
     )
 
 
+def test_fragment_values_reverser_reverses_list_values():
+    reverser = make_reverser({"john", "smith"})
+    fragment = make_fragment(
+        Row(full_name=[ValueWithAgreement(value="htims nhoj", agreement_level=2)])
+    )
+    assert reverser.transform_fragment(fragment) == make_fragment(
+        Row(full_name=[ValueWithAgreement(value="john smith", agreement_level=2)])
+    )
 
-def test_null_row_transformer_keeps_row_unchanged():
-    transformer = NullRowTransformer()
-    row = Row(full_name="htims nhoj", country="acirema htuos")
-    assert transformer.transform_row(row) == row
+
+def test_null_fragment_transformer_keeps_fragment_unchanged():
+    transformer = NullFragmentTransformer()
+    fragment = make_fragment(Row(full_name="htims nhoj", country="acirema htuos"))
+    assert transformer.transform_fragment(fragment) == fragment
 
 
-def test_null_row_transformer_settings_is_empty():
-    assert NullRowTransformer().settings == {}
+def test_null_fragment_transformer_settings_is_empty():
+    assert NullFragmentTransformer().settings == {}
 
 
-def test_row_reverser_settings_contains_language():
+def test_fragment_values_reverser_settings_contains_language():
     reverser = make_reverser(set())
     assert reverser.settings == {"language": "en"}
 
 
 @pytest.mark.integration
-def test_row_reverser_corrects_fully_reversed_row(en_spacy_model):
-    reverser = RowReverser("en")
-    row = Row(full_name="htimS nhoJ", country="acirema htuoS")
-    result = reverser.transform_row(row)
-    assert result == Row(full_name="John Smith", country="South america")
+def test_fragment_values_reverser_corrects_fully_reversed_fragment(en_spacy_model):
+    reverser = TableFragmentValuesReverser("en")
+    fragment = make_fragment(Row(full_name="htimS nhoJ"), Row(country="acirema htuoS"))
+    assert reverser.transform_fragment(fragment) == make_fragment(
+        Row(full_name="John Smith"), Row(country="South america")
+    )
 
 
 @pytest.mark.integration
-def test_row_reverser_keeps_natural_row(en_spacy_model):
-    reverser = RowReverser("en")
-    row = Row(full_name="John Smith", country="South America")
-    assert reverser.transform_row(row) == Row(full_name="John Smith", country="South America")
+def test_fragment_values_reverser_keeps_natural_fragment(en_spacy_model):
+    reverser = TableFragmentValuesReverser("en")
+    fragment = make_fragment(Row(full_name="John Smith"), Row(country="South America"))
+    assert reverser.transform_fragment(fragment) == fragment
 
 
 @pytest.mark.integration
-def test_row_reverser_keeps_row_with_unknown_terms(en_spacy_model):
-    reverser = RowReverser("en")
-    row = Row(col_a="xkzqpwb vnrmt", col_b="qptnmrv bwpqzkx")
-    assert reverser.transform_row(row) == Row(col_a="xkzqpwb vnrmt", col_b="qptnmrv bwpqzkx")
+def test_fragment_values_reverser_keeps_fragment_with_unknown_terms(en_spacy_model):
+    reverser = TableFragmentValuesReverser("en")
+    fragment = make_fragment(Row(col_a="xkzqpwb vnrmt"), Row(col_b="qptnmrv bwpqzkx"))
+    assert reverser.transform_fragment(fragment) == fragment
