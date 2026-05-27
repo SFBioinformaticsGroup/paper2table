@@ -4,7 +4,7 @@ from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgree
 from tablemerge.spacy_utils import load_spacy_model
 
 
-class TableFragmentTransformer(Protocol):
+class FragmentTransformer(Protocol):
     @property
     def settings(self) -> dict: ...
 
@@ -20,7 +20,7 @@ class NullFragmentTransformer:
         return fragment
 
 
-class TableFragmentValuesReverser:
+class FragmentValuesReverser:
     def __init__(self, language: str = "en"):
         self.language = language
         self._nlp = load_spacy_model(language)
@@ -30,7 +30,11 @@ class TableFragmentValuesReverser:
         return {"language": self.language}
 
     def _count_known_words(self, text: str) -> int:
-        return sum(1 for w in text.split() if self._nlp.vocab[w.lower()].has_vector)
+        return sum(
+            1
+            for w in text.split()
+            if len(text) > 2 and self._nlp.vocab[w.lower()].has_vector
+        )
 
     def _row_score(self, row: Row) -> int:
         total = 0
@@ -49,14 +53,19 @@ class TableFragmentValuesReverser:
             return value[::-1]
         if isinstance(value, list):
             return [
-                ValueWithAgreement(value=v.value[::-1], agreement_level=v.agreement_level)
+                ValueWithAgreement(
+                    value=v.value[::-1], agreement_level=v.agreement_level
+                )
                 for v in value
             ]
         return value
 
     def _transform_row(self, row: Row) -> Row:
         return Row(
-            **{col: self._reverse_cell(value) for col, value in row.get_columns().items()},
+            **{
+                col: self._reverse_cell(value)
+                for col, value in row.get_columns().items()
+            },
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,
         )

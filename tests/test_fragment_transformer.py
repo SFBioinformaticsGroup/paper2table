@@ -1,7 +1,10 @@
 # pyright: reportCallIssue=false
 import pytest
 
-from tablemerge.row_transformer import NullFragmentTransformer, TableFragmentValuesReverser
+from tablemerge.fragment_transformer import (
+    NullFragmentTransformer,
+    FragmentValuesReverser,
+)
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 
 
@@ -30,8 +33,8 @@ def en_spacy_model():
         )
 
 
-def make_reverser(known: set[str]) -> TableFragmentValuesReverser:
-    reverser = object.__new__(TableFragmentValuesReverser)
+def make_reverser(known: set[str]) -> FragmentValuesReverser:
+    reverser = object.__new__(FragmentValuesReverser)
     reverser.language = "en"
     reverser._nlp = FakeNlp(known)  # pyright: ignore[reportAttributeAccessIssue]
     return reverser
@@ -51,19 +54,19 @@ def test_fragment_values_reverser_reverses_when_score_improves():
 
 def test_fragment_values_reverser_keeps_when_score_does_not_improve():
     reverser = make_reverser({"john", "smith"})
-    # original: row1=2, row2=0 → total=2; reversed: row1=0, row2=0 → total=0
     fragment = make_fragment(Row(full_name="john smith"), Row(country="acirema htuos"))
     assert reverser.transform_fragment(fragment) == fragment
 
 
 def test_fragment_values_reverser_keeps_when_scores_are_tied():
     reverser = make_reverser(set())
-    fragment = make_fragment(Row(full_name="eaecaipa"), Row(scientific_name="imma sujam"))
+    fragment = make_fragment(
+        Row(full_name="eaecaipa"), Row(scientific_name="imma sujam")
+    )
     assert reverser.transform_fragment(fragment) == fragment
 
 
 def test_fragment_values_reverser_all_or_nothing():
-    # Row 1 benefits from reversal (+2), row 2 loses (-2) → net tie → keep original
     reverser = make_reverser({"john", "smith", "north", "south"})
     fragment = make_fragment(Row(full_name="htims nhoj"), Row(country="north south"))
     assert reverser.transform_fragment(fragment) == fragment
@@ -104,7 +107,7 @@ def test_fragment_values_reverser_settings_contains_language():
 
 @pytest.mark.integration
 def test_fragment_values_reverser_corrects_fully_reversed_fragment(en_spacy_model):
-    reverser = TableFragmentValuesReverser("en")
+    reverser = FragmentValuesReverser("en")
     fragment = make_fragment(Row(full_name="htimS nhoJ"), Row(country="acirema htuoS"))
     assert reverser.transform_fragment(fragment) == make_fragment(
         Row(full_name="John Smith"), Row(country="South america")
@@ -113,13 +116,13 @@ def test_fragment_values_reverser_corrects_fully_reversed_fragment(en_spacy_mode
 
 @pytest.mark.integration
 def test_fragment_values_reverser_keeps_natural_fragment(en_spacy_model):
-    reverser = TableFragmentValuesReverser("en")
+    reverser = FragmentValuesReverser("en")
     fragment = make_fragment(Row(full_name="John Smith"), Row(country="South America"))
     assert reverser.transform_fragment(fragment) == fragment
 
 
 @pytest.mark.integration
 def test_fragment_values_reverser_keeps_fragment_with_unknown_terms(en_spacy_model):
-    reverser = TableFragmentValuesReverser("en")
+    reverser = FragmentValuesReverser("en")
     fragment = make_fragment(Row(col_a="xkzqpwb vnrmt"), Row(col_b="qptnmrv bwpqzkx"))
     assert reverser.transform_fragment(fragment) == fragment

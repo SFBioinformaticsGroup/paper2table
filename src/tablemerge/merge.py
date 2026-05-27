@@ -14,7 +14,7 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
-from tablemerge.row_transformer import NullFragmentTransformer, TableFragmentTransformer
+from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
@@ -204,9 +204,7 @@ def merge_columns_without_agreement(left: Row, right: Row):
 def merge_columns_with_agreement(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
-        for column_name, column_value in (
-            normalize_row(row).get_columns().items()
-        ):
+        for column_name, column_value in normalize_row(row).get_columns().items():
             values = column_values.setdefault(column_name, {})
             values_with_agreement = to_values_with_agreement(column_value)
 
@@ -238,7 +236,7 @@ def merge_tablesfiles(
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement=False,
     analyzers: list[Analyzer] = [],
-    transformer: TableFragmentTransformer = NullFragmentTransformer(),
+    transformer: FragmentTransformer = NullFragmentTransformer(),
 ) -> TablesFile:
     """
     Process one or more "tables" elements
@@ -347,13 +345,13 @@ def merge_tablesfiles(
 
 
 def normalize_fragment(
-    fragment: TableFragment, transformer: TableFragmentTransformer
+    fragment: TableFragment, transformer: FragmentTransformer
 ) -> TableFragment:
     return transformer.transform_fragment(fragment)
 
 
 def make_fragments_clusters(
-    tables_cluster: Sequence[Table | None], transformer: TableFragmentTransformer
+    tables_cluster: Sequence[Table | None], transformer: FragmentTransformer
 ):
     fragments_clusters: dict[int, list[TableFragment]] = {}
     for table in tables_cluster:
@@ -418,9 +416,7 @@ class TableFragmentBuilder:
         add it as is, unless it was added as part of
         an skipped range
         """
-        if not any(
-            same_row(merged_row, row) for merged_row in self.rows
-        ):
+        if not any(same_row(merged_row, row) for merged_row in self.rows):
             self._append(row)
         else:
             # TODO merge existing and not found
