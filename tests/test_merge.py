@@ -885,3 +885,39 @@ def test_filter_header_rows_preserves_citation_and_metadata():
     result = merge_tablesfiles([tablesfile])
     filtered = filter_header_rows(result)
     assert filtered.citation == "some citation"
+
+
+def test_sources_correct_when_middle_tablesfile_is_on_different_page():
+    # File A and C share page 1 with matching rows; file B is on page 2.
+    # The bug: make_fragments_clusters groups fragments by page and skips files
+    # that don't have that page, causing zip(fragments_cluster[1:], tablesfiles[1:])
+    # to misalign - C's fragment (index 1 in cluster) is paired with B's tablesfile,
+    # and B's fragment (sole entry on page 2) is attributed to tablesfiles[0].uuid.
+    row = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    other_row = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
+
+    result = merge_tablesfiles([
+        wrap(row, page=1, uuid="uuid-a"),
+        wrap(other_row, page=2, uuid="uuid-b"),
+        wrap(row, page=1, uuid="uuid-c"),
+    ])
+
+    page1_rows = result.tables[0].table_fragments[0].rows
+    assert page1_rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            sources_=["uuid-a", "uuid-c"],
+        )
+    ]
+
+    page2_rows = result.tables[0].table_fragments[1].rows
+    assert page2_rows == [
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            sources_=["uuid-b"],
+        )
+    ]

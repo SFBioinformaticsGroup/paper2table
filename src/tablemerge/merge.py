@@ -16,6 +16,8 @@ from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
 from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
 
+MergeTarget = tuple[TableFragment, TablesFile]
+
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     normalized_name = normalize_str_value(column_name)
@@ -257,21 +259,21 @@ def merge_tablesfiles(
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters = make_fragments_clusters(tables_cluster, transformer)
+        fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles, transformer)
 
-        for fragments_cluster in fragments_clusters.values():
+        for merge_targets in fragments_clusters.values():
 
             # =================================
             # Combine rows of the same fragment
             # =================================
 
             # TODO sort first so longest cluster is the first one
-            left_fragment = fragments_cluster[0]
+            left_fragment, left_tablesfile = merge_targets[0]
             if not left_fragment:
-                raise MergeError(f"no left fragment in {fragments_cluster}")
+                raise MergeError(f"no left fragment in {merge_targets}")
 
             first_right = next(
-                (f for f in fragments_cluster[1:] if f is not None), None
+                (f for f, _ in merge_targets[1:] if f is not None), None
             )
             aligner = ColumnAligner(
                 left_fragment,
@@ -285,14 +287,12 @@ def merge_tablesfiles(
 
             table_fragment_builder = TableFragmentBuilder(
                 left_fragment,
-                tablesfiles[0].uuid,
+                left_tablesfile.uuid,
                 agreement,
                 column_agreement,
             )
 
-            for right_fragment, right_tablesfile in zip(
-                fragments_cluster[1:], tablesfiles[1:]
-            ):
+            for right_fragment, right_tablesfile in merge_targets[1:]:
                 if not right_fragment:
                     break
 
@@ -351,15 +351,17 @@ def normalize_fragment(
 
 
 def make_fragments_clusters(
-    tables_cluster: Sequence[Table | None], transformer: FragmentTransformer
-):
-    fragments_clusters: dict[int, list[TableFragment]] = {}
-    for table in tables_cluster:
+    tables_cluster: Sequence[Table | None],
+    tablesfiles: Sequence[TablesFile],
+    transformer: FragmentTransformer,
+) -> dict[int, list[MergeTarget]]:
+    fragments_clusters: dict[int, list[MergeTarget]] = {}
+    for table, tablesfile in zip(tables_cluster, tablesfiles):
         if table is None:
             continue
         for fragment in table.get_table_fragments():
             fragments_clusters.setdefault(fragment.page, []).append(
-                normalize_fragment(fragment, transformer)
+                (normalize_fragment(fragment, transformer), tablesfile)
             )
     return fragments_clusters
 
