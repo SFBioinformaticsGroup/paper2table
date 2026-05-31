@@ -5,7 +5,8 @@ NO_DATA_EXPRESSIONS = {"no data", "none"}
 
 
 def normalize_str_value(value: str) -> str:
-    normalized = re.sub(r"\s+", " ", value.strip()).lower()
+    normalized = re.sub(r"[‐‑‒–—―−]", "-", value)
+    normalized = re.sub(r"\s+", " ", normalized.strip()).lower()
     if normalized in NO_DATA_EXPRESSIONS:
         return ""
     return normalized

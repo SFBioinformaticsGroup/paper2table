@@ -24,6 +24,31 @@ def test_normalize_str_value_regular_value():
     assert normalize_str_value("Apiaceae") == "apiaceae"
 
 
+def test_normalize_str_value_en_dash():
+    assert normalize_str_value("2–5") == "2-5"
+
+
+def test_normalize_str_value_em_dash():
+    assert normalize_str_value("Jan—Feb") == "jan-feb"
+
+
+def test_normalize_str_value_figure_dash():
+    assert normalize_str_value("10‒20") == "10-20"
+
+
+def test_normalize_str_value_horizontal_bar():
+    assert normalize_str_value("A―B") == "a-b"
+
+
+def test_normalize_str_value_minus_sign():
+    assert normalize_str_value("−5") == "-5"
+
+
+def test_normalize_str_value_hyphen_variants():
+    assert normalize_str_value("A‐B") == "a-b"
+    assert normalize_str_value("A‑B") == "a-b"
+
+
 def test_is_empty_value_no_data_string():
     assert is_empty_value("no data")
 
