@@ -78,10 +78,10 @@ def test_fragment_non_common_column_ordering():
     )
     out = joined(build_fragment_html(1, fragment))
     headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
-    assert headers[0] == "species"  # common first
+    assert headers[0] == "species"
     assert "family" in headers
     assert "note" in headers
-    assert headers.index("species") < headers.index("family")  # common before extra
+    assert headers.index("species") < headers.index("family")
     assert headers.index("species") < headers.index("note")
 
 
@@ -94,7 +94,6 @@ def test_fragment_non_common_column_empty_for_missing_rows():
         ],
     )
     out = joined(build_fragment_html(1, fragment))
-    # "Rosa" row has no note; "Mentha" row has no family — both render empty cells
     assert "<td>Rosa</td>" in out
     assert "<td>Mentha</td>" in out
 
