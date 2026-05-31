@@ -54,6 +54,9 @@ class TableFragment(BaseModel):
     def get_column_names(self) -> List[str]:
         return Row.column_names(self.rows)
 
+    def columns_count(self) -> int:
+        return len(self.get_column_names())
+
 
 class TableWithRows(BaseModel):
     rows: List[Row]

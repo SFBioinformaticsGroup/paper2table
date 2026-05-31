@@ -15,6 +15,7 @@ from tablevalidate.schema import (
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import Analyzer
 from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
+from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 
 MergeTarget = tuple[TableFragment, TablesFile]
 
@@ -239,12 +240,15 @@ def merge_tablesfiles(
     column_agreement=False,
     analyzers: list[Analyzer] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
+    compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ) -> TablesFile:
     """
     Process one or more "tables" elements
     """
     if not tablesfiles:
         raise MergeError("Must pass at least TablesFile element")
+
+    tablesfiles = [compactor.compact(tf) for tf in tablesfiles]
 
     merged_tables: list[Table] = []
 
@@ -259,7 +263,9 @@ def merge_tablesfiles(
         # ==============================
 
         merged_fragments: list[TableFragment] = []
-        fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles, transformer)
+        fragments_clusters = make_fragments_clusters(
+            tables_cluster, tablesfiles, transformer
+        )
 
         for merge_targets in fragments_clusters.values():
 
@@ -272,9 +278,7 @@ def merge_tablesfiles(
             if not left_fragment:
                 raise MergeError(f"no left fragment in {merge_targets}")
 
-            first_right = next(
-                (f for f, _ in merge_targets[1:] if f is not None), None
-            )
+            first_right = next((f for f, _ in merge_targets[1:] if f is not None), None)
             aligner = ColumnAligner(
                 left_fragment,
                 first_right,
