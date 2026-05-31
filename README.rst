@@ -235,6 +235,21 @@ Schema
 
     $ tablemerge -p tests/data/demo_schema.txt --filter-schema-columns tests/data/demo_resultsets/*
 
+Compacting consecutive fragments
+---------------------------------
+
+When a table spans multiple pages, some readers split it into multiple separate tables.
+``--compact-consecutive-fragments`` detects consecutive single-fragment tables and merges them
+into one before the cross-run merge:
+
+.. code-block:: bash
+
+    # safe: only compact when both tables have semantic column names that match exactly
+    $ tablemerge --compact-consecutive-fragments safe tests/data/demo_resultsets/*
+
+    # unsafe: also compact when column count matches (for numeric column names)
+    $ tablemerge --compact-consecutive-fragments unsafe tests/data/demo_resultsets/*
+
 
 Generating stats
 ================

@@ -23,6 +23,12 @@ from .fragment_transformer import (
     FragmentTransformer,
     FragmentValuesReverser,
 )
+from .fragments_compactor import (
+    FragmentsCompactor,
+    NullFragmentsCompactor,
+    SafeConsecutiveFragmentsCompactor,
+    UnsafeConsecutiveFragmentsCompactor,
+)
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -117,6 +123,7 @@ def merge_tablesfiles_paths(
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
     transformer: FragmentTransformer = NullFragmentTransformer(),
+    compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
     """
     Merge all the TablesFile of the same basename
@@ -143,6 +150,7 @@ def merge_tablesfiles_paths(
             agreement=agreement,
             analyzers=analyzers,
             transformer=transformer,
+            compactor=compactor,
         )
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -175,6 +183,7 @@ def merge_resultsets(
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
     transformer: FragmentTransformer = NullFragmentTransformer(),
+    compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -186,6 +195,7 @@ def merge_resultsets(
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
         "fragment_transformer": transformer.settings,
+        "compactor": compactor.settings,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -224,6 +234,7 @@ def merge_resultsets(
             analyzers=analyzers,
             post_processor=post_processor,
             transformer=transformer,
+            compactor=compactor,
         )
 
 
@@ -343,6 +354,16 @@ def parse_args():
             "Uses --semantic-language for the model."
         ),
     )
+    parser.add_argument(
+        "--compact-consecutive-fragments",
+        choices=["no", "safe", "unsafe"],
+        default="no",
+        help=(
+            "Merge consecutive single-fragment tables that share column structure into one. "
+            "'safe' requires semantic column names to match exactly; "
+            "'unsafe' also merges when column count matches regardless of name type."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -390,6 +411,14 @@ def main():
         else NullFragmentTransformer()
     )
 
+    compactor_map = {
+        "safe": SafeConsecutiveFragmentsCompactor(),
+        "unsafe": UnsafeConsecutiveFragmentsCompactor(),
+    }
+    compactor = compactor_map.get(
+        args.compact_consecutive_fragments, NullFragmentsCompactor()
+    )
+
     merge_resultsets(
         args.paths,
         args.output_directory,
@@ -401,6 +430,7 @@ def main():
         analyzers=analyzers,
         post_processor=post_processor,
         transformer=transformer,
+        compactor=compactor,
     )
 
 
