@@ -1,6 +1,6 @@
 # pyright: reportCallIssue=false
 
-from utils.rows import is_empty_value, normalize_str_value
+from utils.rows import is_empty_value, normalize_str, normalize_str_value
 from tablevalidate.schema import Row, ValueWithAgreement
 
 
@@ -18,6 +18,26 @@ def test_normalize_str_value_no_data_extra_whitespace():
 
 def test_normalize_str_value_none():
     assert normalize_str_value("None") == ""
+
+
+def test_normalize_str_preserves_case():
+    assert normalize_str("Perez et al. 2020") == "Perez et al. 2020"
+
+
+def test_normalize_str_collapses_whitespace():
+    assert normalize_str("Perez  et   al.") == "Perez et al."
+
+
+def test_normalize_str_strips_edges():
+    assert normalize_str("  Perez 2020  ") == "Perez 2020"
+
+
+def test_normalize_str_en_dash():
+    assert normalize_str("Perez–Vílchez 2020") == "Perez-Vílchez 2020"
+
+
+def test_normalize_str_em_dash():
+    assert normalize_str("Perez—Vílchez 2020") == "Perez-Vílchez 2020"
 
 
 def test_normalize_str_value_regular_value():

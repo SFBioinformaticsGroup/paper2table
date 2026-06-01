@@ -2,8 +2,9 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_value, normalize_str_value
+from utils.rows import is_empty_value, normalize_str, normalize_str_value
 from tablevalidate.schema import (
+    Citation,
     TablesFile,
     Table,
     TableFragment,
@@ -18,6 +19,17 @@ from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTra
 from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 
 MergeTarget = tuple[TableFragment, TablesFile]
+
+
+def normalize_citation(citation: Citation) -> Citation:
+    if citation is None:
+        return None
+    if isinstance(citation, str):
+        return normalize_str(citation)
+    return [
+        ValueWithAgreement(value=normalize_str(v.value), agreement_level=v.agreement_level)
+        for v in citation
+    ]
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
@@ -343,7 +355,7 @@ def merge_tablesfiles(
         merged_tables.append(TableWithFragments(table_fragments=merged_fragments))
 
     # # TODO pick all citations
-    citation = tablesfiles[0].citation
+    citation = normalize_citation(tablesfiles[0].citation)
 
     return TablesFile(tables=merged_tables, citation=citation)
 

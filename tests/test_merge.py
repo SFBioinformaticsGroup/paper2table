@@ -5,6 +5,7 @@ from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
+    normalize_citation,
     SimpleCountAgreement,
     DistinctReadersAgreement,
     filter_semantic_columns,
@@ -887,6 +888,53 @@ def test_filter_header_rows_preserves_citation_and_metadata():
     result = merge_tablesfiles([tablesfile])
     filtered = filter_header_rows(result)
     assert filtered.citation == "some citation"
+
+
+def test_normalize_citation_none():
+    assert normalize_citation(None) is None
+
+
+def test_normalize_citation_str_collapses_whitespace():
+    assert normalize_citation("Perez  et  al.  2020") == "Perez et al. 2020"
+
+
+def test_normalize_citation_str_strips_edges():
+    assert normalize_citation("  Perez 2020  ") == "Perez 2020"
+
+
+def test_normalize_citation_str_en_dash():
+    assert normalize_citation("Perez–Vílchez, 2020") == "Perez-Vílchez, 2020"
+
+
+def test_normalize_citation_str_em_dash():
+    assert normalize_citation("Perez—Vílchez, 2020") == "Perez-Vílchez, 2020"
+
+
+def test_normalize_citation_str_preserves_case():
+    assert normalize_citation("Perez Et Al. 2020") == "Perez Et Al. 2020"
+
+
+def test_normalize_citation_list():
+    citation = [
+        ValueWithAgreement(value="Perez  2020", agreement_level=2),
+        ValueWithAgreement(value="Vílchez–Lopez 2021", agreement_level=1),
+    ]
+    assert normalize_citation(citation) == [
+        ValueWithAgreement(value="Perez 2020", agreement_level=2),
+        ValueWithAgreement(value="Vílchez-Lopez 2021", agreement_level=1),
+    ]
+
+
+def test_merge_tablesfiles_normalizes_citation_whitespace():
+    tablesfile = wrap([Row(family="Apiaceae")], citation="Perez  et  al.  2020")
+    result = merge_tablesfiles([tablesfile])
+    assert result.citation == "Perez et al. 2020"
+
+
+def test_merge_tablesfiles_normalizes_citation_dashes():
+    tablesfile = wrap([Row(family="Apiaceae")], citation="Perez–Vílchez, 2020")
+    result = merge_tablesfiles([tablesfile])
+    assert result.citation == "Perez-Vílchez, 2020"
 
 
 def test_alias_applies_with_single_tablesfile():
