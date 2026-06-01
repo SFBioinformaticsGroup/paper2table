@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
-from utils.columns_schema import parse_schema, tokenize_schema
+from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
 
 from .analyzers import Analyzer, JaccardAnalyzer, AliasAnalyzer, SemanticAnalyzer
 from .merge import (
@@ -19,7 +19,7 @@ from .merge import (
     SimpleCountAgreement,
     DistinctReadersAgreement,
 )
-from .schema import PostProcessor, SchemaPostProcessor, NullPostProcessor
+from .schema import PostProcessor, Schema, SchemaPostProcessor, NullPostProcessor
 from .fragment_transformer import (
     NullFragmentTransformer,
     FragmentTransformer,
@@ -102,6 +102,7 @@ def build_analyzers(
     use_semantic: bool,
     language: str,
     aliases: dict[str, str],
+    schema: Schema = {},
 ) -> list[Analyzer]:
     result: list[Analyzer] = []
     if align_columns:
@@ -109,7 +110,7 @@ def build_analyzers(
     if aliases:
         result.append(AliasAnalyzer(aliases))
     if use_semantic:
-        result.append(SemanticAnalyzer(threshold, language))
+        result.append(SemanticAnalyzer(threshold, language, schema))
     return result
 
 
@@ -196,6 +197,7 @@ def merge_resultsets(
     remove_header_rows: bool = False,
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
+    schema: Schema = {},
     post_processor: PostProcessor = NullPostProcessor(),
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
@@ -209,6 +211,7 @@ def merge_resultsets(
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
+        "schema": serialize_schema(schema),
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
         "fragment_transformer": transformer.settings,
@@ -415,9 +418,10 @@ def main():
             file=sys.stderr,
         )
         sys.exit(1)
-    if args.schema_path:
+    schema = load_schema(args.schema_path) if args.schema_path else {}
+    if schema:
         post_processor = SchemaPostProcessor(
-            load_schema(args.schema_path),
+            schema,
             filter_columns=args.filter_schema_columns,
             order_columns=args.order_schema_columns,
             coerce_types=args.coerce_schema_column_types,
@@ -443,6 +447,7 @@ def main():
         use_semantic=args.semantic_column_alignment,
         language=args.semantic_language,
         aliases=aliases,
+        schema=schema,
     )
 
     transformer = (
@@ -468,6 +473,7 @@ def main():
         remove_header_rows=args.remove_header_rows,
         pretty=args.pretty,
         analyzers=analyzers,
+        schema=schema,
         post_processor=post_processor,
         transformer=transformer,
         compactor=compactor,
