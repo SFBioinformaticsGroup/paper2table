@@ -28,8 +28,30 @@ def es_spacy_model():
         spacy.cli.download("es_core_news_md") # pyright: ignore[reportAttributeAccessIssue]
 
 
+COLOR_ANIMAL_SCHEMA = {"color": (str, ...), "animal": (str, ...), "identifier": (str, ...)}
+COLOR_ANIMAL_SCHEMA_ES = {"color": (str, ...), "animal": (str, ...), "identificador": (str, ...)}
+SPECIES_SCHEMA = {
+    "scientific_name": (str, ...),
+    "area": (str, ...),
+    "family": (str, ...),
+    "vernacular_name": (str, ...),
+}
+
+
 def wrap(rows: list[Row]) -> TableFragment:
     return TableFragment(rows=rows, page=1)
+
+
+def test_greedy_assignment_one_source_multiple_targets_highest_score_wins():
+    analyzer = SemanticAnalyzer()
+    scores = [(0.9, "0", "color"), (0.7, "0", "animal")]
+    assert analyzer._greedy_assignment(scores) == {"0": "color"}
+
+
+def test_greedy_assignment_multiple_sources_same_target_highest_score_wins():
+    analyzer = SemanticAnalyzer()
+    scores = [(0.9, "0", "color"), (0.7, "1", "color")]
+    assert analyzer._greedy_assignment(scores) == {"0": "color"}
 
 
 def test_jaccard_numeric_to_semantic():
@@ -214,17 +236,17 @@ def test_semantic_maps_color_and_animal_columns(en_spacy_model):
 
     left = wrap(
         [
-            Row(color=color, animal=animal, identifier=code)
+            Row(**{"0": color, "1": animal, "2": code})
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color, "1": animal, "2": code})
+            Row(color=color, animal=animal, identifier=code)
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.3).build_mapping(
+    result = SemanticAnalyzer(threshold=0.3, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"0": "color", "1": "animal"}
@@ -277,17 +299,17 @@ def test_semantic_does_not_map_below_threshold(en_spacy_model):
 
     left = wrap(
         [
-            Row(color=color, animal=animal, identifier=code)
+            Row(**{"0": color, "1": animal, "2": code})
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color, "1": animal, "2": code})
+            Row(color=color, animal=animal, identifier=code)
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.99).build_mapping(
+    result = SemanticAnalyzer(threshold=0.99, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {}
@@ -349,17 +371,17 @@ def test_semantic_maps_color_and_animal_columns_in_spanish(es_spacy_model):
 
     left = wrap(
         [
-            Row(color=color, animal=animal, identificador=code)
+            Row(**{"0": color, "1": animal, "2": code})
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color, "1": animal, "2": code})
+            Row(color=color, animal=animal, identificador=code)
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.3, language="es").build_mapping(
+    result = SemanticAnalyzer(threshold=0.3, language="es", schema=COLOR_ANIMAL_SCHEMA_ES).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"0": "color", "1": "animal"}
@@ -421,17 +443,17 @@ def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
 
     left = wrap(
         [
-            Row(color=color, animal=animal, identificador=code)
+            Row(**{"0": color, "1": animal, "2": code})
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
     right = wrap(
         [
-            Row(**{"0": color, "1": animal, "2": code})
+            Row(color=color, animal=animal, identificador=code)
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.99, language="es").build_mapping(
+    result = SemanticAnalyzer(threshold=0.99, language="es", schema=COLOR_ANIMAL_SCHEMA_ES).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {}
@@ -457,7 +479,7 @@ def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model
         ]
     )
     aligner = ColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3)]
+        left, right, analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)]
     )
     assert aligner.mapping == FOUR_COLUMNS_MAPPING
 
@@ -487,7 +509,7 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
     chain_mapping = ColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1)]
+        left, right, analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)]
     ).mapping
     assert chain_mapping["1"] == "area"
     assert chain_mapping["2"] == "family"
