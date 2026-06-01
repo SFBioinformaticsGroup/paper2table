@@ -29,8 +29,5 @@ def serialize_schema(schema: dict[str, tuple[Any, ...]]) -> dict[str, str]:
 
 
 def tokenize_schema(hints: str) -> list[str]:
-    return [
-        part.strip()
-        for part in hints.replace(",", " ").replace("\n", " ").split()
-        if part.strip()
-    ]
+    stripped = " ".join(line.partition("#")[0] for line in hints.splitlines())
+    return [part.strip() for part in stripped.replace(",", " ").split() if part.strip()]
