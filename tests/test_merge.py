@@ -1,6 +1,7 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
+from tablemerge.__main__ import group_tablesfiles
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
     merge_tablesfiles,
@@ -999,3 +1000,73 @@ def test_sources_correct_when_middle_tablesfile_is_on_different_page():
             sources_=["uuid-b"],
         )
     ]
+
+
+def test_group_tablesfiles_no_aliases(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper.tables.json").write_text("{}")
+    (dir_a / "other.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a)], {}) == {
+        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
+        "other.tables.json": [(str(dir_a), "other.tables.json")],
+    }
+
+
+def test_group_tablesfiles_alias_maps_to_canonical(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [(str(dir_a), "paper_v1.tables.json")],
+    }
+
+
+def test_group_tablesfiles_merges_alias_and_canonical_across_dirs(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+    (dir_b / "paper.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [
+            (str(dir_a), "paper_v1.tables.json"),
+            (str(dir_b), "paper.tables.json"),
+        ],
+    }
+
+
+def test_group_tablesfiles_mixed_aliased_and_plain(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+    (dir_b / "paper.tables.json").write_text("{}")
+    (dir_b / "report.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [
+            (str(dir_a), "paper_v1.tables.json"),
+            (str(dir_b), "paper.tables.json"),
+        ],
+        "report.tables.json": [
+            (str(dir_b), "report.tables.json"),
+        ],
+    }
+
+
+def test_group_tablesfiles_ignores_non_tablesfile(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper.tables.json").write_text("{}")
+    (dir_a / "tables.metadata.json").write_text("{}")
+    (dir_a / "notes.txt").write_text("ignored")
+
+    assert group_tablesfiles([str(dir_a)], {}) == {
+        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
+    }

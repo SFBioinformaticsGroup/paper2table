@@ -113,9 +113,26 @@ def build_analyzers(
     return result
 
 
+TablesFileSource = tuple[str, str]  # (resultset_dir, actual_basename)
+
+
+def group_tablesfiles(
+    resultset_dirs: list[str],
+    paper_aliases: dict[str, str],
+) -> dict[str, list[TablesFileSource]]:
+    groups: dict[str, list[TablesFileSource]] = {}
+    for resultset_dir in resultset_dirs:
+        for tablesfile in Path(resultset_dir).glob("*.tables.json"):
+            actual = tablesfile.name
+            stem = actual.removesuffix(".tables.json")
+            canonical = paper_aliases.get(stem, stem) + ".tables.json"
+            groups.setdefault(canonical, []).append((resultset_dir, actual))
+    return groups
+
+
 def merge_tablesfiles_paths(
-    basename,
-    resultset_dirs,
+    canonical_basename: str,
+    sources: list[TablesFileSource],
     output_path,
     metadata_map: dict[str, dict],
     agreement,
@@ -127,13 +144,9 @@ def merge_tablesfiles_paths(
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    """
-    Merge all the TablesFile of the same basename
-    in the given resultset directories
-    """
     tablesfiles: list[TablesFile] = []
-    for resultset_dir in resultset_dirs:
-        tables_path = Path(resultset_dir) / basename
+    for resultset_dir, actual_basename in sources:
+        tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
             with open(tables_path, "r", encoding="utf-8") as f:
                 tablesfile = TablesFile.model_validate(json.load(f))
@@ -143,7 +156,7 @@ def merge_tablesfiles_paths(
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
     if not any(size > 0 for size in sizes):
-        print(f"{basename}: MERGE SKIPPED: All tables are empty")
+        print(f"{canonical_basename}: MERGE SKIPPED: All tables are empty")
         return
 
     try:
@@ -160,10 +173,10 @@ def merge_tablesfiles_paths(
             merged_tablesfile = filter_header_rows(merged_tablesfile)
         merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
-            f"{basename}: MERGED: {len(tablesfiles)} files"
+            f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
         )
-        with open(output_path / basename, "w", encoding="utf-8") as outfile:
+        with open(output_path / canonical_basename, "w", encoding="utf-8") as outfile:
             json.dump(
                 merged_tablesfile.model_dump(),
                 outfile,
@@ -171,7 +184,7 @@ def merge_tablesfiles_paths(
                 indent=2 if pretty else None,
             )
     except MergeError as e:
-        print(f"{basename}: MERGE FAILED:", str(e))
+        print(f"{canonical_basename}: MERGE FAILED:", str(e))
 
 
 def merge_resultsets(
@@ -187,6 +200,7 @@ def merge_resultsets(
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
+    paper_aliases: dict[str, str] = {},
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -199,6 +213,7 @@ def merge_resultsets(
         "post_processor": post_processor.settings,
         "fragment_transformer": transformer.settings,
         "compactor": compactor.settings,
+        "paper_aliases": paper_aliases,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -219,14 +234,12 @@ def merge_resultsets(
 
     output_path.mkdir(parents=True, exist_ok=True)
 
-    tablesfiles_basenames = set()
-    for resultset_dir in resultset_dirs:
-        for tablesfile in Path(resultset_dir).glob("*.tables.json"):
-            tablesfiles_basenames.add(tablesfile.name)
+    sorted_items = sorted(group_tablesfiles(resultset_dirs, paper_aliases).items())
+    canonical_basenames = [item[0] for item in sorted_items]
+    sources_list = [item[1] for item in sorted_items]
 
     worker_fn = functools.partial(
         merge_tablesfiles_paths,
-        resultset_dirs=resultset_dirs,
         output_path=output_path,
         metadata_map=resultset_metadata,
         agreement=agreement,
@@ -239,7 +252,7 @@ def merge_resultsets(
         compactor=compactor,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        list(executor.map(worker_fn, sorted(tablesfiles_basenames)))
+        list(executor.map(worker_fn, canonical_basenames, sources_list))
 
 
 def parse_args():
@@ -315,6 +328,16 @@ def parse_args():
         "--column-aliases-path",
         type=str,
         help="Path to a file with alias:target mappings (one per line)",
+    )
+    parser.add_argument(
+        "--paper-aliases",
+        type=str,
+        help='Inline basename alias mappings, e.g. "paper_v1:paper"',
+    )
+    parser.add_argument(
+        "--paper-aliases-path",
+        type=str,
+        help="Path to a file with alias:target basename mappings (one per line)",
     )
     parser.add_argument(
         "-p",
@@ -408,6 +431,12 @@ def main():
     if args.column_aliases_path:
         aliases.update(parse_aliases(load_text_or_file(args.column_aliases_path)))
 
+    paper_aliases: dict[str, str] = {}
+    if args.paper_aliases:
+        paper_aliases.update(parse_aliases(args.paper_aliases))
+    if args.paper_aliases_path:
+        paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
+
     analyzers = build_analyzers(
         align_columns=args.align_columns,
         threshold=args.column_alignment_threshold,
@@ -443,6 +472,7 @@ def main():
         transformer=transformer,
         compactor=compactor,
         workers=args.workers,
+        paper_aliases=paper_aliases,
     )
 
 
