@@ -1,6 +1,8 @@
 import argparse
+import functools
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
@@ -184,6 +186,7 @@ def merge_resultsets(
     post_processor: PostProcessor = NullPostProcessor(),
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
+    workers: int = 1,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -221,21 +224,22 @@ def merge_resultsets(
         for tablesfile in Path(resultset_dir).glob("*.tables.json"):
             tablesfiles_basenames.add(tablesfile.name)
 
-    for basename in sorted(list(tablesfiles_basenames)):
-        merge_tablesfiles_paths(
-            basename,
-            resultset_dirs,
-            output_path,
-            resultset_metadata,
-            agreement,
-            only_semantic_columns=only_semantic_columns,
-            remove_header_rows=remove_header_rows,
-            pretty=pretty,
-            analyzers=analyzers,
-            post_processor=post_processor,
-            transformer=transformer,
-            compactor=compactor,
-        )
+    worker_fn = functools.partial(
+        merge_tablesfiles_paths,
+        resultset_dirs=resultset_dirs,
+        output_path=output_path,
+        metadata_map=resultset_metadata,
+        agreement=agreement,
+        only_semantic_columns=only_semantic_columns,
+        remove_header_rows=remove_header_rows,
+        pretty=pretty,
+        analyzers=analyzers,
+        post_processor=post_processor,
+        transformer=transformer,
+        compactor=compactor,
+    )
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(worker_fn, sorted(tablesfiles_basenames)))
 
 
 def parse_args():
@@ -364,6 +368,13 @@ def parse_args():
             "'unsafe' also merges when column count matches regardless of name type."
         ),
     )
+    parser.add_argument(
+        "-j",
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of parallel worker threads for merging (default: 1)",
+    )
     return parser.parse_args()
 
 
@@ -431,6 +442,7 @@ def main():
         post_processor=post_processor,
         transformer=transformer,
         compactor=compactor,
+        workers=args.workers,
     )
 
 
