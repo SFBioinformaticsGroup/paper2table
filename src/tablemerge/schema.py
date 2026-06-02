@@ -10,7 +10,6 @@ from tablevalidate.schema import (
 
 )
 from utils.coerce import coerce_str
-from utils.columns_schema import serialize_schema
 
 
 Schema = dict[str, tuple[Any, ...]]
@@ -47,7 +46,6 @@ class SchemaPostProcessor:
     @property
     def settings(self) -> dict:
         return {
-            "schema": serialize_schema(self.schema),
             "filter_schema_columns": self.filter_columns,
             "order_schema_columns": self.order_columns,
             "coerce_schema_column_types": self.coerce_types,

@@ -5,6 +5,7 @@ from unidecode import unidecode
 import spacy
 
 from tablevalidate.schema import ColumnValue, Row
+from tablemerge.schema import Schema
 from tablemerge.spacy_utils import load_spacy_model
 
 
@@ -22,6 +23,16 @@ class Analyzer(Protocol):
 
 
 class JaccardAnalyzer:
+    """Enabled by --align-columns.
+
+    Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
+    by comparing the set of cell values in each column using Jaccard similarity
+    (intersection over union). Works when both tables share overlapping data, e.g. column "0"
+    and column "family" both contain "Apiaceae", "Rosaceae".
+
+    Requires one side to be all-numeric and the other all-semantic; otherwise does nothing.
+    """
+
     def __init__(self, threshold: float = 0.5):
         self.threshold = threshold
 
@@ -91,6 +102,14 @@ class JaccardAnalyzer:
 
 
 class AliasAnalyzer:
+    """Enabled by --column-aliases / --column-aliases-path.
+
+    Applies an explicit user-provided rename dictionary. No heuristics, no data inspection.
+    Makes sense when both sides have semantic column names that differ across sources
+    (e.g. "familia" to "family"). Works on any column regardless of numeric/semantic
+    classification.
+    """
+
     def __init__(self, aliases: dict[str, str]):
         self.aliases = aliases
 
@@ -110,9 +129,18 @@ class AliasAnalyzer:
 
 
 class SemanticAnalyzer:
-    def __init__(self, threshold: float = 0.5, language: str = "en"):
+    """Enabled by --semantic-column-alignment.
+
+    Renames numeric columns ("0", "1", ...) in the left fragment to schema column names by
+    computing spaCy word-vector similarity between the cell values of each numeric column and
+    each schema column name. Only operates on left columns, so it fires even when there is no
+    right fragment to merge with. Does nothing without a schema.
+    """
+
+    def __init__(self, threshold: float = 0.5, language: str = "en", schema: Schema = {}):
         self.threshold = threshold
         self.language = language
+        self.schema = schema
         self._nlp = None
 
     @property
@@ -126,38 +154,42 @@ class SemanticAnalyzer:
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
-        right_numeric = [c for c in right_column_names if not Row.is_semantic_column(c)]
-        left_semantic = [c for c in left_column_names if Row.is_semantic_column(c)]
-        right_semantic = [c for c in right_column_names if Row.is_semantic_column(c)]
-
-        if right_numeric and left_semantic and not left_numeric:
-            numeric_cols, numeric_rows = right_numeric, right_rows
-            semantic_cols = left_semantic
-        elif left_numeric and right_semantic and not right_numeric:
-            numeric_cols, numeric_rows = left_numeric, left_rows
-            semantic_cols = right_semantic
-        else:
+        if not self.schema:
             return {}
 
+        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
+
+        if not left_numeric:
+            return {}
+
+        schema_cols = list(self.schema.keys())
         nlp = self.load_model()
         scores = []
-        for nc in numeric_cols:
-            values = self.sample_values(numeric_rows, nc)
+
+        for numeric_col in left_numeric:
+            values = self.sample_values(left_rows, numeric_col)
             if not values:
                 continue
-            for sc in semantic_cols:
-                score = self.semantic_score(nlp, values, sc)
+            for schema_col in schema_cols:
+                score = self.semantic_score(nlp, values, schema_col)
                 if score >= self.threshold:
-                    scores.append((score, nc, sc))
+                    scores.append((score, numeric_col, schema_col))
 
-        scores.sort(key=lambda x: -x[0])
+        return self._greedy_assignment(scores)
+
+    def _greedy_assignment(self, scores: list[tuple[float, str, str]]) -> dict[str, str]:
+        """Resolves (score, source, target) candidates into a 1-to-1 mapping.
+
+        When one source matches multiple targets, the highest-scoring target wins.
+        When multiple sources match the same target, the highest-scoring source wins.
+        """
+        sorted_scores = sorted(scores, key=lambda x: -x[0])
         mapping: dict[str, str] = {}
-        used: set[str] = set()
-        for _, nc, sc in scores:
-            if nc not in mapping and sc not in used:
-                mapping[nc] = sc
-                used.add(sc)
+        used_targets: set[str] = set()
+        for _, source, target in sorted_scores:
+            if source not in mapping and target not in used_targets:
+                mapping[source] = target
+                used_targets.add(target)
         return mapping
 
     def load_model(self):
@@ -165,30 +197,30 @@ class SemanticAnalyzer:
             self._nlp = load_spacy_model(self.language)
         return self._nlp
 
-    def sample_values(self, rows: list[Row], col: str) -> list[str]:
+    def sample_values(self, rows: list[Row], col_name: str) -> list[str]:
         values = []
         for row in rows:
-            val = row.get_columns().get(col)
-            if val is None:
+            cell = row.get_columns().get(col_name)
+            if cell is None:
                 continue
-            s = (
-                val.strip()
-                if isinstance(val, str)
-                else (val[0].value.strip() if val else "")
+            text = (
+                cell.strip()
+                if isinstance(cell, str)
+                else (cell[0].value.strip() if cell else "")
             )
-            if s:
-                values.append(s)
+            if text:
+                values.append(text)
         return values
 
     def semantic_score(
         self, nlp: spacy.language.Language, values: list[str], col_name: str
     ) -> float:
-        col_doc = nlp(col_name.replace("_", " "))
-        if not col_doc.has_vector:
+        col_name_doc = nlp(col_name.replace("_", " ").replace("-", " "))
+        if not col_name_doc.has_vector:
             return 0.0
         scores = []
-        for val in values:
-            val_doc = nlp(val)
-            if val_doc.has_vector:
-                scores.append(col_doc.similarity(val_doc))
+        for value in values:
+            value_doc = nlp(value[:128])
+            if value_doc.has_vector:
+                scores.append(col_name_doc.similarity(value_doc))
         return sum(scores) / len(scores) if scores else 0.0
