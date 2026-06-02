@@ -4,8 +4,13 @@ import re
 NO_DATA_EXPRESSIONS = {"no data", "none"}
 
 
+def normalize_str(value: str) -> str:
+    normalized = re.sub(r"[‐‑‒–—―−]", "-", value)
+    return re.sub(r"\s+", " ", normalized.strip())
+
+
 def normalize_str_value(value: str) -> str:
-    normalized = re.sub(r"\s+", " ", value.strip()).lower()
+    normalized = normalize_str(value).lower()
     if normalized in NO_DATA_EXPRESSIONS:
         return ""
     return normalized

@@ -1,10 +1,12 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
+from tablemerge.__main__ import group_tablesfiles
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
     merge_tablesfiles,
     merge_rows,
+    normalize_citation,
     SimpleCountAgreement,
     DistinctReadersAgreement,
     filter_semantic_columns,
@@ -889,6 +891,53 @@ def test_filter_header_rows_preserves_citation_and_metadata():
     assert filtered.citation == "some citation"
 
 
+def test_normalize_citation_none():
+    assert normalize_citation(None) is None
+
+
+def test_normalize_citation_str_collapses_whitespace():
+    assert normalize_citation("Perez  et  al.  2020") == "Perez et al. 2020"
+
+
+def test_normalize_citation_str_strips_edges():
+    assert normalize_citation("  Perez 2020  ") == "Perez 2020"
+
+
+def test_normalize_citation_str_en_dash():
+    assert normalize_citation("Perez–Vílchez, 2020") == "Perez-Vílchez, 2020"
+
+
+def test_normalize_citation_str_em_dash():
+    assert normalize_citation("Perez—Vílchez, 2020") == "Perez-Vílchez, 2020"
+
+
+def test_normalize_citation_str_preserves_case():
+    assert normalize_citation("Perez Et Al. 2020") == "Perez Et Al. 2020"
+
+
+def test_normalize_citation_list():
+    citation = [
+        ValueWithAgreement(value="Perez  2020", agreement_level=2),
+        ValueWithAgreement(value="Vílchez–Lopez 2021", agreement_level=1),
+    ]
+    assert normalize_citation(citation) == [
+        ValueWithAgreement(value="Perez 2020", agreement_level=2),
+        ValueWithAgreement(value="Vílchez-Lopez 2021", agreement_level=1),
+    ]
+
+
+def test_merge_tablesfiles_normalizes_citation_whitespace():
+    tablesfile = wrap([Row(family="Apiaceae")], citation="Perez  et  al.  2020")
+    result = merge_tablesfiles([tablesfile])
+    assert result.citation == "Perez et al. 2020"
+
+
+def test_merge_tablesfiles_normalizes_citation_dashes():
+    tablesfile = wrap([Row(family="Apiaceae")], citation="Perez–Vílchez, 2020")
+    result = merge_tablesfiles([tablesfile])
+    assert result.citation == "Perez-Vílchez, 2020"
+
+
 def test_alias_applies_with_single_tablesfile():
     table = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
     result = merge_tablesfiles(
@@ -951,3 +1000,73 @@ def test_sources_correct_when_middle_tablesfile_is_on_different_page():
             sources_=["uuid-b"],
         )
     ]
+
+
+def test_group_tablesfiles_no_aliases(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper.tables.json").write_text("{}")
+    (dir_a / "other.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a)], {}) == {
+        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
+        "other.tables.json": [(str(dir_a), "other.tables.json")],
+    }
+
+
+def test_group_tablesfiles_alias_maps_to_canonical(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [(str(dir_a), "paper_v1.tables.json")],
+    }
+
+
+def test_group_tablesfiles_merges_alias_and_canonical_across_dirs(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+    (dir_b / "paper.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [
+            (str(dir_a), "paper_v1.tables.json"),
+            (str(dir_b), "paper.tables.json"),
+        ],
+    }
+
+
+def test_group_tablesfiles_mixed_aliased_and_plain(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+    (dir_b / "paper.tables.json").write_text("{}")
+    (dir_b / "report.tables.json").write_text("{}")
+
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+        "paper.tables.json": [
+            (str(dir_a), "paper_v1.tables.json"),
+            (str(dir_b), "paper.tables.json"),
+        ],
+        "report.tables.json": [
+            (str(dir_b), "report.tables.json"),
+        ],
+    }
+
+
+def test_group_tablesfiles_ignores_non_tablesfile(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    (dir_a / "paper.tables.json").write_text("{}")
+    (dir_a / "tables.metadata.json").write_text("{}")
+    (dir_a / "notes.txt").write_text("ignored")
+
+    assert group_tablesfiles([str(dir_a)], {}) == {
+        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
+    }
