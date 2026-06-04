@@ -3,8 +3,11 @@ import re
 # TODO handle other languages
 NO_DATA_EXPRESSIONS = {"no data", "none"}
 
+NONPRINTABLE_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f�]")
+
 
 def normalize_str(value: str) -> str:
+    value = NONPRINTABLE_RE.sub("", value)
     normalized = re.sub(r"[‐‑‒–—―−]", "-", value)
     return re.sub(r"\s+", " ", normalized.strip())
 

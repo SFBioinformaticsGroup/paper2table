@@ -69,6 +69,18 @@ def test_normalize_str_value_hyphen_variants():
     assert normalize_str_value("A‑B") == "a-b"
 
 
+def test_normalize_str_removes_replacement_character():
+    assert normalize_str("hello�world") == "helloworld"
+
+
+def test_normalize_str_removes_control_characters():
+    assert normalize_str("hello\x00world\x1fend") == "helloworldend"
+
+
+def test_normalize_str_value_removes_replacement_character():
+    assert normalize_str_value("Apiaceae�") == "apiaceae"
+
+
 def test_is_empty_value_no_data_string():
     assert is_empty_value("no data")
 
