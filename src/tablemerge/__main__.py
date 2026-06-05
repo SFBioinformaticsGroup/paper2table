@@ -131,6 +131,14 @@ def group_tablesfiles(
     return groups
 
 
+def filter_groups_by_paper(
+    groups: dict[str, list[TablesFileSource]],
+    paper_filter: str,
+) -> dict[str, list[TablesFileSource]]:
+    canonical = paper_filter.removesuffix(".tables.json") + ".tables.json"
+    return {k: v for k, v in groups.items() if k == canonical}
+
+
 def merge_tablesfiles_paths(
     canonical_basename: str,
     sources: list[TablesFileSource],
@@ -203,6 +211,7 @@ def merge_resultsets(
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
     paper_aliases: dict[str, str] = {},
+    paper_filter: str | None = None,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -237,7 +246,10 @@ def merge_resultsets(
 
     output_path.mkdir(parents=True, exist_ok=True)
 
-    sorted_items = sorted(group_tablesfiles(resultset_dirs, paper_aliases).items())
+    groups = group_tablesfiles(resultset_dirs, paper_aliases)
+    if paper_filter is not None:
+        groups = filter_groups_by_paper(groups, paper_filter)
+    sorted_items = sorted(groups.items())
     canonical_basenames = [item[0] for item in sorted_items]
     sources_list = [item[1] for item in sorted_items]
 
@@ -395,6 +407,11 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--paper",
+        type=str,
+        help="Only merge files for this paper basename (e.g. foo merges foo.tables.json)",
+    )
+    parser.add_argument(
         "-j",
         "--workers",
         type=int,
@@ -479,6 +496,7 @@ def main():
         compactor=compactor,
         workers=args.workers,
         paper_aliases=paper_aliases,
+        paper_filter=args.paper,
     )
 
 

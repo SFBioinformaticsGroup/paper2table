@@ -1,7 +1,7 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
-from tablemerge.__main__ import group_tablesfiles
+from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
     merge_tablesfiles,
@@ -1070,3 +1070,31 @@ def test_group_tablesfiles_ignores_non_tablesfile(tmp_path):
     assert group_tablesfiles([str(dir_a)], {}) == {
         "paper.tables.json": [(str(dir_a), "paper.tables.json")],
     }
+
+
+def test_filter_groups_by_paper_stem():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json")],
+        "bar.tables.json": [("dir_a", "bar.tables.json")],
+    }
+    assert filter_groups_by_paper(groups, "foo") == {
+        "foo.tables.json": [("dir_a", "foo.tables.json")],
+    }
+
+
+def test_filter_groups_by_paper_full_name():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json")],
+        "bar.tables.json": [("dir_a", "bar.tables.json")],
+    }
+    assert filter_groups_by_paper(groups, "foo.tables.json") == {
+        "foo.tables.json": [("dir_a", "foo.tables.json")],
+    }
+
+
+def test_filter_groups_by_paper_no_match():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json")],
+        "bar.tables.json": [("dir_a", "bar.tables.json")],
+    }
+    assert filter_groups_by_paper(groups, "baz") == {}
