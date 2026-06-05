@@ -81,6 +81,22 @@ def test_normalize_str_value_removes_replacement_character():
     assert normalize_str_value("Apiaceae�") == "apiaceae"
 
 
+def test_normalize_str_cid_latin1_accented():
+    assert normalize_str("(cid:237)") == "í"
+
+
+def test_normalize_str_cid_latin1_in_word():
+    assert normalize_str("P(cid:243)rez") == "Pórez"
+
+
+def test_normalize_str_cid_outside_latin1_range():
+    assert normalize_str("(cid:42)") == ""
+
+
+def test_normalize_str_cid_outside_latin1_range_with_surrounding_text():
+    assert normalize_str("hello (cid:7) world") == "hello world"
+
+
 def test_is_empty_value_no_data_string():
     assert is_empty_value("no data")
 
