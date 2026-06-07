@@ -3,6 +3,7 @@ from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
 from utils.rows import is_empty_value, normalize_str, normalize_str_value
+from utils.normalize_name import normalize_name
 from tablevalidate.schema import (
     Citation,
     TablesFile,
@@ -42,24 +43,40 @@ def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     )
 
 
-def is_header_row(row: Row) -> bool:
-    non_empty_pairs = [
-        (column_name, value)
-        for column_name, value in row.get_columns().items()
-        if not is_empty_value(value) and Row.is_semantic_column(column_name)
-    ]
+def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
+    if isinstance(value, str):
+        return normalize_name(value.strip()) in hints_set
+    return any(normalize_name(v.value.strip()) in hints_set for v in value if v.value.strip())
+
+
+def has_semantic_header_value(row: Row) -> bool:
     return any(
-        value_matches_header(column_name, value)
-        for column_name, value in non_empty_pairs
+        value_matches_header(col, val)
+        for col, val in row.get_columns().items()
+        if not is_empty_value(val) and Row.is_semantic_column(col)
     )
 
 
-def filter_header_rows(tablesfile: TablesFile) -> TablesFile:
+def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
+    return any(
+        value_matches_hints(val, hints_set)
+        for col, val in row.get_columns().items()
+        if not is_empty_value(val) and not Row.is_semantic_column(col)
+    )
+
+
+def is_header_row(row: Row, hints: list[str] = []) -> bool:
+    return has_semantic_header_value(row) or (
+        bool(hints) and has_hints_header_value(row, set(hints))
+    )
+
+
+def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:
         filtered_fragments = []
         for fragment in table.get_table_fragments():
-            filtered_rows = [row for row in fragment.rows if not is_header_row(row)]
+            filtered_rows = [row for row in fragment.rows if not is_header_row(row, hints)]
             filtered_fragments.append(
                 TableFragment(rows=filtered_rows, page=fragment.page)
             )

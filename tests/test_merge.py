@@ -12,6 +12,8 @@ from tablemerge.merge import (
     filter_semantic_columns,
     filter_header_rows,
     is_header_row,
+    has_semantic_header_value,
+    has_hints_header_value,
 )
 from tablevalidate.schema import (
     TablesFile,
@@ -1098,3 +1100,79 @@ def test_filter_groups_by_paper_no_match():
         "bar.tables.json": [("dir_a", "bar.tables.json")],
     }
     assert filter_groups_by_paper(groups, "baz") == {}
+
+def test_has_semantic_header_value_true_when_value_matches_column():
+    assert has_semantic_header_value(Row(family="family", scientific_name="Ammi majus"))
+
+
+def test_has_semantic_header_value_false_when_no_match():
+    assert not has_semantic_header_value(Row(family="Apiaceae", scientific_name="Ammi majus"))
+
+
+def test_has_semantic_header_value_false_for_numeric_columns():
+    assert not has_semantic_header_value(Row(**{"0": "0", "1": "1"}))
+
+
+def test_has_hints_header_value_true_when_any_value_in_hints():
+    assert has_hints_header_value(
+        Row(**{"0": "species", "1": "Apiaceae"}), {"species", "family"}
+    )
+
+
+def test_has_hints_header_value_false_when_no_value_in_hints():
+    assert not has_hints_header_value(
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}), {"species", "family"}
+    )
+
+
+def test_has_hints_header_value_ignores_semantic_columns():
+    assert not has_hints_header_value(
+        Row(family="family"), {"family"}
+    )
+
+
+def test_has_hints_header_value_with_value_with_agreement():
+    assert has_hints_header_value(
+        Row(**{"0": [ValueWithAgreement(value="species", agreement_level=1)]}),
+        {"species"},
+    )
+
+
+def test_is_header_row_without_hints_ignores_numeric_columns():
+    assert not is_header_row(Row(**{"0": "0", "1": "1"}))
+
+
+def test_is_header_row_with_hints_detects_numeric_header():
+    assert is_header_row(Row(**{"0": "species", "1": "Apiaceae"}), hints=["species", "family"])
+
+
+def test_is_header_row_with_hints_false_when_no_match():
+    assert not is_header_row(
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}), hints=["species", "family"]
+    )
+
+
+def test_filter_header_rows_with_hints_removes_numeric_header_row():
+    table = [
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result, hints=["species", "family"])
+    rows = filtered.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(**{"0": "ammi majus", "1": "apiaceae"}, agreement_level_=1)
+    ]
+
+
+def test_filter_header_rows_without_hints_still_removes_semantic_header_rows():
+    table = [
+        Row(family="family", scientific_name="scientific_name"),
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result)
+    rows = filtered.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
+    ]

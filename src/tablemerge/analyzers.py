@@ -7,6 +7,13 @@ import spacy
 from tablevalidate.schema import ColumnValue, Row
 from tablemerge.schema import Schema
 from tablemerge.spacy_utils import load_spacy_model
+from utils.normalize_name import normalize_name
+
+
+def column_value_to_strings(value: ColumnValue) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    return [entry.value for entry in value]
 
 
 class Analyzer(Protocol):
@@ -20,6 +27,54 @@ class Analyzer(Protocol):
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]: ...
+
+
+class HintsAnalyzer:
+    """Enabled by --hints-column-alignment.
+
+    Inspects the first non-empty row of the left fragment. If at least one
+    non-semantic column's value normalizes to a known hint, treats the row as a
+    header row and renames ALL non-semantic columns to their normalized first-row
+    values (including columns whose value is not in the hints list).
+    Runs before all other analyzers.
+    """
+
+    def __init__(self, hints: list[str]):
+        self.hints = hints
+
+    @property
+    def settings(self) -> dict:
+        return {"hints": self.hints}
+
+    def build_mapping(
+        self,
+        left_column_names: list[str],
+        right_column_names: list[str],
+        left_rows: list[Row],
+        right_rows: list[Row],
+    ) -> dict[str, str]:
+        non_semantic = [c for c in left_column_names if not Row.is_semantic_column(c)]
+        if not non_semantic:
+            return {}
+        first_row = next((r for r in left_rows if not r.is_empty()), None)
+        if first_row is None:
+            return {}
+        row_values = self._non_semantic_normalized_values(first_row, non_semantic)
+        hints_set = set(self.hints)
+        if not any(val in hints_set for val in row_values.values()):
+            return {}
+        return row_values
+
+    def _non_semantic_normalized_values(self, row: Row, non_semantic: list[str]) -> dict[str, str]:
+        result: dict[str, str] = {}
+        for col in non_semantic:
+            val = row.get_columns().get(col)
+            if val is None:
+                continue
+            strings = [s.strip() for s in column_value_to_strings(val) if s.strip()]
+            if strings:
+                result[col] = normalize_name(strings[0])
+        return result
 
 
 class JaccardAnalyzer:
@@ -84,8 +139,8 @@ class JaccardAnalyzer:
         if isinstance(column_value, str):
             return [unidecode(re.sub(r"\s+", " ", column_value.strip()).lower())]
         return [
-            unidecode(re.sub(r"\s+", " ", vwa.value.strip()).lower())
-            for vwa in column_value
+            unidecode(re.sub(r"\s+", " ", entry.value.strip()).lower())
+            for entry in column_value
         ]
 
     def column_value_set(self, rows: list[Row], col: str) -> set[str]:

@@ -224,6 +224,38 @@ Column aliases
 
 Both flags can be used together; the file takes precedence on conflicts.
 
+Column name hints
+-----------------
+
+``--column-names-hints`` and ``--column-names-hints-path`` supply the expected column
+names for runs that produced only numeric column names (``0``, ``1``, …). Hints use the
+same format as the ``-c`` flag in ``paper2table`` (whitespace- or comma-separated, ``#`` comments allowed):
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" tests/data/demo_resultsets/*
+
+    $ tablemerge --column-names-hints-path hints.txt tests/data/demo_resultsets/*
+
+Both flags can be combined; their hint lists are merged.
+
+``--hints-column-alignment`` activates hints-based column renaming: if at least one
+non-empty value in the first non-empty row of a table with numeric column names matches
+a hint, all numeric columns are renamed to their normalized first-row values (even
+columns whose value is not in the hints list). This pass runs before all other alignment steps:
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" --hints-column-alignment tests/data/demo_resultsets/*
+
+When ``--remove-header-rows`` is combined with hints, any row containing at least one
+non-semantic cell value that matches a hint is also removed, in addition to the usual
+semantic-column check:
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" --remove-header-rows tests/data/demo_resultsets/*
+
 Schema
 ------
 

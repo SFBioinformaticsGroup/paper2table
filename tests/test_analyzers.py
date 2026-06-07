@@ -2,7 +2,12 @@
 # pyright: reportArgumentType=false
 import pytest
 
-from tablemerge.analyzers import AliasAnalyzer, JaccardAnalyzer, SemanticAnalyzer
+from tablemerge.analyzers import (
+    AliasAnalyzer,
+    HintsAnalyzer,
+    JaccardAnalyzer,
+    SemanticAnalyzer,
+)
 from tablemerge.columns_aligner import ColumnAligner
 from tablevalidate.schema import Row, TableFragment
 from test_columns_aligner import FOUR_COLUMNS_MAPPING, SPECIES, SPECIES_WITH_EDITS
@@ -15,7 +20,9 @@ def en_spacy_model():
     try:
         spacy.load("en_core_web_md")
     except OSError:
-        spacy.cli.download("en_core_web_md") # pyright: ignore[reportAttributeAccessIssue]
+        spacy.cli.download(
+            "en_core_web_md"
+        )  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @pytest.fixture(scope="session")
@@ -25,11 +32,21 @@ def es_spacy_model():
     try:
         spacy.load("es_core_news_md")
     except OSError:
-        spacy.cli.download("es_core_news_md") # pyright: ignore[reportAttributeAccessIssue]
+        spacy.cli.download(
+            "es_core_news_md"
+        )  # pyright: ignore[reportAttributeAccessIssue]
 
 
-COLOR_ANIMAL_SCHEMA = {"color": (str, ...), "animal": (str, ...), "identifier": (str, ...)}
-COLOR_ANIMAL_SCHEMA_ES = {"color": (str, ...), "animal": (str, ...), "identificador": (str, ...)}
+COLOR_ANIMAL_SCHEMA = {
+    "color": (str, ...),
+    "animal": (str, ...),
+    "identifier": (str, ...),
+}
+COLOR_ANIMAL_SCHEMA_ES = {
+    "color": (str, ...),
+    "animal": (str, ...),
+    "identificador": (str, ...),
+}
 SPECIES_SCHEMA = {
     "scientific_name": (str, ...),
     "area": (str, ...),
@@ -381,7 +398,9 @@ def test_semantic_maps_color_and_animal_columns_in_spanish(es_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.3, language="es", schema=COLOR_ANIMAL_SCHEMA_ES).build_mapping(
+    result = SemanticAnalyzer(
+        threshold=0.3, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
+    ).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"0": "color", "1": "animal"}
@@ -453,7 +472,9 @@ def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.99, language="es", schema=COLOR_ANIMAL_SCHEMA_ES).build_mapping(
+    result = SemanticAnalyzer(
+        threshold=0.99, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
+    ).build_mapping(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {}
@@ -479,7 +500,9 @@ def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model
         ]
     )
     aligner = ColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)]
+        left,
+        right,
+        analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)],
     )
     assert aligner.mapping == FOUR_COLUMNS_MAPPING
 
@@ -509,7 +532,9 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
     chain_mapping = ColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)]
+        left,
+        right,
+        analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)],
     ).mapping
     assert chain_mapping["1"] == "area"
     assert chain_mapping["2"] == "family"
@@ -525,3 +550,149 @@ def test_chain_transitivity():
     )
     assert aligner.mapping.get("0") == "official_family"
     assert aligner.mapping.get("family") == "official_family"
+
+
+def test_hints_returns_empty_when_no_non_semantic_columns():
+    left = wrap([Row(species="species", family="family")])
+    right = wrap([Row(species="Ammi majus", family="Apiaceae")])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_hints_returns_empty_when_first_row_values_not_in_hints():
+    left = wrap([Row(**{"0": "Ammi majus", "1": "Apiaceae"})])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_hints_renames_all_columns_when_any_value_matches_hint():
+    left = wrap([Row(**{"0": "species", "1": "Apiaceae"})])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species", "1": "apiaceae"}
+
+
+def test_hints_renames_columns_when_all_first_row_values_match():
+    left = wrap(
+        [
+            Row(**{"0": "species", "1": "family"}),
+            Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+        ]
+    )
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species", "1": "family"}
+
+
+def test_hints_normalizes_first_row_values_before_comparing():
+    left = wrap([Row(**{"0": "Scientific Name", "1": "Family"})])
+    right = wrap([])
+    result = HintsAnalyzer(["scientific_name", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "scientific_name", "1": "family"}
+
+
+def test_hints_normalizes_space_separated_value_to_underscore_hint():
+    left = wrap([Row(**{"1": "Scientific name"})])
+    right = wrap([])
+    result = HintsAnalyzer(["scientific_name"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"1": "scientific_name"}
+
+
+def test_hints_normalizes_accented_value_to_ascii_hint():
+    left = wrap([Row(**{"0": "Preparación"})])
+    right = wrap([])
+    result = HintsAnalyzer(["preparacion"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "preparacion"}
+
+
+def test_hints_skips_empty_rows_before_header_row():
+    left = wrap([
+        Row(**{"0": "", "1": ""}),
+        Row(**{"0": "", "1": ""}),
+        Row(**{"0": "species", "1": "family"}),
+    ])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species", "1": "family"}
+
+
+def test_hints_maps_only_non_empty_hint_matching_cells_in_header_row():
+    left = wrap([
+        Row(**{"0": "", "1": ""}),
+        Row(**{"0": "species", "1": ""}),
+    ])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species"}
+
+
+def test_hints_renames_all_columns_including_non_hint_values():
+    left = wrap([
+        Row(**{"0": "", "1": ""}),
+        Row(**{"0": "species", "1": "foo"}),
+    ])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species", "1": "foo"}
+
+
+def test_hints_renames_all_columns_when_single_hint_matches():
+    left = wrap([Row(**{
+        "0": "family",
+        "1": "Scientific name",
+        "2": "Species",
+        "3": "Notes",
+    })])
+    right = wrap([])
+    result = HintsAnalyzer(["family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {
+        "0": "family",
+        "1": "scientific_name",
+        "2": "species",
+        "3": "notes",
+    }
+
+
+def test_hints_returns_empty_when_all_first_row_cells_are_empty():
+    left = wrap([Row(**{"0": "", "1": ""})])
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_hints_handles_value_with_agreement_cells():
+    from tablevalidate.schema import ValueWithAgreement
+
+    left = wrap(
+        [Row(**{"0": [ValueWithAgreement(value="species", agreement_level=1)]})]
+    )
+    right = wrap([])
+    result = HintsAnalyzer(["species", "family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "species"}
