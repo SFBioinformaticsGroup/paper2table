@@ -1,8 +1,17 @@
 import string
 import unicodedata
+from typing import overload
 
 
-def normalize_name(name: str | None):
+@overload
+def normalize_name(name: str) -> str: ...
+@overload
+def normalize_name(name: None) -> None: ...
+@overload
+def normalize_name(name: str | None) -> str | None: ...
+
+
+def normalize_name(name: str | None) -> str | None:
     if name is None:
         return None
 

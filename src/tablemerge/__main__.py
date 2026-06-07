@@ -11,7 +11,13 @@ from tablevalidate.schema import TablesFile
 from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
 from utils.normalize_name import normalize_name
 
-from .analyzers import Analyzer, HintsAnalyzer, JaccardAnalyzer, AliasAnalyzer, SemanticAnalyzer
+from .analyzers import (
+    Analyzer,
+    HintsAnalyzer,
+    JaccardAnalyzer,
+    AliasAnalyzer,
+    SemanticAnalyzer,
+)
 from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
@@ -481,9 +487,14 @@ def main():
 
     hints: list[str] = []
     if args.column_names_hints:
-        hints.extend(normalize_name(h) for h in tokenize_schema(args.column_names_hints))
+        hints.extend(
+            normalize_name(h) for h in tokenize_schema(args.column_names_hints)
+        )
     if args.column_names_hints_path:
-        hints.extend(normalize_name(h) for h in tokenize_schema(load_text_or_file(args.column_names_hints_path)))
+        hints.extend(
+            normalize_name(h)
+            for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
+        )
 
     paper_aliases: dict[str, str] = {}
     if args.paper_aliases:
