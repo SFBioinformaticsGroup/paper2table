@@ -1,6 +1,6 @@
 from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
-from utils.rows import is_empty_value
+from utils.column_values import is_empty_value
 
 
 class ValueWithAgreement(BaseModel):
@@ -45,6 +45,7 @@ class Row(BaseModel):
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
+
 
 
 class TableFragment(BaseModel):

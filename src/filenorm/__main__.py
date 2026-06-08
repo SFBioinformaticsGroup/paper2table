@@ -2,7 +2,7 @@ import argparse
 import hashlib
 import os
 
-from utils.columns import normalize_column_name
+from utils.column_names import normalize_column_name
 from utils.handle_sigint import handle_sigint
 
 

@@ -1,5 +1,5 @@
 
-from utils.columns import normalize_column_name
+from utils.column_names import normalize_column_name
 from utils.columns_schema import tokenize_schema
 
 def parse_column_names_hints(hints: str) -> list[str]:

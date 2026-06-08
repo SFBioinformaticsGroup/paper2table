@@ -1,6 +1,6 @@
 # pyright: reportCallIssue=false
 
-from utils.rows import is_empty_value, normalize_str_value
+from utils.column_values import is_empty_value, normalize_str_value
 from tablevalidate.schema import Row, ValueWithAgreement
 
 

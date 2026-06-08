@@ -8,7 +8,7 @@ from typing import Callable, cast, Optional, Protocol, Generator
 
 import pandas as pd
 
-from utils.columns import normalize_column_name
+from utils.column_names import normalize_column_name
 
 from ..hints import parse_column_names_hints
 from ..mapping import TableMapping, TablesMapping

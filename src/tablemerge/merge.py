@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_value, normalize_str_value
-from utils.columns import normalize_column_name
+from utils.column_values import is_empty_value, normalize_str_value
+from utils.column_names import normalize_column_name
 from utils.citation import normalize_citation
 from tablevalidate.schema import (
     TablesFile,

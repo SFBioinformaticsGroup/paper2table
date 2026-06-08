@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
 from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
-from utils.columns import normalize_column_name
+from utils.column_names import normalize_column_name
 
 from .analyzers import (
     Analyzer,
