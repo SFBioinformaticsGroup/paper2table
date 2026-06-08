@@ -7,6 +7,7 @@ from tablemerge.analyzers import (
     HintsAnalyzer,
     JaccardAnalyzer,
     SemanticAnalyzer,
+    column_value_to_strings,
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablevalidate.schema import Row, TableFragment
@@ -714,3 +715,11 @@ def test_hints_handles_value_with_agreement_cells():
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"0": "species"}
+
+
+def test_column_value_to_strings_returns_empty_for_none():
+    assert column_value_to_strings(None) == []
+
+
+def test_extract_column_str_values_returns_empty_for_none():
+    assert JaccardAnalyzer().extract_column_str_values(None) == []

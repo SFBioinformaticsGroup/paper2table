@@ -13,6 +13,9 @@ from tablemerge.merge import (
     is_header_row,
     has_semantic_header_value,
     has_hints_header_value,
+    value_matches_header,
+    value_matches_hints,
+    to_values_with_agreement,
 )
 from tablevalidate.schema import (
     TablesFile,
@@ -1192,3 +1195,15 @@ def test_filter_header_rows_without_hints_still_removes_semantic_header_rows():
     assert rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1)
     ]
+
+
+def test_value_matches_header_returns_false_for_none():
+    assert value_matches_header("family", None) == False
+
+
+def test_value_matches_hints_returns_false_for_none():
+    assert value_matches_hints(None, {"family", "species"}) == False
+
+
+def test_to_values_with_agreement_returns_empty_list_for_none():
+    assert to_values_with_agreement(None) == []

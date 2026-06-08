@@ -144,3 +144,8 @@ def test_is_empty_row_list_value_non_empty():
     assert not Row(
         family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]
     ).is_empty()
+
+
+def test_normalize_row_with_none_column_value():
+    row = Row(**{"family": None, "scientific_name": "Apiaceae"})
+    assert row.normalize() == Row(family="", scientific_name="apiaceae")

@@ -22,6 +22,8 @@ MergeTarget = tuple[TableFragment, TablesFile]
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
+    if value is None:
+        return False
     normalized_name = normalize_column_value(column_name)
     if isinstance(value, str):
         return normalize_column_value(value) == normalized_name
@@ -33,6 +35,8 @@ def value_matches_header(column_name: str, value: ColumnValue) -> bool:
 
 
 def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
+    if value is None:
+        return False
     if isinstance(value, str):
         return normalize_column_name(value.strip()) in hints_set
 
@@ -222,11 +226,11 @@ def merge_columns_with_agreement(left: Row, right: Row):
 
 
 def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreement]:
-    return (
-        [ValueWithAgreement(value=column_value, agreement_level=1)]
-        if isinstance(column_value, str)
-        else column_value
-    )
+    if column_value is None:
+        return []
+    if isinstance(column_value, str):
+        return [ValueWithAgreement(value=column_value, agreement_level=1)]
+    return column_value
 
 
 def merge_tablesfiles(

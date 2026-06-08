@@ -10,7 +10,7 @@ class ValueWithAgreement(BaseModel):
     agreement_level: int
 
 
-ColumnValue = Union[str, List[ValueWithAgreement]]
+ColumnValue = Union[None, str, List[ValueWithAgreement]]
 
 
 class Row(BaseModel):
@@ -64,7 +64,7 @@ class Row(BaseModel):
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
 
     @staticmethod
-    def is_empty_value(value: Optional[ColumnValue]) -> bool:
+    def is_empty_value(value: ColumnValue) -> bool:
         if value is None:
             return True
 
@@ -74,9 +74,9 @@ class Row(BaseModel):
         return all(not normalize_column_value(v.value) for v in value)
 
     @staticmethod
-    def normalize_value(value: Optional[ColumnValue]) -> ColumnValue:
+    def normalize_value(value: ColumnValue) -> ColumnValue:
         if value is None:
-            return ""
+            return None
 
         if isinstance(value, str):
             return normalize_column_value(value)
@@ -125,7 +125,7 @@ class Metadata(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-Citation = Union[Optional[str], List[ValueWithAgreement]]
+Citation = ColumnValue
 
 
 class TablesFile(BaseModel):
@@ -136,13 +136,4 @@ class TablesFile(BaseModel):
 
     @staticmethod
     def normalize_citation(citation: Citation) -> Citation:
-        if citation is None:
-            return None
-        if isinstance(citation, str):
-            return normalize_str(citation)
-        return [
-            ValueWithAgreement(
-                value=normalize_str(v.value), agreement_level=v.agreement_level
-            )
-            for v in citation
-        ]
+        return Row.normalize_value(citation)

@@ -101,6 +101,8 @@ class SchemaPostProcessor:
 
     def _coerce_schema_column_types(self, tablesfile: TablesFile) -> TablesFile:
         def coerce_column_value(value: ColumnValue, target_type: type) -> ColumnValue:
+            if value is None:
+                return None
             if isinstance(value, str):
                 return coerce_str(value, target_type)
             return [

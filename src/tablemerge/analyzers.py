@@ -11,6 +11,8 @@ from utils.column_names import normalize_column_name
 
 
 def column_value_to_strings(value: ColumnValue) -> list[str]:
+    if value is None:
+        return []
     if isinstance(value, str):
         return [value]
     return [entry.value for entry in value]
@@ -136,6 +138,8 @@ class JaccardAnalyzer:
         return mapping
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
+        if column_value is None:
+            return []
         if isinstance(column_value, str):
             return [unidecode(re.sub(r"\s+", " ", column_value.strip()).lower())]
         return [
