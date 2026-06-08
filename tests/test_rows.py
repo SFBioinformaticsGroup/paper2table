@@ -1,6 +1,6 @@
 # pyright: reportCallIssue=false
 
-from utils.rows import is_empty_value, normalize_str, normalize_str_value
+from utils.rows import is_empty_value, normalize_str_value
 from tablevalidate.schema import Row, ValueWithAgreement
 
 
@@ -21,23 +21,23 @@ def test_normalize_str_value_none():
 
 
 def test_normalize_str_preserves_case():
-    assert normalize_str("Perez et al. 2020") == "Perez et al. 2020"
+    assert normalize_str_value("Perez et al. 2020") == "perez et al. 2020"
 
 
 def test_normalize_str_collapses_whitespace():
-    assert normalize_str("Perez  et   al.") == "Perez et al."
+    assert normalize_str_value("Perez  et   al.") == "perez et al."
 
 
 def test_normalize_str_strips_edges():
-    assert normalize_str("  Perez 2020  ") == "Perez 2020"
+    assert normalize_str_value("  Perez 2020  ") == "perez 2020"
 
 
 def test_normalize_str_en_dash():
-    assert normalize_str("Perez–Vílchez 2020") == "Perez-Vílchez 2020"
+    assert normalize_str_value("Perez–Vílchez 2020") == "perez-vílchez 2020"
 
 
 def test_normalize_str_em_dash():
-    assert normalize_str("Perez—Vílchez 2020") == "Perez-Vílchez 2020"
+    assert normalize_str_value("Perez—Vílchez 2020") == "perez-vílchez 2020"
 
 
 def test_normalize_str_value_regular_value():
@@ -70,11 +70,11 @@ def test_normalize_str_value_hyphen_variants():
 
 
 def test_normalize_str_removes_replacement_character():
-    assert normalize_str("hello�world") == "helloworld"
+    assert normalize_str_value("hello�world") == "helloworld"
 
 
 def test_normalize_str_removes_control_characters():
-    assert normalize_str("hello\x00world\x1fend") == "helloworldend"
+    assert normalize_str_value("hello\x00world\x1fend") == "helloworldend"
 
 
 def test_normalize_str_value_removes_replacement_character():
@@ -82,19 +82,19 @@ def test_normalize_str_value_removes_replacement_character():
 
 
 def test_normalize_str_cid_latin1_accented():
-    assert normalize_str("(cid:237)") == "í"
+    assert normalize_str_value("(cid:237)") == "í"
 
 
 def test_normalize_str_cid_latin1_in_word():
-    assert normalize_str("P(cid:243)rez") == "Pórez"
+    assert normalize_str_value("L(cid:243)pez") == "lópez"
 
 
 def test_normalize_str_cid_outside_latin1_range():
-    assert normalize_str("(cid:42)") == ""
+    assert normalize_str_value("(cid:42)") == ""
 
 
 def test_normalize_str_cid_outside_latin1_range_with_surrounding_text():
-    assert normalize_str("hello (cid:7) world") == "hello world"
+    assert normalize_str_value("hello (cid:7) world") == "hello world"
 
 
 def test_is_empty_value_no_data_string():

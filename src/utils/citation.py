@@ -1,4 +1,4 @@
-from .rows import normalize_str
+from .str import normalize_str
 from tablevalidate.schema import (
     Citation,
     ValueWithAgreement,

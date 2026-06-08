@@ -143,7 +143,7 @@ class MergeError(ValueError):
     pass
 
 
-def normalize_value(value: ColumnValue) -> ColumnValue:
+def normalize_column_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
         return normalize_str_value(value)
     if isinstance(value, list):
@@ -163,7 +163,7 @@ def normalize_row(
 ) -> Row:
     return Row(
         **{
-            column: normalize_value(value)
+            column: normalize_column_value(value)
             for column, value in row.get_columns().items()
         },
         agreement_level_=(
