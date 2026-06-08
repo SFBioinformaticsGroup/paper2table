@@ -24,13 +24,13 @@ MergeTarget = tuple[TableFragment, TablesFile]
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     if value is None:
         return False
-    normalized_name = normalize_column_value(column_name)
+    normalized_name = normalize_column_name(column_name)
     if isinstance(value, str):
-        return normalize_column_value(value) == normalized_name
+        return normalize_column_name(value) == normalized_name
 
     non_empty = [v.value for v in value if v.value.strip()]
     return bool(non_empty) and all(
-        normalize_column_value(v) == normalized_name for v in non_empty
+        normalize_column_name(v) == normalized_name for v in non_empty
     )
 
 

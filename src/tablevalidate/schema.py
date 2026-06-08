@@ -125,7 +125,7 @@ class Metadata(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-Citation = ColumnValue
+Citation = Union[None, str, List[ValueWithAgreement]]
 
 
 class TablesFile(BaseModel):
@@ -136,4 +136,13 @@ class TablesFile(BaseModel):
 
     @staticmethod
     def normalize_citation(citation: Citation) -> Citation:
-        return Row.normalize_value(citation)
+        if citation is None:
+            return None
+        if isinstance(citation, str):
+            return normalize_str(citation)
+        return [
+            ValueWithAgreement(
+                value=normalize_str(v.value), agreement_level=v.agreement_level
+            )
+            for v in citation
+        ]

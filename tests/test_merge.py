@@ -1124,6 +1124,10 @@ def test_has_semantic_header_value_true_when_value_matches_column():
     assert has_semantic_header_value(Row(family="family", scientific_name="Ammi majus"))
 
 
+def test_has_semantic_header_value_matches_accented_value_against_normalized_column():
+    assert has_semantic_header_value(Row(categoria_de_uso="categoría de uso", chorote_total="chorote total"))
+
+
 def test_has_semantic_header_value_false_when_no_match():
     assert not has_semantic_header_value(
         Row(family="Apiaceae", scientific_name="Ammi majus")
