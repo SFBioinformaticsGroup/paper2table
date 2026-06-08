@@ -885,6 +885,19 @@ def test_filter_header_rows_with_partial_empty_cells():
     ]
 
 
+def test_filter_header_rows_removes_row_when_semantic_column_matches_alongside_non_matching_numeric():
+    table = [
+        Row(**{"family": "family", "scientific_name": "Ammi majus", "0": "some_value"}),
+        Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L.", "0": "123"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    filtered = filter_header_rows(result)
+    rows = filtered.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(**{"family": "apiaceae", "scientific_name": "ammi majus l.", "0": "123"}, agreement_level_=1)
+    ]
+
+
 def test_filter_header_rows_preserves_citation_and_metadata():
     table = [Row(family="Apiaceae")]
     tablesfile = wrap(table, citation="some citation")

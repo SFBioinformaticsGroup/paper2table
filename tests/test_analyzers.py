@@ -676,6 +676,24 @@ def test_hints_renames_all_columns_when_single_hint_matches():
     }
 
 
+def test_hints_skips_null_column_when_other_columns_trigger_mapping():
+    left = wrap([Row(**{
+        "0": "family",
+        "1": "Scientific name",
+        "2": "species",
+        "3": None,
+    })])
+    right = wrap([])
+    result = HintsAnalyzer(["family"]).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {
+        "0": "family",
+        "1": "scientific_name",
+        "2": "species",
+    }
+
+
 def test_hints_returns_empty_when_all_first_row_cells_are_empty():
     left = wrap([Row(**{"0": "", "1": ""})])
     right = wrap([])
