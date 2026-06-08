@@ -35,7 +35,11 @@ def value_matches_header(column_name: str, value: ColumnValue) -> bool:
 def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
     if isinstance(value, str):
         return normalize_column_name(value.strip()) in hints_set
-    return any(normalize_column_name(v.value.strip()) in hints_set for v in value if v.value.strip())
+    return any(
+        normalize_column_name(v.value.strip()) in hints_set
+        for v in value
+        if v.value.strip()
+    )
 
 
 def has_semantic_header_value(row: Row) -> bool:
@@ -65,7 +69,9 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
     for table in tablesfile.tables:
         filtered_fragments = []
         for fragment in table.get_table_fragments():
-            filtered_rows = [row for row in fragment.rows if not is_header_row(row, hints)]
+            filtered_rows = [
+                row for row in fragment.rows if not is_header_row(row, hints)
+            ]
             filtered_fragments.append(
                 TableFragment(rows=filtered_rows, page=fragment.page)
             )
@@ -143,36 +149,6 @@ class MergeError(ValueError):
     pass
 
 
-def normalize_column_value(value: ColumnValue) -> ColumnValue:
-    if isinstance(value, str):
-        return normalize_str_value(value)
-    if isinstance(value, list):
-        return [
-            ValueWithAgreement(
-                value=normalize_str_value(value_with_agreement.value),
-                agreement_level=value_with_agreement.agreement_level,
-            )
-            for value_with_agreement in value
-        ]
-    return value
-
-
-def normalize_row(
-    row: Row,
-    row_agreement: bool = False,
-) -> Row:
-    return Row(
-        **{
-            column: normalize_column_value(value)
-            for column, value in row.get_columns().items()
-        },
-        agreement_level_=(
-            row.get_agreement_level() if row_agreement else row.agreement_level_
-        ),
-        sources_=row.sources_,
-    )
-
-
 def transliterate_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
         return unidecode(value)
@@ -188,8 +164,8 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    left_columns = normalize_row(left).get_columns()
-    right_columns = normalize_row(right).get_columns()
+    left_columns = left.normalize().get_columns()
+    right_columns = right.normalize().get_columns()
     return {k: transliterate_value(v) for k, v in left_columns.items()} == {
         k: transliterate_value(v) for k, v in right_columns.items()
     }
@@ -217,15 +193,15 @@ def merge_rows(
 
 def merge_columns_without_agreement(left: Row, right: Row):
     return {
-        **normalize_row(right).get_columns(),
-        **normalize_row(left).get_columns(),
+        **right.normalize().get_columns(),
+        **left.normalize().get_columns(),
     }
 
 
 def merge_columns_with_agreement(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
-        for column_name, column_value in normalize_row(row).get_columns().items():
+        for column_name, column_value in row.normalize().get_columns().items():
             values = column_values.setdefault(column_name, {})
             values_with_agreement = to_values_with_agreement(column_value)
 
@@ -410,7 +386,7 @@ class TableFragmentBuilder:
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, do_agreement),
+                lambda r: r.normalize(do_agreement),
                 initial_fragment.rows,
             )
         ]
@@ -421,7 +397,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.agreement is not None)
+        new = row.normalize(self.agreement is not None)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row], source_uuid: str | None):

@@ -1,7 +1,6 @@
 from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
-from utils.column_values import is_empty_value
-
+from utils.column_values import is_empty_value, normalize_str_value
 
 class ValueWithAgreement(BaseModel):
     value: str
@@ -42,11 +41,39 @@ class Row(BaseModel):
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
 
+    def normalize(
+        self,
+        row_agreement: bool = False,
+    ):
+        return Row(
+            **{
+                column: Row.normalize_value(value)
+                for column, value in self.get_columns().items()
+            },
+            agreement_level_=(
+                self.get_agreement_level() if row_agreement else self.agreement_level_
+            ),
+            sources_=self.sources_,
+        )
+
+
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
 
 
+    @staticmethod
+    def normalize_value(value: ColumnValue) -> ColumnValue:
+        if isinstance(value, str):
+            return normalize_str_value(value)
+
+        return [
+            ValueWithAgreement(
+                value=normalize_str_value(value_with_agreement.value),
+                agreement_level=value_with_agreement.agreement_level,
+            )
+            for value_with_agreement in value
+        ]
 
 class TableFragment(BaseModel):
     rows: List[Row]
