@@ -104,7 +104,7 @@ def parse_aliases(text: str) -> dict[str, str]:
 
 
 def build_analyzers(
-    align_columns: bool,
+    use_jaccard: bool,
     threshold: float,
     use_semantic: bool,
     language: str,
@@ -116,7 +116,7 @@ def build_analyzers(
     result: list[Analyzer] = []
     if use_hints and hints:
         result.append(HintsAnalyzer(hints))
-    if align_columns:
+    if use_jaccard:
         result.append(JaccardAnalyzer(threshold))
     if aliases:
         result.append(AliasAnalyzer(aliases))
@@ -328,9 +328,9 @@ def parse_args():
         help="Pretty-print merged output files with indentation",
     )
     parser.add_argument(
-        "--align-columns",
+        "--jaccard-column-alignment",
         action="store_true",
-        help="Align numeric column names to semantic ones using value similarity",
+        help="Align numeric column names to semantic ones using Jaccard value similarity",
     )
     parser.add_argument(
         "--column-alignment-threshold",
@@ -495,6 +495,13 @@ def main():
             normalize_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
+    if args.hints_column_alignment and not hints:
+        print(
+            "Error: --hints-column-alignment requires --column-names-hints or "
+            "--column-names-hints-path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     paper_aliases: dict[str, str] = {}
     if args.paper_aliases:
@@ -503,14 +510,14 @@ def main():
         paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
 
     analyzers = build_analyzers(
-        align_columns=args.align_columns,
-        threshold=args.column_alignment_threshold,
+        use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
+        use_hints=args.hints_column_alignment,
+        threshold=args.column_alignment_threshold,
         language=args.semantic_language,
         aliases=aliases,
         schema=schema,
         hints=hints,
-        use_hints=args.hints_column_alignment,
     )
 
     transformer = (

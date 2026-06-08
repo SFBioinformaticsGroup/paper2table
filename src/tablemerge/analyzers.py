@@ -78,7 +78,7 @@ class HintsAnalyzer:
 
 
 class JaccardAnalyzer:
-    """Enabled by --align-columns.
+    """Enabled by --jaccard-column-alignment.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
     by comparing the set of cell values in each column using Jaccard similarity

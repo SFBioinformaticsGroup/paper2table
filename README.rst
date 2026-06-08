@@ -185,31 +185,31 @@ Column alignment
 
 When different ``paper2table`` runs produce numeric column names (``0``, ``1``, ``2``) instead of semantic ones, ``tablemerge`` can align them automatically.
 
-``--align-columns`` uses Jaccard similarity on column values to detect which numeric column corresponds to which semantic column:
+``--jaccard-column-alignment`` uses Jaccard similarity on column values to detect which numeric column corresponds to which semantic column:
 
 .. code-block:: bash
 
-    $ tablemerge --align-columns tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment tests/data/demo_resultsets/*
 
 ``--column-alignment-threshold`` sets the minimum similarity score (default: 0.5):
 
 .. code-block:: bash
 
-    $ tablemerge --align-columns --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
 
 ``--semantic-column-alignment`` adds an NLP-based pass (spaCy) after Jaccard, comparing column values semantically against column names. Requires a spaCy model:
 
 .. code-block:: bash
 
     $ python -m spacy download en_core_web_md
-    $ tablemerge --align-columns --semantic-column-alignment tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --semantic-column-alignment tests/data/demo_resultsets/*
 
 Use ``--semantic-language`` to select the spaCy model language (``en`` or ``es``, default ``en``):
 
 .. code-block:: bash
 
     $ python -m spacy download es_core_news_md
-    $ tablemerge --align-columns --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
 
 Column aliases
 --------------
