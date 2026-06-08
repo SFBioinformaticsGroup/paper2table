@@ -1,6 +1,9 @@
 from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
+
 from utils.column_values import is_empty_value, normalize_str_value
+from utils.str import normalize_str
+
 
 class ValueWithAgreement(BaseModel):
     value: str
@@ -56,11 +59,9 @@ class Row(BaseModel):
             sources_=self.sources_,
         )
 
-
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
-
 
     @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
@@ -74,6 +75,7 @@ class Row(BaseModel):
             )
             for value_with_agreement in value
         ]
+
 
 class TableFragment(BaseModel):
     rows: List[Row]
@@ -118,3 +120,16 @@ class TablesFile(BaseModel):
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
+
+    @staticmethod
+    def normalize_citation(citation: Citation) -> Citation:
+        if citation is None:
+            return None
+        if isinstance(citation, str):
+            return normalize_str(citation)
+        return [
+            ValueWithAgreement(
+                value=normalize_str(v.value), agreement_level=v.agreement_level
+            )
+            for v in citation
+        ]

@@ -4,7 +4,6 @@ from typing import Protocol
 from unidecode import unidecode
 from utils.column_values import is_empty_value, normalize_str_value
 from utils.column_names import normalize_column_name
-from utils.citation import normalize_citation
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -337,7 +336,7 @@ def merge_tablesfiles(
         merged_tables.append(TableWithFragments(table_fragments=merged_fragments))
 
     # # TODO pick all citations
-    citation = normalize_citation(tablesfiles[0].citation)
+    citation = TablesFile.normalize_citation(tablesfiles[0].citation)
 
     return TablesFile(tables=merged_tables, citation=citation)
 
