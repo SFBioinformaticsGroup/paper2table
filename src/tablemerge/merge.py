@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.column_values import is_empty_value, normalize_str_value
+from utils.column_values import normalize_column_value
 from utils.column_names import normalize_column_name
 from tablevalidate.schema import (
     TablesFile,
@@ -22,18 +22,20 @@ MergeTarget = tuple[TableFragment, TablesFile]
 
 
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
-    normalized_name = normalize_str_value(column_name)
+    normalized_name = normalize_column_value(column_name)
     if isinstance(value, str):
-        return normalize_str_value(value) == normalized_name
+        return normalize_column_value(value) == normalized_name
+
     non_empty = [v.value for v in value if v.value.strip()]
     return bool(non_empty) and all(
-        normalize_str_value(v) == normalized_name for v in non_empty
+        normalize_column_value(v) == normalized_name for v in non_empty
     )
 
 
 def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
     if isinstance(value, str):
         return normalize_column_name(value.strip()) in hints_set
+
     return any(
         normalize_column_name(v.value.strip()) in hints_set
         for v in value
@@ -45,7 +47,7 @@ def has_semantic_header_value(row: Row) -> bool:
     return any(
         value_matches_header(col, val)
         for col, val in row.get_columns().items()
-        if not is_empty_value(val) and Row.is_semantic_column(col)
+        if not Row.is_empty_value(val) and Row.is_semantic_column(col)
     )
 
 
@@ -53,7 +55,7 @@ def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
     return any(
         value_matches_hints(val, hints_set)
         for col, val in row.get_columns().items()
-        if not is_empty_value(val) and not Row.is_semantic_column(col)
+        if not Row.is_empty_value(val) and not Row.is_semantic_column(col)
     )
 
 
@@ -219,7 +221,7 @@ def merge_columns_with_agreement(left: Row, right: Row):
     }
 
 
-def to_values_with_agreement(column_value: ColumnValue):
+def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreement]:
     return (
         [ValueWithAgreement(value=column_value, agreement_level=1)]
         if isinstance(column_value, str)
