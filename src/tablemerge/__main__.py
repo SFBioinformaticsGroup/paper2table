@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
 from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
-from utils.normalize_name import normalize_name
+from utils.columns import normalize_column_name
 
 from .analyzers import (
     Analyzer,
@@ -488,11 +488,11 @@ def main():
     hints: list[str] = []
     if args.column_names_hints:
         hints.extend(
-            normalize_name(h) for h in tokenize_schema(args.column_names_hints)
+            normalize_column_name(h) for h in tokenize_schema(args.column_names_hints)
         )
     if args.column_names_hints_path:
         hints.extend(
-            normalize_name(h)
+            normalize_column_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
     if args.hints_column_alignment and not hints:

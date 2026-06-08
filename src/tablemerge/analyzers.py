@@ -7,7 +7,7 @@ import spacy
 from tablevalidate.schema import ColumnValue, Row
 from tablemerge.schema import Schema
 from tablemerge.spacy_utils import load_spacy_model
-from utils.normalize_name import normalize_name
+from utils.columns import normalize_column_name
 
 
 def column_value_to_strings(value: ColumnValue) -> list[str]:
@@ -73,7 +73,7 @@ class HintsAnalyzer:
                 continue
             strings = [s.strip() for s in column_value_to_strings(val) if s.strip()]
             if strings:
-                result[col] = normalize_name(strings[0])
+                result[col] = normalize_column_name(strings[0])
         return result
 
 

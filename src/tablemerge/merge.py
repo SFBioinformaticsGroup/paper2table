@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_value, normalize_str, normalize_str_value
-from utils.normalize_name import normalize_name
+from utils.rows import is_empty_value, normalize_str_value
+from utils.columns import normalize_column_name
+from utils.citation import normalize_citation
 from tablevalidate.schema import (
-    Citation,
     TablesFile,
     Table,
     TableFragment,
@@ -22,17 +22,6 @@ from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsComp
 MergeTarget = tuple[TableFragment, TablesFile]
 
 
-def normalize_citation(citation: Citation) -> Citation:
-    if citation is None:
-        return None
-    if isinstance(citation, str):
-        return normalize_str(citation)
-    return [
-        ValueWithAgreement(value=normalize_str(v.value), agreement_level=v.agreement_level)
-        for v in citation
-    ]
-
-
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     normalized_name = normalize_str_value(column_name)
     if isinstance(value, str):
@@ -45,8 +34,8 @@ def value_matches_header(column_name: str, value: ColumnValue) -> bool:
 
 def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
     if isinstance(value, str):
-        return normalize_name(value.strip()) in hints_set
-    return any(normalize_name(v.value.strip()) in hints_set for v in value if v.value.strip())
+        return normalize_column_name(value.strip()) in hints_set
+    return any(normalize_column_name(v.value.strip()) in hints_set for v in value if v.value.strip())
 
 
 def has_semantic_header_value(row: Row) -> bool:

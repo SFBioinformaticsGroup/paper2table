@@ -8,7 +8,7 @@ from typing import Callable, cast, Optional, Protocol, Generator
 
 import pandas as pd
 
-from utils.normalize_name import normalize_name
+from utils.columns import normalize_column_name
 
 from ..hints import parse_column_names_hints
 from ..mapping import TableMapping, TablesMapping
@@ -175,7 +175,7 @@ def read_table(
             selected_column_names
         ].rename(columns=renamer)
 
-    dataframe.rename(columns=lambda column: normalize_name(str(column)), inplace=True)
+    dataframe.rename(columns=lambda column: normalize_column_name(str(column)), inplace=True)
     dataframe = cast(pd.DataFrame, dataframe.apply(
         lambda row: list(
             map(lambda v: v.replace("\n", " ") if isinstance(v, str) else v, row)
