@@ -239,7 +239,7 @@ def merge_resultsets(
         "column_names_hints": hints,
         "schema": serialize_schema(schema),
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
-        "post_processors": [p.settings for p in post_processors],
+        "post_processors": {type(p).__name__: p.settings for p in post_processors},
         "fragment_transformer": transformer.settings,
         "compactor": compactor.settings,
         "paper_aliases": paper_aliases,
