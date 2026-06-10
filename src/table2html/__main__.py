@@ -142,7 +142,9 @@ def build_data_row(
     html = [f"<tr class='{css_class}'>"]
     col_values = row.get_columns()
     for col in columns:
-        if col == "agreement_level_":
+        if col == "row_":
+            val = str(row.row_) if row.row_ is not None else ""
+        elif col == "agreement_level_":
             val = str(row.agreement_level_) if row.agreement_level_ is not None else ""
         elif col == "readers_":
             source_ids = row.sources_ or []
@@ -212,6 +214,7 @@ def build_fragment_html(
         if skipped:
             html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
         return html
+    has_row_numbers = any(r.row_ is not None for r in rows)
     has_agreement = any(r.agreement_level_ is not None for r in rows)
     has_sources = any(r.sources_ is not None for r in rows)
     all_col_names = Row.column_names(rows)
@@ -219,6 +222,8 @@ def build_fragment_html(
     common_cols = [c for c in all_col_names if all(c in s for s in row_col_sets)]
     extra_cols = [c for c in all_col_names if c not in common_cols]
     columns = []
+    if has_row_numbers:
+        columns.append("row_")
     if has_agreement:
         columns.append("agreement_level_")
     columns.extend(common_cols)

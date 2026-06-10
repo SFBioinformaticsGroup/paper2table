@@ -14,7 +14,9 @@ def make_paper(tables):
 def test_empty_paper():
     stats = compute_paper_stats(make_paper([]))
     assert stats.tables == 0
+    assert stats.fragments == 0
     assert stats.rows == 0
+    assert stats.columns == 0
     assert stats.rows_with_agreement == 0
     assert stats.agreement_percentage is None
 
@@ -22,7 +24,9 @@ def test_empty_paper():
 def test_paper_with_one_table_one_row():
     stats = compute_paper_stats(make_paper([{"rows": [{"family": "Apiaceae"}], "page": 1}]))
     assert stats.tables == 1
+    assert stats.fragments == 1
     assert stats.rows == 1
+    assert stats.columns == 1
     assert stats.rows_with_agreement == 0
     assert stats.agreement_percentage == 0.0
 
@@ -37,7 +41,9 @@ def test_paper_with_agreement_levels():
         ],
     }]))
     assert stats.tables == 1
+    assert stats.fragments == 1
     assert stats.rows == 3
+    assert stats.columns == 1
     assert stats.rows_with_agreement == 2
     assert pytest.approx(stats.agreement_percentage, rel=1e-3) == (2 / 3) * 100
 
@@ -48,9 +54,31 @@ def test_multiple_tables():
         {"page": 2, "rows": [{"family": "Lamiaceae", "agreement_level_": 2}]},
     ]))
     assert stats.tables == 2
+    assert stats.fragments == 2
     assert stats.rows == 3
+    assert stats.columns == 1
     assert stats.rows_with_agreement == 1
     assert stats.agreement_percentage == pytest.approx((1 / 3) * 100)
+
+
+def test_table_with_multiple_fragments_counts_each():
+    stats = compute_paper_stats(make_paper([{
+        "table_fragments": [
+            {"page": 1, "rows": [{"family": "Apiaceae"}]},
+            {"page": 2, "rows": [{"family": "Rosaceae"}]},
+        ]
+    }]))
+    assert stats.tables == 1
+    assert stats.fragments == 2
+    assert stats.rows == 2
+
+
+def test_columns_counts_unique_across_fragments():
+    stats = compute_paper_stats(make_paper([
+        {"page": 1, "rows": [{"family": "Apiaceae", "genus": "Ammi"}]},
+        {"page": 2, "rows": [{"family": "Rosaceae", "color": "red"}]},
+    ]))
+    assert stats.columns == 3
 
 
 def test_infer_type_int():
@@ -75,7 +103,7 @@ def test_infer_type_with_agreement_list():
 
 
 def test_format_stats_with_columns():
-    stats = GlobalStats(papers=1, tables=1, rows=2, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, papers_stats={})
     output = format_stats(stats, {"species": "str", "count": "int"})
     assert "Unique Columns:" in output
     assert "species:str" in output
@@ -83,7 +111,7 @@ def test_format_stats_with_columns():
 
 
 def test_format_stats_without_columns():
-    stats = GlobalStats(papers=1, tables=1, rows=2, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, papers_stats={})
     assert "Unique Columns:" not in format_stats(stats)
 
 

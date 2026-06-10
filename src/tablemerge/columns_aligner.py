@@ -20,6 +20,7 @@ class ColumnAligner:
         return Row(
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,
+            row_=row.row_,
             **{self.rename_column(k): v for k, v in row.get_columns().items()},
         )
 
