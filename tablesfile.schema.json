@@ -80,6 +80,12 @@
       "properties": {
         "filename": {
           "type": "string"
+        },
+        "curations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/curation"
+          }
         }
       },
       "additionalProperties": true
@@ -87,6 +93,22 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "curation": {
+      "type": "object",
+      "properties": {
+        "curator": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      },
+      "required": ["curator"],
+      "additionalProperties": false
+    },
     "valueWithAgreement": {
       "type": "object",
       "properties": {

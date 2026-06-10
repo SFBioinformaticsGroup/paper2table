@@ -397,7 +397,7 @@ def merge_tablesfiles(
                 for left_row in left_rows:
                     while (
                         right_idx < len(right_rows)
-                        and right_rows[right_idx].row_ < left_row.row_
+                        and (right_rows[right_idx].row_ or 0) < (left_row.row_ or 0)
                     ):
                         table_fragment_builder.append_skipped(
                             [right_rows[right_idx]], right_uuid
