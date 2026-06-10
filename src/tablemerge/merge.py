@@ -100,9 +100,11 @@ def is_title_row(row: Row) -> bool:
     val = next(iter(non_empty.values()))
     if isinstance(val, str):
         text = val.strip()
-    else:
+    elif isinstance(val, list):
         texts = [v.value.strip() for v in val if v.value.strip()]
         text = texts[0] if texts else ""
+    else:
+        return False
     return bool(_TITLE_ROW_RE.match(text))
 
 
