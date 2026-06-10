@@ -22,11 +22,11 @@ from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
     filter_header_rows,
-    filter_title_rows,
     MergeError,
     SimpleCountAgreement,
     DistinctReadersAgreement,
 )
+from .tablesfile_loader import TablesFileLoader
 from .schema import PostProcessor, Schema
 from .postprocessors import build_postprocessors
 from .fragment_transformer import (
@@ -167,14 +167,14 @@ def merge_tablesfiles_paths(
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
+    loader = TablesFileLoader()
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
-            with open(tables_path, "r", encoding="utf-8") as f:
-                tablesfile = TablesFile.model_validate(json.load(f))
-                tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
-                tablesfiles.append(filter_title_rows(tablesfile))
+            tablesfile = loader.load(tables_path)
+            tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
+            tablesfiles.append(tablesfile)
 
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
