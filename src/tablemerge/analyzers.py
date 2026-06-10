@@ -1,5 +1,5 @@
 import re
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from unidecode import unidecode
 import spacy
@@ -18,10 +18,25 @@ def column_value_to_strings(value: ColumnValue) -> list[str]:
     return [entry.value for entry in value]
 
 
-class Analyzer(Protocol):
+class LoadTimeAnalyzer(ABC):
     @property
+    @abstractmethod
     def settings(self) -> dict: ...
 
+    @abstractmethod
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]: ...
+
+
+class MergeTimeAnalyzer(ABC):
+    @property
+    @abstractmethod
+    def settings(self) -> dict: ...
+
+    @abstractmethod
     def build_mapping(
         self,
         left_column_names: list[str],
@@ -31,7 +46,10 @@ class Analyzer(Protocol):
     ) -> dict[str, str]: ...
 
 
-class HintsAnalyzer:
+Analyzer = LoadTimeAnalyzer | MergeTimeAnalyzer
+
+
+class HintsAnalyzer(LoadTimeAnalyzer):
     """Enabled by --hints-column-alignment.
 
     Inspects the first non-empty row of the left fragment. If at least one
@@ -50,15 +68,13 @@ class HintsAnalyzer:
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
-        non_semantic = [c for c in left_column_names if not Row.is_semantic_column(c)]
+        non_semantic = [c for c in column_names if not Row.is_semantic_column(c)]
         if not non_semantic:
             return {}
-        first_row = next((r for r in left_rows if not r.is_empty()), None)
+        first_row = next((r for r in rows if not r.is_empty()), None)
         if first_row is None:
             return {}
         row_values = self._non_semantic_normalized_values(first_row, non_semantic)
@@ -79,7 +95,7 @@ class HintsAnalyzer:
         return result
 
 
-class JaccardAnalyzer:
+class JaccardAnalyzer(MergeTimeAnalyzer):
     """Enabled by --jaccard-column-alignment.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
@@ -160,7 +176,7 @@ class JaccardAnalyzer:
         return len(a & b) / union if union else 0.0
 
 
-class AliasAnalyzer:
+class AliasAnalyzer(LoadTimeAnalyzer):
     """Enabled by --column-aliases / --column-aliases-path.
 
     Applies an explicit user-provided rename dictionary. No heuristics, no data inspection.
@@ -178,16 +194,14 @@ class AliasAnalyzer:
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
-        all_cols = list(dict.fromkeys(left_column_names + right_column_names))
+        all_cols = list(dict.fromkeys(column_names))
         return {col: self.aliases[col] for col in all_cols if col in self.aliases}
 
 
-class SemanticAnalyzer:
+class SemanticAnalyzer(LoadTimeAnalyzer):
     """Enabled by --semantic-column-alignment.
 
     Renames numeric columns ("0", "1", ...) in the left fragment to schema column names by
@@ -208,25 +222,23 @@ class SemanticAnalyzer:
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
         if not self.schema:
             return {}
 
-        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
+        numeric = [c for c in column_names if not Row.is_semantic_column(c)]
 
-        if not left_numeric:
+        if not numeric:
             return {}
 
         schema_cols = list(self.schema.keys())
         nlp = self.load_model()
         scores = []
 
-        for numeric_col in left_numeric:
-            values = self.sample_values(left_rows, numeric_col)
+        for numeric_col in numeric:
+            values = self.sample_values(rows, numeric_col)
             if not values:
                 continue
             for schema_col in schema_cols:

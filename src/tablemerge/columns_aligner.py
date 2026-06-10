@@ -1,5 +1,5 @@
 from tablevalidate.schema import TableFragment, Row
-from .analyzers import Analyzer
+from .analyzers import Analyzer, LoadTimeAnalyzer
 
 
 class ColumnAligner:
@@ -42,9 +42,13 @@ class ColumnAligner:
         for analyzer in self.analyzers:
             if not remaining_left and not remaining_right:
                 break
-            new_mapping = analyzer.build_mapping(
-                remaining_left, remaining_right, left_rows, right_rows
-            )
+            if isinstance(analyzer, LoadTimeAnalyzer):
+                combined = list(dict.fromkeys(remaining_left + remaining_right))
+                new_mapping = analyzer.build_mapping(combined, left_rows)
+            else:
+                new_mapping = analyzer.build_mapping(
+                    remaining_left, remaining_right, left_rows, right_rows
+                )
             if not new_mapping:
                 continue
             for k in accumulated:
