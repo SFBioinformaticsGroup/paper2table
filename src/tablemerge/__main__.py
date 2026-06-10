@@ -19,14 +19,13 @@ from .analyzers import (
     SemanticAnalyzer,
 )
 from .merge import (
-    merge_tablesfiles,
     filter_semantic_columns,
     filter_header_rows,
-    MergeError,
-    SimpleCountAgreement,
-    DistinctReadersAgreement,
 )
+from .agreement import SimpleCountAgreement, DistinctReadersAgreement
+from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
+from .tablesfile_merger import TablesFileMerger
 from .schema import PostProcessor, Schema
 from .postprocessors import build_postprocessors
 from .fragment_transformer import (
@@ -183,13 +182,12 @@ def merge_tablesfiles_paths(
         return
 
     try:
-        merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles,
+        merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
             analyzers=analyzers,
             transformer=transformer,
             compactor=compactor,
-        )
+        ).merge(tablesfiles)
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         if remove_header_rows:

@@ -4,10 +4,6 @@ import pytest
 from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
 from tablemerge.merge import (
-    merge_tablesfiles,
-    merge_rows,
-    SimpleCountAgreement,
-    DistinctReadersAgreement,
     filter_semantic_columns,
     filter_header_rows,
     filter_title_rows,
@@ -19,8 +15,10 @@ from tablemerge.merge import (
     has_hints_header_value,
     value_matches_header,
     value_matches_hints,
-    to_values_with_agreement,
 )
+from tablemerge.agreement import SimpleCountAgreement, DistinctReadersAgreement
+from tablemerge.fragments_builder import merge_rows, to_values_with_agreement
+from tablemerge.tablesfile_merger import merge_tablesfiles
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
