@@ -13,9 +13,13 @@ class ValueWithAgreement(BaseModel):
 ColumnValue = Union[None, str, List[ValueWithAgreement]]
 
 
+_SPECIAL_FIELDS = frozenset(("agreement_level_", "sources_", "row_"))
+
+
 class Row(BaseModel):
     agreement_level_: Optional[int] = Field(None)
     sources_: Optional[List[str]] = Field(None)
+    row_: Optional[int] = Field(None)
 
     model_config = ConfigDict(extra="allow")
 
@@ -23,7 +27,7 @@ class Row(BaseModel):
         return self.__dict__[item]
 
     def get_columns(self) -> Dict[str, ColumnValue]:
-        return {k: v for k, v in self if k not in ("agreement_level_", "sources_")}
+        return {k: v for k, v in self if k not in _SPECIAL_FIELDS}
 
     @staticmethod
     def is_semantic_column(name: str) -> bool:
@@ -57,6 +61,7 @@ class Row(BaseModel):
                 self.get_agreement_level() if row_agreement else self.agreement_level_
             ),
             sources_=self.sources_,
+            row_=self.row_,
         )
 
     @staticmethod

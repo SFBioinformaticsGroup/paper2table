@@ -68,6 +68,7 @@ class FragmentValuesReverser:
             },
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,
+            row_=row.row_,
         )
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:

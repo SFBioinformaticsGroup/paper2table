@@ -141,6 +141,7 @@ def drop_empty_non_semantic_columns(tablesfile: TablesFile) -> TablesFile:
                 Row(
                     agreement_level_=row.agreement_level_,
                     sources_=row.sources_,
+                    row_=row.row_,
                     **{k: v for k, v in row.get_columns().items() if k not in empty_cols},
                 )
                 for row in fragment.rows
@@ -178,6 +179,7 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
                 Row(
                     agreement_level_=row.agreement_level_,
                     sources_=row.sources_,
+                    row_=row.row_,
                     **row.get_semantic_columns(),
                 )
                 for row in fragment.rows
@@ -273,7 +275,7 @@ def merge_rows(
     right_sources = right.sources_ or []
     sources = list(dict.fromkeys(left_sources + right_sources)) or None
 
-    return Row(agreement_level_=agreement_level, sources_=sources, **columns)
+    return Row(agreement_level_=agreement_level, sources_=sources, row_=left.row_, **columns)
 
 
 def merge_columns_without_agreement(left: Row, right: Row):
@@ -385,36 +387,38 @@ def merge_tablesfiles(
                     )
 
                 right_uuid = right_tablesfile.uuid
-                right_rows = [aligner.rename_row(r) for r in right_fragment.rows]
+                right_rows = [
+                    aligner.rename_row(r).model_copy(update={"row_": i})
+                    for i, r in enumerate(right_fragment.rows)
+                ]
                 left_rows = table_fragment_builder.next_left_rows()
-                start_right_index = 0
+                right_idx = 0
 
                 for left_row in left_rows:
-                    found = False
-                    for right_index in range(start_right_index, len(right_rows)):
-                        if same_row(left_row, right_rows[right_index]):
-                            table_fragment_builder.append_skipped(
-                                right_rows[start_right_index:right_index], right_uuid
-                            )
+                    while (
+                        right_idx < len(right_rows)
+                        and right_rows[right_idx].row_ < left_row.row_
+                    ):
+                        table_fragment_builder.append_skipped(
+                            [right_rows[right_idx]], right_uuid
+                        )
+                        right_idx += 1
 
-                            right_row = right_rows[right_index].model_copy(
-                                update={
-                                    "sources_": [right_uuid] if right_uuid else None
-                                }
-                            )
-                            table_fragment_builder.merge_and_append(left_row, right_row)
-                            # update right index so that
-                            # new left rows are matched only to rows that
-                            # are after the one found
-                            start_right_index = right_index + 1
-                            found = True
-                            break
-
-                    if not found:
+                    if (
+                        right_idx < len(right_rows)
+                        and right_rows[right_idx].row_ == left_row.row_
+                        and same_row(left_row, right_rows[right_idx])
+                    ):
+                        right_row = right_rows[right_idx].model_copy(
+                            update={"sources_": [right_uuid] if right_uuid else None}
+                        )
+                        table_fragment_builder.merge_and_append(left_row, right_row)
+                        right_idx += 1
+                    else:
                         table_fragment_builder.append_unmatched(left_row)
 
                 table_fragment_builder.append_skipped(
-                    right_rows[start_right_index:], right_uuid
+                    right_rows[right_idx:], right_uuid
                 )
 
             merged_fragments.append(table_fragment_builder.build())
@@ -468,11 +472,10 @@ class TableFragmentBuilder:
         do_agreement = agreement is not None
         self.rows = [
             row.model_copy(
-                update={"sources_": [initial_uuid] if initial_uuid else None}
+                update={"sources_": [initial_uuid] if initial_uuid else None, "row_": i}
             )
-            for row in map(
-                lambda r: r.normalize(do_agreement),
-                initial_fragment.rows,
+            for i, row in enumerate(
+                map(lambda r: r.normalize(do_agreement), initial_fragment.rows)
             )
         ]
 
@@ -496,17 +499,7 @@ class TableFragmentBuilder:
             self._append(stamped)
 
     def append_unmatched(self, row: Row):
-        """
-        Append a row that was not found in the right table
-        add it as is, unless it was added as part of
-        an skipped range
-        """
-        if not any(same_row(merged_row, row) for merged_row in self.rows):
-            self._append(row)
-        else:
-            # TODO merge existing and not found
-            # and replace it
-            pass
+        self._append(row)
 
     def merge_and_append(self, left: Row, right: Row):
         """

@@ -88,7 +88,7 @@ class SchemaPostProcessor:
             cols = row.get_columns()
             ordered = {k: cols[k] for k in schema_keys if k in cols}
             ordered |= {k: v for k, v in cols.items() if k not in ordered}
-            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, **ordered)
+            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, row_=row.row_, **ordered)
 
         def reorder_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(rows=list(map(reorder_row, fragment.rows)), page=fragment.page)
@@ -122,7 +122,7 @@ class SchemaPostProcessor:
                 )
                 for col, val in row.get_columns().items()
             }
-            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, **cols)
+            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, row_=row.row_, **cols)
 
         def coerce_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(rows=list(map(coerce_row, fragment.rows)), page=fragment.page)

@@ -118,6 +118,13 @@ def test_order_preserves_metadata():
     assert row.sources_ == ["uuid1"]
 
 
+def test_order_preserves_row_number():
+    result = order_processor().postprocess(
+        wrap([Row(name="Rosa", row_=7)])
+    )
+    assert rows_of(result)[0].row_ == 7
+
+
 COERCE_SCHEMA = {
     "year": (int, ...),
     "length": (float, ...),
@@ -181,6 +188,11 @@ def test_coerce_types_non_schema_column_untouched():
         coerce_cols(coerce_processor().postprocess(wrap([Row(color="red")])))["color"]
         == "red"
     )
+
+
+def test_coerce_preserves_row_number():
+    result = coerce_processor().postprocess(wrap([Row(year="2020", row_=3)]))
+    assert rows_of(result)[0].row_ == 3
 
 
 def test_coerce_types_value_with_agreement():
