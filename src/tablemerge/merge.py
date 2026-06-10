@@ -153,6 +153,20 @@ def drop_empty_non_semantic_columns(tablesfile: TablesFile) -> TablesFile:
     )
 
 
+def drop_empty_tables(tablesfile: TablesFile) -> TablesFile:
+    filtered_tables = []
+    for table in tablesfile.tables:
+        fragments = [f for f in table.get_table_fragments() if not f.is_empty()]
+        if fragments:
+            filtered_tables.append(TableWithFragments(table_fragments=fragments))
+    return TablesFile(
+        tables=filtered_tables,
+        citation=tablesfile.citation,
+        metadata=tablesfile.metadata,
+        uuid=tablesfile.uuid,
+    )
+
+
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:

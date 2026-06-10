@@ -12,6 +12,7 @@ from tablemerge.merge import (
     filter_header_rows,
     filter_title_rows,
     drop_empty_non_semantic_columns,
+    drop_empty_tables,
     is_title_row,
     is_header_row,
     has_semantic_header_value,
@@ -1313,3 +1314,66 @@ def test_value_matches_hints_returns_false_for_none():
 
 def test_to_values_with_agreement_returns_empty_list_for_none():
     assert to_values_with_agreement(None) == []
+
+
+def test_table_fragment_is_empty_all_empty_rows():
+    fragment = TableFragment(rows=[Row(family="", scientific_name=None)], page=1)
+    assert fragment.is_empty()
+
+
+def test_table_fragment_is_empty_false_when_has_data():
+    fragment = TableFragment(rows=[Row(family="Apiaceae")], page=1)
+    assert not fragment.is_empty()
+
+
+def test_table_fragment_is_empty_true_when_no_rows():
+    fragment = TableFragment(rows=[], page=1)
+    assert fragment.is_empty()
+
+
+def test_table_with_fragments_is_empty_all_fragments_empty():
+    table = TableWithFragments(table_fragments=[
+        TableFragment(rows=[Row(family="")], page=1),
+        TableFragment(rows=[Row(family="")], page=2),
+    ])
+    assert table.is_empty()
+
+
+def test_table_with_fragments_is_empty_false_when_any_fragment_has_data():
+    table = TableWithFragments(table_fragments=[
+        TableFragment(rows=[Row(family="")], page=1),
+        TableFragment(rows=[Row(family="Apiaceae")], page=2),
+    ])
+    assert not table.is_empty()
+
+
+def test_drop_empty_tables_removes_empty_table():
+    non_empty = wrap([Row(family="Apiaceae")])
+    empty = wrap([Row(family="")])
+    combined = TablesFile(
+        tables=non_empty.tables + empty.tables,
+        citation="",
+    )
+    result = drop_empty_tables(combined)
+    assert result.tables == non_empty.tables
+
+
+def test_drop_empty_tables_removes_empty_fragments():
+    non_empty_fragment = TableFragment(rows=[Row(family="Apiaceae")], page=1)
+    empty_fragment = TableFragment(rows=[Row(family="")], page=2)
+    table = TableWithFragments(table_fragments=[non_empty_fragment, empty_fragment])
+    tablesfile = TablesFile(tables=[table], citation="")
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == [TableWithFragments(table_fragments=[non_empty_fragment])]
+
+
+def test_drop_empty_tables_keeps_all_when_none_empty():
+    tablesfile = wrap([Row(family="Apiaceae"), Row(family="Fabaceae")])
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == tablesfile.tables
+
+
+def test_drop_empty_tables_returns_empty_tables_list_when_all_empty():
+    tablesfile = wrap([Row(family="")])
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == []

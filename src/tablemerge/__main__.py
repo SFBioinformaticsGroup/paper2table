@@ -23,12 +23,12 @@ from .merge import (
     filter_semantic_columns,
     filter_header_rows,
     filter_title_rows,
-    drop_empty_non_semantic_columns,
     MergeError,
     SimpleCountAgreement,
     DistinctReadersAgreement,
 )
-from .schema import PostProcessor, Schema, SchemaPostProcessor, NullPostProcessor
+from .schema import PostProcessor, Schema
+from .postprocessors import build_postprocessors
 from .fragment_transformer import (
     NullFragmentTransformer,
     FragmentTransformer,
@@ -163,7 +163,7 @@ def merge_tablesfiles_paths(
     hints: list[str] = [],
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
-    post_processor: PostProcessor = NullPostProcessor(),
+    post_processors: list[PostProcessor] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
@@ -194,8 +194,8 @@ def merge_tablesfiles_paths(
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         if remove_header_rows:
             merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
-        merged_tablesfile = drop_empty_non_semantic_columns(merged_tablesfile)
-        merged_tablesfile = post_processor.postprocess(merged_tablesfile)
+        for post_processor in post_processors:
+            merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -222,7 +222,7 @@ def merge_resultsets(
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     schema: Schema = {},
-    post_processor: PostProcessor = NullPostProcessor(),
+    post_processors: list[PostProcessor] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
@@ -239,7 +239,7 @@ def merge_resultsets(
         "column_names_hints": hints,
         "schema": serialize_schema(schema),
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
-        "post_processor": post_processor.settings,
+        "post_processors": [p.settings for p in post_processors],
         "fragment_transformer": transformer.settings,
         "compactor": compactor.settings,
         "paper_aliases": paper_aliases,
@@ -280,7 +280,7 @@ def merge_resultsets(
         hints=hints,
         pretty=pretty,
         analyzers=analyzers,
-        post_processor=post_processor,
+        post_processors=post_processors,
         transformer=transformer,
         compactor=compactor,
     )
@@ -472,15 +472,12 @@ def main():
         )
         sys.exit(1)
     schema = load_schema(args.schema_path) if args.schema_path else {}
-    if schema:
-        post_processor = SchemaPostProcessor(
-            schema,
-            filter_columns=args.filter_schema_columns,
-            order_columns=args.order_schema_columns,
-            coerce_types=args.coerce_schema_column_types,
-        )
-    else:
-        post_processor = NullPostProcessor()
+    post_processors = build_postprocessors(
+        schema=schema,
+        filter_columns=args.filter_schema_columns,
+        order_columns=args.order_schema_columns,
+        coerce_types=args.coerce_schema_column_types,
+    )
 
     aliases: dict[str, str] = {}
     if args.column_aliases:
@@ -548,7 +545,7 @@ def main():
         pretty=args.pretty,
         analyzers=analyzers,
         schema=schema,
-        post_processor=post_processor,
+        post_processors=post_processors,
         transformer=transformer,
         compactor=compactor,
         workers=args.workers,
