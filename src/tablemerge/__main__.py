@@ -174,7 +174,7 @@ def merge_tablesfiles_paths(
             with open(tables_path, "r", encoding="utf-8") as f:
                 tablesfile = TablesFile.model_validate(json.load(f))
                 tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
-                tablesfiles.append(filter_title_rows(drop_empty_non_semantic_columns(tablesfile)))
+                tablesfiles.append(filter_title_rows(tablesfile))
 
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
@@ -194,6 +194,7 @@ def merge_tablesfiles_paths(
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         if remove_header_rows:
             merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
+        merged_tablesfile = drop_empty_non_semantic_columns(merged_tablesfile)
         merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
