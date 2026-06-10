@@ -32,7 +32,6 @@ def rows_of(tf: TablesFile, table=0, fragment=0):
     return tf.tables[table].get_table_fragments()[fragment].rows
 
 
-
 FILTER_SCHEMA = {"name": (str, ...), "species": (str, ...)}
 
 
@@ -205,3 +204,12 @@ def test_coerce_types_preserves_metadata():
     row = rows_of(result)[0]
     assert row.agreement_level_ == 2
     assert row.sources_ == ["u1"]
+
+
+def test_coerce_types_none_column_value_left_unchanged():
+    assert (
+        coerce_cols(coerce_processor().postprocess(wrap([Row(**{"year": None})])))[
+            "year"
+        ]
+        is None
+    )

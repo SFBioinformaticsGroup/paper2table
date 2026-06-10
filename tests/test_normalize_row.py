@@ -1,6 +1,5 @@
 # pyright: reportCallIssue=false
 import pytest
-from tablemerge.merge import normalize_row
 from tablevalidate.schema import (
     Row,
     ValueWithAgreement,
@@ -8,29 +7,27 @@ from tablevalidate.schema import (
 
 
 def test_normalize_simple_row():
-    assert normalize_row(
-        Row(family=" Apiaceae ", scientific_name="Ammi majus L.")
-    ) == Row(family="apiaceae", scientific_name="ammi majus l.")
+    assert Row(family=" Apiaceae ", scientific_name="Ammi majus l.").normalize() == Row(
+        family="apiaceae", scientific_name="ammi majus l."
+    )
 
 
 def test_normalize_row_with_agreement_level():
-    assert normalize_row(
-        Row(family=" Apiaceae ", scientific_name="Ammi majus L.", agreement_level_=2)
-    ) == Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2)
+    assert Row(
+        family=" Apiaceae ", scientific_name="Ammi majus L.", agreement_level_=2
+    ).normalize() == Row(
+        family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2
+    )
 
 
 def test_normalize_row_with_column_agreement_level():
-    assert normalize_row(
-        Row(
-            family=[
-                ValueWithAgreement(value=" Apiaceae ", agreement_level=1),
-                ValueWithAgreement(value="Amni ", agreement_level=1),
-            ],
-            scientific_name=[
-                ValueWithAgreement(value="Ammi majus L.", agreement_level=2)
-            ],
-        )
-    ) == Row(
+    assert Row(
+        family=[
+            ValueWithAgreement(value=" Apiaceae ", agreement_level=1),
+            ValueWithAgreement(value="Amni ", agreement_level=1),
+        ],
+        scientific_name=[ValueWithAgreement(value="Ammi majus L.", agreement_level=2)],
+    ).normalize() == Row(
         family=[
             ValueWithAgreement(value="apiaceae", agreement_level=1),
             ValueWithAgreement(value="amni", agreement_level=1),
@@ -40,12 +37,10 @@ def test_normalize_row_with_column_agreement_level():
 
 
 def test_normalize_row_with_mixed_values():
-    assert normalize_row(
-        Row(
-            family=[ValueWithAgreement(value=" Apiaceae ", agreement_level=2)],
-            scientific_name="Ammi majus L.",
-        ),
-    ) == Row(
+    assert Row(
+        family=[ValueWithAgreement(value=" Apiaceae ", agreement_level=2)],
+        scientific_name="Ammi majus L.",
+    ).normalize() == Row(
         family=[ValueWithAgreement(value="apiaceae", agreement_level=2)],
         scientific_name="ammi majus l.",
     )
@@ -53,12 +48,16 @@ def test_normalize_row_with_mixed_values():
 
 def test_normalize_row_preserves_sources():
     uuids = ["uuid-a", "uuid-b"]
-    assert normalize_row(
-        Row(family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=uuids)
-    ) == Row(family="apiaceae", scientific_name="ammi majus l.", sources_=uuids)
+    assert Row(
+        family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=uuids
+    ).normalize() == Row(
+        family="apiaceae", scientific_name="ammi majus l.", sources_=uuids
+    )
 
 
 def test_normalize_row_preserves_none_sources():
-    assert normalize_row(
-        Row(family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=None)
-    ) == Row(family="apiaceae", scientific_name="ammi majus l.", sources_=None)
+    assert Row(
+        family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=None
+    ).normalize() == Row(
+        family="apiaceae", scientific_name="ammi majus l.", sources_=None
+    )

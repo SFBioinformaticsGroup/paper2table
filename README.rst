@@ -185,31 +185,31 @@ Column alignment
 
 When different ``paper2table`` runs produce numeric column names (``0``, ``1``, ``2``) instead of semantic ones, ``tablemerge`` can align them automatically.
 
-``--align-columns`` uses Jaccard similarity on column values to detect which numeric column corresponds to which semantic column:
+``--jaccard-column-alignment`` uses Jaccard similarity on column values to detect which numeric column corresponds to which semantic column:
 
 .. code-block:: bash
 
-    $ tablemerge --align-columns tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment tests/data/demo_resultsets/*
 
 ``--column-alignment-threshold`` sets the minimum similarity score (default: 0.5):
 
 .. code-block:: bash
 
-    $ tablemerge --align-columns --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
 
 ``--semantic-column-alignment`` adds an NLP-based pass (spaCy) after Jaccard, comparing column values semantically against column names. Requires a spaCy model:
 
 .. code-block:: bash
 
     $ python -m spacy download en_core_web_md
-    $ tablemerge --align-columns --semantic-column-alignment tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --semantic-column-alignment tests/data/demo_resultsets/*
 
 Use ``--semantic-language`` to select the spaCy model language (``en`` or ``es``, default ``en``):
 
 .. code-block:: bash
 
     $ python -m spacy download es_core_news_md
-    $ tablemerge --align-columns --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
+    $ tablemerge --jaccard-column-alignment --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
 
 Column aliases
 --------------
@@ -223,6 +223,38 @@ Column aliases
     $ tablemerge --column-aliases-path aliases.txt tests/data/demo_resultsets/*
 
 Both flags can be used together; the file takes precedence on conflicts.
+
+Column name hints
+-----------------
+
+``--column-names-hints`` and ``--column-names-hints-path`` supply the expected column
+names for runs that produced only numeric column names (``0``, ``1``, …). Hints use the
+same format as the ``-c`` flag in ``paper2table`` (whitespace- or comma-separated, ``#`` comments allowed):
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" tests/data/demo_resultsets/*
+
+    $ tablemerge --column-names-hints-path hints.txt tests/data/demo_resultsets/*
+
+Both flags can be combined; their hint lists are merged.
+
+``--hints-column-alignment`` activates hints-based column renaming: if at least one
+non-empty value in the first non-empty row of a table with numeric column names matches
+a hint, all numeric columns are renamed to their normalized first-row values (even
+columns whose value is not in the hints list). This pass runs before all other alignment steps:
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" --hints-column-alignment tests/data/demo_resultsets/*
+
+When ``--remove-header-rows`` is combined with hints, any row containing at least one
+non-semantic cell value that matches a hint is also removed, in addition to the usual
+semantic-column check:
+
+.. code-block:: bash
+
+    $ tablemerge --column-names-hints "species family color" --remove-header-rows tests/data/demo_resultsets/*
 
 Schema
 ------

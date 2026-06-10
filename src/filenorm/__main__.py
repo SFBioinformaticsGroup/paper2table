@@ -2,7 +2,7 @@ import argparse
 import hashlib
 import os
 
-from utils.normalize_name import normalize_name
+from utils.column_names import normalize_column_name
 from utils.handle_sigint import handle_sigint
 
 
@@ -39,9 +39,9 @@ def plan_actions(files: list[str]):
             new_basename, _ = os.path.splitext(os.path.basename(new))
             old_basename, _ = os.path.splitext(os.path.basename(old))
 
-            if normalize_name(new_basename) == old_basename:
+            if normalize_column_name(new_basename) == old_basename:
                 keep = old
-            elif normalize_name(old_basename) == new_basename:
+            elif normalize_column_name(old_basename) == new_basename:
                 keep = new
             else:
                 keep = min([old, new], key=len)
@@ -53,7 +53,7 @@ def plan_actions(files: list[str]):
     seen = set()
     for file in checksums.values():
         base, ext = os.path.splitext(os.path.basename(file))
-        new_base = normalize_name(base)
+        new_base = normalize_column_name(base)
         candidate = new_base + ext.lower()
         idx = 1
         while candidate in seen:

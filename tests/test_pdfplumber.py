@@ -98,52 +98,52 @@ def test_read_table_with_hints():
     assert result.tables[0].rows == [
         {
             "common_name": "Sun\x00ower",
-            "scienti_c_name": "Helianthus annuus",
+            "scientic_name": "Helianthus annuus",
             "species": "annuus",
         },
         {
             "common_name": "Rose",
-            "scienti_c_name": "Rosa gallica",
+            "scientic_name": "Rosa gallica",
             "species": "gallica",
         },
         {
             "common_name": "Tulip",
-            "scienti_c_name": "Tulipa gesneriana",
+            "scientic_name": "Tulipa gesneriana",
             "species": "gesneriana",
         },
         {
             "common_name": "Lavender",
-            "scienti_c_name": "Lavandula angustifolia",
+            "scientic_name": "Lavandula angustifolia",
             "species": "angustifolia",
         },
         {
             "common_name": "Oak",
-            "scienti_c_name": "Quercus robur",
+            "scientic_name": "Quercus robur",
             "species": "robur",
         },
         {
             "common_name": "Maple",
-            "scienti_c_name": "Acer saccharum",
+            "scientic_name": "Acer saccharum",
             "species": "saccharum",
         },
         {
             "common_name": "Dandelion",
-            "scienti_c_name": "Taraxacum o\x00cinale",
+            "scientic_name": "Taraxacum o\x00cinale",
             "species": "o\x00cinale",
         },
         {
             "common_name": "Bamboo",
-            "scienti_c_name": "Bambusa vulgaris",
+            "scientic_name": "Bambusa vulgaris",
             "species": "vulgaris",
         },
         {
             "common_name": "Cactus (Prickly Pear)",
-            "scienti_c_name": "Opuntia \x00cus-indica",
+            "scientic_name": "Opuntia \x00cus-indica",
             "species": "\x00cus-indica",
         },
         {
             "common_name": "Coffee",
-            "scienti_c_name": "Coffea arabica",
+            "scientic_name": "Coffea arabica",
             "species": "arabica",
         },
     ]

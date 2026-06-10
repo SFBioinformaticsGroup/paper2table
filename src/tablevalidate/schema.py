@@ -1,6 +1,8 @@
 from typing import List, Union, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
-from utils.rows import is_empty_value
+
+from utils.column_values import normalize_column_value
+from utils.str import normalize_str
 
 
 class ValueWithAgreement(BaseModel):
@@ -8,7 +10,7 @@ class ValueWithAgreement(BaseModel):
     agreement_level: int
 
 
-ColumnValue = Union[str, List[ValueWithAgreement]]
+ColumnValue = Union[None, str, List[ValueWithAgreement]]
 
 
 class Row(BaseModel):
@@ -37,14 +39,55 @@ class Row(BaseModel):
         }
 
     def is_empty(self) -> bool:
-        return all(is_empty_value(v) for v in self.get_columns().values())
+        return all(Row.is_empty_value(v) for v in self.get_columns().values())
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
 
+    def normalize(
+        self,
+        row_agreement: bool = False,
+    ):
+        return Row(
+            **{
+                column: Row.normalize_value(value)
+                for column, value in self.get_columns().items()
+            },
+            agreement_level_=(
+                self.get_agreement_level() if row_agreement else self.agreement_level_
+            ),
+            sources_=self.sources_,
+        )
+
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
+
+    @staticmethod
+    def is_empty_value(value: ColumnValue) -> bool:
+        if value is None:
+            return True
+
+        if isinstance(value, str):
+            return not normalize_column_value(value)
+
+        return all(not normalize_column_value(v.value) for v in value)
+
+    @staticmethod
+    def normalize_value(value: ColumnValue) -> ColumnValue:
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            return normalize_column_value(value)
+
+        return [
+            ValueWithAgreement(
+                value=normalize_column_value(value_with_agreement.value),
+                agreement_level=value_with_agreement.agreement_level,
+            )
+            for value_with_agreement in value
+        ]
 
 
 class TableFragment(BaseModel):
@@ -82,7 +125,7 @@ class Metadata(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-Citation = Union[Optional[str], List[ValueWithAgreement]]
+Citation = Union[None, str, List[ValueWithAgreement]]
 
 
 class TablesFile(BaseModel):
@@ -90,3 +133,16 @@ class TablesFile(BaseModel):
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
+
+    @staticmethod
+    def normalize_citation(citation: Citation) -> Citation:
+        if citation is None:
+            return None
+        if isinstance(citation, str):
+            return normalize_str(citation)
+        return [
+            ValueWithAgreement(
+                value=normalize_str(v.value), agreement_level=v.agreement_level
+            )
+            for v in citation
+        ]

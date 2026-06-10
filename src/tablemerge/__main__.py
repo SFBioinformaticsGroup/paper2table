@@ -9,8 +9,15 @@ from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
 from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
+from utils.column_names import normalize_column_name
 
-from .analyzers import Analyzer, JaccardAnalyzer, AliasAnalyzer, SemanticAnalyzer
+from .analyzers import (
+    Analyzer,
+    HintsAnalyzer,
+    JaccardAnalyzer,
+    AliasAnalyzer,
+    SemanticAnalyzer,
+)
 from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
@@ -97,15 +104,19 @@ def parse_aliases(text: str) -> dict[str, str]:
 
 
 def build_analyzers(
-    align_columns: bool,
+    use_jaccard: bool,
     threshold: float,
     use_semantic: bool,
     language: str,
     aliases: dict[str, str],
     schema: Schema = {},
+    hints: list[str] = [],
+    use_hints: bool = False,
 ) -> list[Analyzer]:
     result: list[Analyzer] = []
-    if align_columns:
+    if use_hints and hints:
+        result.append(HintsAnalyzer(hints))
+    if use_jaccard:
         result.append(JaccardAnalyzer(threshold))
     if aliases:
         result.append(AliasAnalyzer(aliases))
@@ -147,6 +158,7 @@ def merge_tablesfiles_paths(
     agreement,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
+    hints: list[str] = [],
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     post_processor: PostProcessor = NullPostProcessor(),
@@ -179,7 +191,7 @@ def merge_tablesfiles_paths(
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         if remove_header_rows:
-            merged_tablesfile = filter_header_rows(merged_tablesfile)
+            merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
         merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
@@ -203,6 +215,7 @@ def merge_resultsets(
     agreement_method: str = "simple-count",
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
+    hints: list[str] = [],
     pretty: bool = False,
     analyzers: list[Analyzer] = [],
     schema: Schema = {},
@@ -220,6 +233,7 @@ def merge_resultsets(
         "agreement_method": agreement_method,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
+        "column_names_hints": hints,
         "schema": serialize_schema(schema),
         "analyzers": {type(a).__name__: a.settings for a in analyzers},
         "post_processor": post_processor.settings,
@@ -260,6 +274,7 @@ def merge_resultsets(
         agreement=agreement,
         only_semantic_columns=only_semantic_columns,
         remove_header_rows=remove_header_rows,
+        hints=hints,
         pretty=pretty,
         analyzers=analyzers,
         post_processor=post_processor,
@@ -313,9 +328,9 @@ def parse_args():
         help="Pretty-print merged output files with indentation",
     )
     parser.add_argument(
-        "--align-columns",
+        "--jaccard-column-alignment",
         action="store_true",
-        help="Align numeric column names to semantic ones using value similarity",
+        help="Align numeric column names to semantic ones using Jaccard value similarity",
     )
     parser.add_argument(
         "--column-alignment-threshold",
@@ -343,6 +358,24 @@ def parse_args():
         "--column-aliases-path",
         type=str,
         help="Path to a file with alias:target mappings (one per line)",
+    )
+    parser.add_argument(
+        "--column-names-hints",
+        type=str,
+        help="Inline column name hints, e.g. 'species family color'",
+    )
+    parser.add_argument(
+        "--column-names-hints-path",
+        type=str,
+        help="Path to a file with column name hints (one per line, # comments allowed)",
+    )
+    parser.add_argument(
+        "--hints-column-alignment",
+        action="store_true",
+        help=(
+            "Rename non-semantic columns by matching the first row's values against hints. "
+            "Requires --column-names-hints or --column-names-hints-path."
+        ),
     )
     parser.add_argument(
         "--paper-aliases",
@@ -452,6 +485,24 @@ def main():
     if args.column_aliases_path:
         aliases.update(parse_aliases(load_text_or_file(args.column_aliases_path)))
 
+    hints: list[str] = []
+    if args.column_names_hints:
+        hints.extend(
+            normalize_column_name(h) for h in tokenize_schema(args.column_names_hints)
+        )
+    if args.column_names_hints_path:
+        hints.extend(
+            normalize_column_name(h)
+            for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
+        )
+    if args.hints_column_alignment and not hints:
+        print(
+            "Error: --hints-column-alignment requires --column-names-hints or "
+            "--column-names-hints-path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     paper_aliases: dict[str, str] = {}
     if args.paper_aliases:
         paper_aliases.update(parse_aliases(args.paper_aliases))
@@ -459,12 +510,14 @@ def main():
         paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
 
     analyzers = build_analyzers(
-        align_columns=args.align_columns,
-        threshold=args.column_alignment_threshold,
+        use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
+        use_hints=args.hints_column_alignment,
+        threshold=args.column_alignment_threshold,
         language=args.semantic_language,
         aliases=aliases,
         schema=schema,
+        hints=hints,
     )
 
     transformer = (
@@ -488,6 +541,7 @@ def main():
         agreement_method=args.agreement_method,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,
+        hints=hints,
         pretty=args.pretty,
         analyzers=analyzers,
         schema=schema,

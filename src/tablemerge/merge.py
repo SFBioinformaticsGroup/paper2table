@@ -2,9 +2,9 @@ from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
 from unidecode import unidecode
-from utils.rows import is_empty_value, normalize_str, normalize_str_value
+from utils.column_values import normalize_column_value
+from utils.column_names import normalize_column_name
 from tablevalidate.schema import (
-    Citation,
     TablesFile,
     Table,
     TableFragment,
@@ -21,45 +21,62 @@ from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsComp
 MergeTarget = tuple[TableFragment, TablesFile]
 
 
-def normalize_citation(citation: Citation) -> Citation:
-    if citation is None:
-        return None
-    if isinstance(citation, str):
-        return normalize_str(citation)
-    return [
-        ValueWithAgreement(value=normalize_str(v.value), agreement_level=v.agreement_level)
-        for v in citation
-    ]
-
-
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
-    normalized_name = normalize_str_value(column_name)
+    if value is None:
+        return False
+    normalized_name = normalize_column_name(column_name)
     if isinstance(value, str):
-        return normalize_str_value(value) == normalized_name
+        return normalize_column_name(value) == normalized_name
+
     non_empty = [v.value for v in value if v.value.strip()]
     return bool(non_empty) and all(
-        normalize_str_value(v) == normalized_name for v in non_empty
+        normalize_column_name(v) == normalized_name for v in non_empty
     )
 
 
-def is_header_row(row: Row) -> bool:
-    non_empty_pairs = [
-        (column_name, value)
-        for column_name, value in row.get_columns().items()
-        if not is_empty_value(value) and Row.is_semantic_column(column_name)
-    ]
+def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return normalize_column_name(value.strip()) in hints_set
+
     return any(
-        value_matches_header(column_name, value)
-        for column_name, value in non_empty_pairs
+        normalize_column_name(v.value.strip()) in hints_set
+        for v in value
+        if v.value.strip()
     )
 
 
-def filter_header_rows(tablesfile: TablesFile) -> TablesFile:
+def has_semantic_header_value(row: Row) -> bool:
+    return any(
+        value_matches_header(col, val)
+        for col, val in row.get_columns().items()
+        if not Row.is_empty_value(val) and Row.is_semantic_column(col)
+    )
+
+
+def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
+    return any(
+        value_matches_hints(val, hints_set)
+        for col, val in row.get_columns().items()
+        if not Row.is_empty_value(val) and not Row.is_semantic_column(col)
+    )
+
+
+def is_header_row(row: Row, hints: list[str] = []) -> bool:
+    return has_semantic_header_value(row) or (
+        bool(hints) and has_hints_header_value(row, set(hints))
+    )
+
+
+def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:
         filtered_fragments = []
         for fragment in table.get_table_fragments():
-            filtered_rows = [row for row in fragment.rows if not is_header_row(row)]
+            filtered_rows = [
+                row for row in fragment.rows if not is_header_row(row, hints)
+            ]
             filtered_fragments.append(
                 TableFragment(rows=filtered_rows, page=fragment.page)
             )
@@ -137,36 +154,6 @@ class MergeError(ValueError):
     pass
 
 
-def normalize_value(value: ColumnValue) -> ColumnValue:
-    if isinstance(value, str):
-        return normalize_str_value(value)
-    if isinstance(value, list):
-        return [
-            ValueWithAgreement(
-                value=normalize_str_value(value_with_agreement.value),
-                agreement_level=value_with_agreement.agreement_level,
-            )
-            for value_with_agreement in value
-        ]
-    return value
-
-
-def normalize_row(
-    row: Row,
-    row_agreement: bool = False,
-) -> Row:
-    return Row(
-        **{
-            column: normalize_value(value)
-            for column, value in row.get_columns().items()
-        },
-        agreement_level_=(
-            row.get_agreement_level() if row_agreement else row.agreement_level_
-        ),
-        sources_=row.sources_,
-    )
-
-
 def transliterate_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
         return unidecode(value)
@@ -182,8 +169,8 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 def same_row(left: Row, right: Row) -> bool:
     # TODO compare using a broader similarity criteria
-    left_columns = normalize_row(left).get_columns()
-    right_columns = normalize_row(right).get_columns()
+    left_columns = left.normalize().get_columns()
+    right_columns = right.normalize().get_columns()
     return {k: transliterate_value(v) for k, v in left_columns.items()} == {
         k: transliterate_value(v) for k, v in right_columns.items()
     }
@@ -211,15 +198,15 @@ def merge_rows(
 
 def merge_columns_without_agreement(left: Row, right: Row):
     return {
-        **normalize_row(right).get_columns(),
-        **normalize_row(left).get_columns(),
+        **right.normalize().get_columns(),
+        **left.normalize().get_columns(),
     }
 
 
 def merge_columns_with_agreement(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
-        for column_name, column_value in normalize_row(row).get_columns().items():
+        for column_name, column_value in row.normalize().get_columns().items():
             values = column_values.setdefault(column_name, {})
             values_with_agreement = to_values_with_agreement(column_value)
 
@@ -238,12 +225,12 @@ def merge_columns_with_agreement(left: Row, right: Row):
     }
 
 
-def to_values_with_agreement(column_value: ColumnValue):
-    return (
-        [ValueWithAgreement(value=column_value, agreement_level=1)]
-        if isinstance(column_value, str)
-        else column_value
-    )
+def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreement]:
+    if column_value is None:
+        return []
+    if isinstance(column_value, str):
+        return [ValueWithAgreement(value=column_value, agreement_level=1)]
+    return column_value
 
 
 def merge_tablesfiles(
@@ -355,7 +342,7 @@ def merge_tablesfiles(
         merged_tables.append(TableWithFragments(table_fragments=merged_fragments))
 
     # # TODO pick all citations
-    citation = normalize_citation(tablesfiles[0].citation)
+    citation = TablesFile.normalize_citation(tablesfiles[0].citation)
 
     return TablesFile(tables=merged_tables, citation=citation)
 
@@ -404,7 +391,7 @@ class TableFragmentBuilder:
                 update={"sources_": [initial_uuid] if initial_uuid else None}
             )
             for row in map(
-                lambda r: normalize_row(r, do_agreement),
+                lambda r: r.normalize(do_agreement),
                 initial_fragment.rows,
             )
         ]
@@ -415,7 +402,7 @@ class TableFragmentBuilder:
         return list(rows)
 
     def _append(self, row: Row):
-        new = normalize_row(row, self.agreement is not None)
+        new = row.normalize(self.agreement is not None)
         self.rows.append(new)
 
     def append_skipped(self, rows: list[Row], source_uuid: str | None):
