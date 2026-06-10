@@ -16,7 +16,7 @@ def read_paper(paper_path: Path) -> TablesFile:
 
 def compute_papers_stats(path: str) -> GlobalStats:
     input_path = Path(path)
-    stats = GlobalStats(papers=0, papers_stats={}, rows=0, tables=0)
+    stats = GlobalStats(papers=0, tables=0, fragments=0, rows=0, papers_stats={})
 
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
@@ -114,13 +114,16 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
     lines.append("Global Stats:")
     lines.append(f"  Papers: {stats.papers}")
     lines.append(f"  Tables: {stats.tables}")
+    lines.append(f"  Fragments: {stats.fragments}")
     lines.append(f"  Rows: {stats.rows}")
     lines.append("")
     lines.append("Per-Paper Stats:")
     for paper, paper_stats in stats.papers_stats.items():
         lines.append(f"- {paper}:")
         lines.append(f"    Tables: {paper_stats.tables}")
+        lines.append(f"    Fragments: {paper_stats.fragments}")
         lines.append(f"    Rows: {paper_stats.rows}")
+        lines.append(f"    Columns: {paper_stats.columns}")
         lines.append(f"    Rows with agreement > 1: {paper_stats.rows_with_agreement}")
         if paper_stats.agreement_percentage is not None:
             lines.append(

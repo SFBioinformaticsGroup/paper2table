@@ -7,7 +7,9 @@ from tablevalidate.schema import TablesFile
 @dataclass
 class PaperStats:
     tables: int
+    fragments: int
     rows: int
+    columns: int
     rows_with_agreement: int
     agreement_percentage: Optional[float] = None
     empty_rows_percentage: Optional[float] = None
@@ -15,7 +17,9 @@ class PaperStats:
     def to_dict(self):
         return {
             "tables": self.tables,
+            "fragments": self.fragments,
             "rows": self.rows,
+            "columns": self.columns,
             "rows_with_agreement": self.rows_with_agreement,
             "agreement_percentage": self.agreement_percentage,
             "empty_rows_percentage": self.empty_rows_percentage,
@@ -26,6 +30,7 @@ class PaperStats:
 class GlobalStats:
     papers: int
     tables: int
+    fragments: int
     rows: int
     papers_stats: Dict[str, PaperStats]
 
@@ -33,6 +38,7 @@ class GlobalStats:
         return {
             "papers": self.papers,
             "tables": self.tables,
+            "fragments": self.fragments,
             "rows": self.rows,
             "papers_stats": [
                 {key: value.to_dict()} for key, value in self.papers_stats.items()
@@ -47,6 +53,7 @@ def update_papers_stats(
 
     stats.papers += 1
     stats.tables += paper_stats.tables
+    stats.fragments += paper_stats.fragments
     stats.rows += paper_stats.rows
 
     stats.papers_stats[paper_filename] = paper_stats
@@ -54,22 +61,26 @@ def update_papers_stats(
 
 def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
     tables = paper_data.tables
+    all_fragments = [
+        fragment for table in tables for fragment in table.get_table_fragments()
+    ]
     tables_count = len(tables)
-    rows_count = sum(
-        len(fragment.rows)
-        for table in tables
-        for fragment in table.get_table_fragments()
-    )
+    fragments_count = len(all_fragments)
+    rows_count = sum(len(fragment.rows) for fragment in all_fragments)
     rows_with_agreement = sum(
         sum(1 for row in fragment.rows if (row.agreement_level_ or 0) > 1)
-        for table in tables
-        for fragment in table.get_table_fragments()
+        for fragment in all_fragments
     )
     empty_rows_count = sum(
         sum(1 for row in fragment.rows if row.is_empty())
-        for table in tables
-        for fragment in table.get_table_fragments()
+        for fragment in all_fragments
     )
+    unique_columns = {
+        col
+        for fragment in all_fragments
+        for row in fragment.rows
+        for col in row.get_columns()
+    }
 
     agreement_percentage = None
     empty_rows_percentage = None
@@ -79,7 +90,9 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
 
     return PaperStats(
         tables=tables_count,
+        fragments=fragments_count,
         rows=rows_count,
+        columns=len(unique_columns),
         rows_with_agreement=rows_with_agreement,
         agreement_percentage=agreement_percentage,
         empty_rows_percentage=empty_rows_percentage,
