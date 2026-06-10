@@ -90,7 +90,7 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
     )
 
 
-_TITLE_ROW_RE = re.compile(r"^(figure|table|figura|tabla)\s+\d+", re.IGNORECASE)
+_TITLE_ROW_RE = re.compile(r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE)
 
 
 def is_title_row(row: Row) -> bool:

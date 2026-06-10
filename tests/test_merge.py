@@ -644,6 +644,14 @@ def test_is_title_row_detects_figure_prefix():
     assert is_title_row(Row(**{"0": "Figure 1. Species table"}))
 
 
+def test_is_title_row_detects_fig_dot_prefix():
+    assert is_title_row(Row(**{"0": "Fig.3 caption"}))
+
+
+def test_is_title_row_detects_fig_dot_with_space():
+    assert is_title_row(Row(**{"0": "fig. 2"}))
+
+
 def test_is_title_row_detects_table_prefix():
     assert is_title_row(Row(**{"0": "TABLE 3"}))
 
