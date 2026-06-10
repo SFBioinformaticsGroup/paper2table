@@ -10,6 +10,7 @@ from tablemerge.merge import (
     DistinctReadersAgreement,
     filter_semantic_columns,
     filter_header_rows,
+    drop_empty_non_semantic_columns,
     is_header_row,
     has_semantic_header_value,
     has_hints_header_value,
@@ -599,6 +600,42 @@ def test_filter_semantic_columns_keeps_all_if_no_numeric():
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert len(rows) == 1
     assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}
+
+
+def test_drop_empty_non_semantic_columns_removes_all_null_column():
+    table = [
+        Row(**{"family": "Apiaceae", "0": None, "1": "value"}),
+        Row(**{"family": "Rosaceae", "0": None, "1": "other"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="apiaceae", **{"1": "value"}, agreement_level_=1),
+        Row(family="rosaceae", **{"1": "other"}, agreement_level_=1),
+    ]
+
+
+def test_drop_empty_non_semantic_columns_keeps_column_with_any_value():
+    table = [
+        Row(**{"family": "Apiaceae", "0": None}),
+        Row(**{"family": "Rosaceae", "0": "has_value"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="apiaceae", **{"0": None}, agreement_level_=1),
+        Row(family="rosaceae", **{"0": "has_value"}, agreement_level_=1),
+    ]
+
+
+def test_drop_empty_non_semantic_columns_does_not_touch_semantic_columns():
+    table = [Row(family=None, scientific_name="Ammi majus")]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [Row(family=None, scientific_name="ammi majus", agreement_level_=1)]
 
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():

@@ -22,6 +22,7 @@ from .merge import (
     merge_tablesfiles,
     filter_semantic_columns,
     filter_header_rows,
+    drop_empty_non_semantic_columns,
     MergeError,
     SimpleCountAgreement,
     DistinctReadersAgreement,
@@ -192,6 +193,7 @@ def merge_tablesfiles_paths(
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
         if remove_header_rows:
             merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
+        merged_tablesfile = drop_empty_non_semantic_columns(merged_tablesfile)
         merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
