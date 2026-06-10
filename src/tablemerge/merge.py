@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Protocol
@@ -79,6 +80,40 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
             ]
             filtered_fragments.append(
                 TableFragment(rows=filtered_rows, page=fragment.page)
+            )
+        filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
+    return TablesFile(
+        tables=filtered_tables,
+        citation=tablesfile.citation,
+        metadata=tablesfile.metadata,
+        uuid=tablesfile.uuid,
+    )
+
+
+_TITLE_ROW_RE = re.compile(r"^(figure|table|figura|tabla)\s+\d+", re.IGNORECASE)
+
+
+def is_title_row(row: Row) -> bool:
+    non_empty = {col: val for col, val in row.get_columns().items() if not Row.is_empty_value(val)}
+    if len(non_empty) != 1:
+        return False
+    val = next(iter(non_empty.values()))
+    if isinstance(val, str):
+        text = val.strip()
+    else:
+        texts = [v.value.strip() for v in val if v.value.strip()]
+        text = texts[0] if texts else ""
+    return bool(_TITLE_ROW_RE.match(text))
+
+
+def filter_title_rows(tablesfile: TablesFile) -> TablesFile:
+    filtered_tables = []
+    for table in tablesfile.tables:
+        filtered_fragments = []
+        for fragment in table.get_table_fragments():
+            head = [row for row in fragment.rows[:3] if not is_title_row(row)]
+            filtered_fragments.append(
+                TableFragment(rows=head + fragment.rows[3:], page=fragment.page)
             )
         filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
     return TablesFile(
