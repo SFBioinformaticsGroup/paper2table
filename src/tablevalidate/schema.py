@@ -133,8 +133,17 @@ class TableWithFragments(BaseModel):
 Table = Union[TableWithRows, TableWithFragments]
 
 
+class Curation(BaseModel):
+    curator: str
+    description: Optional[str] = None
+    timestamp: Optional[str] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class Metadata(BaseModel):
     filename: Optional[str]
+    curations: Optional[List["Curation"]] = None
 
     model_config = ConfigDict(extra="allow")
 
