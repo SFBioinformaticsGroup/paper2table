@@ -41,6 +41,11 @@ from .fragments_compactor import (
     UnsafeConsecutiveFragmentsCompactor,
 )
 
+COMPACTOR_MAP = {
+    "safe": SafeConsecutiveFragmentsCompactor(),
+    "unsafe": UnsafeConsecutiveFragmentsCompactor(),
+}
+
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
     try:
@@ -170,7 +175,9 @@ def merge_tablesfiles_paths(
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    loader = TablesFileLoader(filter_title_rows=filter_title_rows)
+    loader = TablesFileLoader(
+        transformer=transformer, filter_title_rows=filter_title_rows
+    )
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
@@ -190,7 +197,6 @@ def merge_tablesfiles_paths(
             agreement=agreement,
             load_time_analyzers=load_time_analyzers,
             merge_time_analyzers=merge_time_analyzers,
-            transformer=transformer,
             compactor=compactor,
         ).merge(tablesfiles)
         if only_semantic_columns:
@@ -564,11 +570,7 @@ def main():
         else NullFragmentTransformer()
     )
 
-    compactor_map = {
-        "safe": SafeConsecutiveFragmentsCompactor(),
-        "unsafe": UnsafeConsecutiveFragmentsCompactor(),
-    }
-    compactor = compactor_map.get(
+    compactor = COMPACTOR_MAP.get(
         args.compact_consecutive_fragments, NullFragmentsCompactor()
     )
 
