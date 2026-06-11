@@ -13,7 +13,6 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import ColumnAligner
 from tablemerge.analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
-from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
 from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablemerge.errors import MergeError
@@ -44,16 +43,9 @@ def same_row(left: Row, right: Row) -> bool:
     }
 
 
-def normalize_fragment(
-    fragment: TableFragment, transformer: FragmentTransformer
-) -> TableFragment:
-    return transformer.transform_fragment(fragment)
-
-
 def make_fragments_clusters(
     tables_cluster: Sequence[Table | None],
     tablesfiles: Sequence[TablesFile],
-    transformer: FragmentTransformer,
 ) -> dict[int, list[MergeTarget]]:
     fragments_clusters: dict[int, list[MergeTarget]] = {}
     for table, tablesfile in zip(tables_cluster, tablesfiles):
@@ -61,7 +53,7 @@ def make_fragments_clusters(
             continue
         for fragment in table.get_table_fragments():
             fragments_clusters.setdefault(fragment.page, []).append(
-                (normalize_fragment(fragment, transformer), tablesfile)
+                (fragment, tablesfile)
             )
     return fragments_clusters
 
@@ -73,14 +65,12 @@ class TablesFileMerger:
         column_agreement: bool = False,
         load_time_analyzers: list[LoadTimeAnalyzer] = [],
         merge_time_analyzers: list[MergeTimeAnalyzer] = [],
-        transformer: FragmentTransformer = NullFragmentTransformer(),
         compactor: FragmentsCompactor = NullFragmentsCompactor(),
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
         self.load_time_analyzers = load_time_analyzers
         self.merge_time_analyzers = merge_time_analyzers
-        self.transformer = transformer
         self.compactor = compactor
 
     def merge(self, tablesfiles: list[TablesFile]) -> TablesFile:
@@ -94,9 +84,7 @@ class TablesFileMerger:
         tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
         for tables_cluster in tables_clusters:
             merged_fragments: list[TableFragment] = []
-            fragments_clusters = make_fragments_clusters(
-                tables_cluster, tablesfiles, self.transformer
-            )
+            fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles)
 
             for merge_targets in fragments_clusters.values():
                 # TODO sort first so longest cluster is the first one
@@ -186,7 +174,6 @@ def merge_tablesfiles(
     column_agreement: bool = False,
     load_time_analyzers: list[LoadTimeAnalyzer] = [],
     merge_time_analyzers: list[MergeTimeAnalyzer] = [],
-    transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ) -> TablesFile:
     return TablesFileMerger(
@@ -194,6 +181,5 @@ def merge_tablesfiles(
         column_agreement=column_agreement,
         load_time_analyzers=load_time_analyzers,
         merge_time_analyzers=merge_time_analyzers,
-        transformer=transformer,
         compactor=compactor,
     ).merge(tablesfiles)
