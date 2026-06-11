@@ -486,7 +486,8 @@ def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model
     aligner = ColumnAligner(
         left,
         right,
-        analyzers=[JaccardAnalyzer(0.5), SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)],
+        load_time_analyzers=[SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)],
+        merge_time_analyzers=[JaccardAnalyzer(0.5)],
     )
     assert aligner.mapping == FOUR_COLUMNS_MAPPING
 
@@ -511,29 +512,30 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
         ]
     )
     jaccard_mapping = ColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(0.6)]
+        left, right, merge_time_analyzers=[JaccardAnalyzer(0.6)]
     ).mapping
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
     chain_mapping = ColumnAligner(
         left,
         right,
-        analyzers=[JaccardAnalyzer(0.6), SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)],
+        load_time_analyzers=[SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)],
+        merge_time_analyzers=[JaccardAnalyzer(0.6)],
     ).mapping
     assert chain_mapping["1"] == "area"
     assert chain_mapping["2"] == "family"
 
 
-def test_chain_transitivity():
+def test_chain_alias_before_jaccard():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
     aligner = ColumnAligner(
         left,
         right,
-        analyzers=[JaccardAnalyzer(), AliasAnalyzer({"family": "official_family"})],
+        load_time_analyzers=[AliasAnalyzer({"family": "official_family"})],
+        merge_time_analyzers=[JaccardAnalyzer()],
     )
-    assert aligner.mapping.get("0") == "official_family"
-    assert aligner.mapping.get("family") == "official_family"
+    assert aligner.mapping == {"family": "official_family"}
 
 
 def test_hints_returns_empty_when_no_non_semantic_columns():

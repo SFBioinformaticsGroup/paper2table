@@ -1,5 +1,5 @@
 import re
-from abc import ABC, abstractmethod
+from typing import Protocol
 
 from unidecode import unidecode
 import spacy
@@ -18,12 +18,10 @@ def column_value_to_strings(value: ColumnValue) -> list[str]:
     return [entry.value for entry in value]
 
 
-class LoadTimeAnalyzer(ABC):
+class LoadTimeAnalyzer(Protocol):
     @property
-    @abstractmethod
     def settings(self) -> dict: ...
 
-    @abstractmethod
     def build_mapping(
         self,
         column_names: list[str],
@@ -31,12 +29,10 @@ class LoadTimeAnalyzer(ABC):
     ) -> dict[str, str]: ...
 
 
-class MergeTimeAnalyzer(ABC):
+class MergeTimeAnalyzer(Protocol):
     @property
-    @abstractmethod
     def settings(self) -> dict: ...
 
-    @abstractmethod
     def build_mapping(
         self,
         left_column_names: list[str],
@@ -46,10 +42,7 @@ class MergeTimeAnalyzer(ABC):
     ) -> dict[str, str]: ...
 
 
-Analyzer = LoadTimeAnalyzer | MergeTimeAnalyzer
-
-
-class HintsAnalyzer(LoadTimeAnalyzer):
+class HintsAnalyzer:
     """Enabled by --hints-column-alignment.
 
     Inspects the first non-empty row of the left fragment. If at least one
@@ -95,7 +88,7 @@ class HintsAnalyzer(LoadTimeAnalyzer):
         return result
 
 
-class JaccardAnalyzer(MergeTimeAnalyzer):
+class JaccardAnalyzer:
     """Enabled by --jaccard-column-alignment.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
@@ -176,7 +169,7 @@ class JaccardAnalyzer(MergeTimeAnalyzer):
         return len(a & b) / union if union else 0.0
 
 
-class AliasAnalyzer(LoadTimeAnalyzer):
+class AliasAnalyzer:
     """Enabled by --column-aliases / --column-aliases-path.
 
     Applies an explicit user-provided rename dictionary. No heuristics, no data inspection.
@@ -201,7 +194,7 @@ class AliasAnalyzer(LoadTimeAnalyzer):
         return {col: self.aliases[col] for col in all_cols if col in self.aliases}
 
 
-class SemanticAnalyzer(LoadTimeAnalyzer):
+class SemanticAnalyzer:
     """Enabled by --semantic-column-alignment.
 
     Renames numeric columns ("0", "1", ...) in the left fragment to schema column names by

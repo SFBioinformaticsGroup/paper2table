@@ -100,7 +100,7 @@ def test_two_tables_with_different_column_names_and_alignment():
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], merge_time_analyzers=[JaccardAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -801,7 +801,7 @@ def test_merge_aligns_right_numeric_columns_multiple_rows():
         Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], merge_time_analyzers=[JaccardAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -825,7 +825,7 @@ def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
     result = merge_tablesfiles(
         [wrap(table_1), wrap(table_2)],
         agreement=SimpleCountAgreement(),
-        analyzers=[JaccardAnalyzer()],
+        merge_time_analyzers=[JaccardAnalyzer()],
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -847,7 +847,7 @@ def test_merge_aligns_left_numeric_columns_multiple_rows():
         Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], merge_time_analyzers=[JaccardAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -1039,7 +1039,7 @@ def test_merge_tablesfiles_normalizes_citation_dashes():
 def test_alias_applies_with_single_tablesfile():
     table = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
     result = merge_tablesfiles(
-        [wrap(table)], analyzers=[AliasAnalyzer({"familia": "family"})]
+        [wrap(table)], load_time_analyzers=[AliasAnalyzer({"familia": "family"})]
     )
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
@@ -1054,7 +1054,7 @@ def test_alias_applies_to_left_only_page_in_multi_file_merge():
     table_b = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
     result = merge_tablesfiles(
         [wrap(table_a, page=1), wrap(table_b, page=2)],
-        analyzers=[AliasAnalyzer({"familia": "family"})],
+        load_time_analyzers=[AliasAnalyzer({"familia": "family"})],
     )
     page1_rows = result.tables[0].get_table_fragments()[0].rows
     assert page1_rows == [
