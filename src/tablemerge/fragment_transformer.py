@@ -1,3 +1,4 @@
+import re
 from typing import Protocol
 
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
@@ -11,13 +12,37 @@ class FragmentTransformer(Protocol):
     def transform_fragment(self, fragment: TableFragment) -> TableFragment: ...
 
 
-class NullFragmentTransformer:
+_TITLE_ROW_RE = re.compile(
+    r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE
+)
+
+
+class FilterTitleRowsTransformer:
     @property
     def settings(self) -> dict:
         return {}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
-        return fragment
+        head = [row for row in fragment.rows[:3] if not self.is_title_row(row)]
+        return TableFragment(rows=head + fragment.rows[3:], page=fragment.page)
+
+    def is_title_row(self, row: Row) -> bool:
+        non_empty = {
+            col: val
+            for col, val in row.get_columns().items()
+            if not Row.is_empty_value(val)
+        }
+        if len(non_empty) != 1:
+            return False
+        val = next(iter(non_empty.values()))
+        if isinstance(val, str):
+            text = val.strip()
+        elif isinstance(val, list):
+            texts = [v.value.strip() for v in val if v.value.strip()]
+            text = texts[0] if texts else ""
+        else:
+            return False
+        return bool(_TITLE_ROW_RE.match(text))
 
 
 class FragmentValuesReverser:

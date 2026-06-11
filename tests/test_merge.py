@@ -3,13 +3,12 @@
 import pytest
 from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
+from tablemerge.fragment_transformer import FilterTitleRowsTransformer
 from tablemerge.merge import (
     filter_semantic_columns,
     filter_header_rows,
-    filter_title_rows,
     drop_empty_non_semantic_columns,
     drop_empty_tables,
-    is_title_row,
     is_header_row,
     has_semantic_header_value,
     has_hints_header_value,
@@ -627,66 +626,37 @@ def test_drop_empty_non_semantic_columns_does_not_touch_semantic_columns():
 
 
 def test_is_title_row_detects_figure_prefix():
-    assert is_title_row(Row(**{"0": "Figure 1. Species table"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figure 1. Species table"}))
 
 
 def test_is_title_row_detects_fig_dot_prefix():
-    assert is_title_row(Row(**{"0": "Fig.3 caption"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Fig.3 caption"}))
 
 
 def test_is_title_row_detects_fig_dot_with_space():
-    assert is_title_row(Row(**{"0": "fig. 2"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "fig. 2"}))
 
 
 def test_is_title_row_detects_table_prefix():
-    assert is_title_row(Row(**{"0": "TABLE 3"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "TABLE 3"}))
 
 
 def test_is_title_row_detects_figura_prefix():
-    assert is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
 
 
 def test_is_title_row_detects_tabla_prefix():
-    assert is_title_row(Row(**{"0": "tabla 5"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "tabla 5"}))
 
 
 def test_is_title_row_false_when_multiple_non_empty_columns():
-    assert not is_title_row(Row(**{"0": "Figure 1", "1": "something"}))
+    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figure 1", "1": "something"}))
 
 
 def test_is_title_row_false_when_value_does_not_match():
-    assert not is_title_row(Row(**{"0": "Apiaceae"}))
+    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Apiaceae"}))
 
 
-def test_filter_title_rows_removes_title_in_first_three_rows():
-    table = [
-        Row(**{"0": "Figure 1. Species"}),
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-    ]
-    result = filter_title_rows(wrap(table))
-    rows = result.tables[0].get_table_fragments()[0].rows
-    assert rows == [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-    ]
-
-
-def test_filter_title_rows_does_not_remove_title_after_first_three_rows():
-    table = [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
-        Row(**{"0": "Figure 2. Continued"}),
-    ]
-    result = filter_title_rows(wrap(table))
-    rows = result.tables[0].get_table_fragments()[0].rows
-    assert rows == [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
-        Row(**{"0": "Figure 2. Continued"}),
-    ]
 
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():
