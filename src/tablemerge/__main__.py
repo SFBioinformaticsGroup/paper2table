@@ -163,13 +163,14 @@ def merge_tablesfiles_paths(
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
+    filter_title_rows: bool = True,
     load_time_analyzers: list[LoadTimeAnalyzer] = [],
     merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     post_processors: list[PostProcessor] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    loader = TablesFileLoader()
+    loader = TablesFileLoader(filter_title_rows=filter_title_rows)
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
@@ -218,6 +219,9 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
+    filter_title_rows: bool = True,
+    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_tables: bool = True,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
     hints: list[str] = [],
@@ -237,6 +241,9 @@ def merge_resultsets(
 
     settings = {
         "agreement_method": agreement_method,
+        "filter_title_rows": filter_title_rows,
+        "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
+        "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
         "column_names_hints": hints,
@@ -281,6 +288,7 @@ def merge_resultsets(
         output_path=output_path,
         metadata_map=resultset_metadata,
         agreement=agreement,
+        filter_title_rows=filter_title_rows,
         only_semantic_columns=only_semantic_columns,
         remove_header_rows=remove_header_rows,
         hints=hints,
@@ -319,6 +327,27 @@ def parse_args():
         choices=["simple-count", "distinct-readers"],
         default="simple-count",
         help="How to compute agreement level (default: simple-count)",
+    )
+    parser.add_argument(
+        "--no-filter-title-rows",
+        action="store_false",
+        dest="filter_title_rows",
+        default=True,
+        help="Skip removing rows whose values match their column names (title rows)",
+    )
+    parser.add_argument(
+        "--no-drop-empty-non-semantic-columns",
+        action="store_false",
+        dest="drop_empty_non_semantic_columns",
+        default=True,
+        help="Skip dropping non-semantic columns that are entirely empty after merging",
+    )
+    parser.add_argument(
+        "--no-drop-empty-tables",
+        action="store_false",
+        dest="drop_empty_tables",
+        default=True,
+        help="Skip dropping tables that are entirely empty after merging",
     )
     parser.add_argument(
         "--only-semantic-columns",
@@ -484,6 +513,8 @@ def main():
         filter_columns=args.filter_schema_columns,
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
+        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_tables=args.drop_empty_tables,
     )
 
     aliases: dict[str, str] = {}
@@ -546,6 +577,9 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
+        filter_title_rows=args.filter_title_rows,
+        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_tables=args.drop_empty_tables,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,
         hints=hints,
