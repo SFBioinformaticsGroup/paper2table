@@ -2,19 +2,14 @@ from tablevalidate.schema import TableFragment, Row
 from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
 
 
-class ColumnAligner:
+class BaseColumnAligner:
+    mapping: dict[str, str]
+
     def __init__(
         self,
-        left: TableFragment,
-        right: TableFragment | None,
-        load_time_analyzers: list[LoadTimeAnalyzer] = [],
-        merge_time_analyzers: list[MergeTimeAnalyzer] = [],
         max_sample: int = 50,
     ):
-        self.load_time_analyzers = load_time_analyzers
-        self.merge_time_analyzers = merge_time_analyzers
         self.max_sample = max_sample
-        self.mapping = self.build_mapping(left, right)
 
     def rename_row(self, row: Row) -> Row:
         if not self.mapping:
@@ -29,11 +24,40 @@ class ColumnAligner:
     def rename_column(self, col_name: str) -> str:
         return self.mapping.get(col_name, col_name)
 
+    def _sample_rows(self, fragment: TableFragment):
+        return fragment.rows[: self.max_sample]
+
+    def _filter_remaining(self, remaining: list[str], mapped):
+        return [c for c in remaining if c not in mapped]
+
+    def _accumulate_mapping(self, accumulated: dict[str, str], new_mapping):
+        for k in accumulated:
+            if accumulated[k] in new_mapping:
+                accumulated[k] = new_mapping[accumulated[k]]
+        accumulated.update(new_mapping)
+        mapped = set(new_mapping.keys())
+        return mapped
+
+
+class ColumnAligner(BaseColumnAligner):
+    def __init__(
+        self,
+        left: TableFragment,
+        right: TableFragment | None,
+        load_time_analyzers: list[LoadTimeAnalyzer] = [],
+        merge_time_analyzers: list[MergeTimeAnalyzer] = [],
+        max_sample: int = 50,
+    ):
+        super().__init__(max_sample)
+        self.load_time_analyzers = load_time_analyzers
+        self.merge_time_analyzers = merge_time_analyzers
+        self.mapping = self.build_mapping(left, right)
+
     def build_mapping(
         self, left: TableFragment, right: TableFragment | None
     ) -> dict[str, str]:
-        left_rows = left.rows[: self.max_sample]
-        right_rows = right.rows[: self.max_sample] if right is not None else []
+        left_rows = self._sample_rows(left)
+        right_rows = self._sample_rows(right) if right is not None else []
         if not left_rows:
             return {}
 
@@ -48,13 +72,9 @@ class ColumnAligner:
             new_mapping = analyzer.build_mapping(combined, left_rows)
             if not new_mapping:
                 continue
-            for k in accumulated:
-                if accumulated[k] in new_mapping:
-                    accumulated[k] = new_mapping[accumulated[k]]
-            accumulated.update(new_mapping)
-            mapped = set(new_mapping.keys())
-            remaining_left = [c for c in remaining_left if c not in mapped]
-            remaining_right = [c for c in remaining_right if c not in mapped]
+            mapped = self._accumulate_mapping(accumulated, new_mapping)
+            remaining_left = self._filter_remaining(remaining_left, mapped)
+            remaining_right = self._filter_remaining(remaining_right, mapped)
 
         for analyzer in self.merge_time_analyzers:
             if not remaining_left and not remaining_right:
@@ -64,12 +84,8 @@ class ColumnAligner:
             )
             if not new_mapping:
                 continue
-            for k in accumulated:
-                if accumulated[k] in new_mapping:
-                    accumulated[k] = new_mapping[accumulated[k]]
-            accumulated.update(new_mapping)
-            mapped = set(new_mapping.keys())
-            remaining_left = [c for c in remaining_left if c not in mapped]
-            remaining_right = [c for c in remaining_right if c not in mapped]
+            mapped = self._accumulate_mapping(accumulated, new_mapping)
+            remaining_left = self._filter_remaining(remaining_left, mapped)
+            remaining_right = self._filter_remaining(remaining_right, mapped)
 
         return accumulated
