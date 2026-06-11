@@ -13,7 +13,6 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablemerge.analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
-from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
@@ -65,19 +64,15 @@ class TablesFileMerger:
         column_agreement: bool = False,
         load_time_analyzers: list[LoadTimeAnalyzer] = [],
         merge_time_analyzers: list[MergeTimeAnalyzer] = [],
-        compactor: FragmentsCompactor = NullFragmentsCompactor(),
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
         self.load_time_analyzers = load_time_analyzers
         self.merge_time_analyzers = merge_time_analyzers
-        self.compactor = compactor
 
     def merge(self, tablesfiles: list[TablesFile]) -> TablesFile:
         if not tablesfiles:
             raise MergeError("Must pass at least TablesFile element")
-
-        tablesfiles = [self.compactor.compact(tf) for tf in tablesfiles]
 
         merged_tables: list[Table] = []
 
@@ -180,12 +175,10 @@ def merge_tablesfiles(
     column_agreement: bool = False,
     load_time_analyzers: list[LoadTimeAnalyzer] = [],
     merge_time_analyzers: list[MergeTimeAnalyzer] = [],
-    compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
         column_agreement=column_agreement,
         load_time_analyzers=load_time_analyzers,
         merge_time_analyzers=merge_time_analyzers,
-        compactor=compactor,
     ).merge(tablesfiles)
