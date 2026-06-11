@@ -43,13 +43,13 @@ class MergeTimeAnalyzer(Protocol):
 
 
 class HintsAnalyzer:
-    """Enabled by --hints-column-alignment.
+    """Enabled by --hints-column-alignment. Runs at load time via LoadTimeColumnAligner.
 
-    Inspects the first non-empty row of the left fragment. If at least one
-    non-semantic column's value normalizes to a known hint, treats the row as a
-    header row and renames ALL non-semantic columns to their normalized first-row
-    values (including columns whose value is not in the hints list).
-    Runs before all other analyzers.
+    Inspects the first non-empty row of a fragment. If at least one non-semantic
+    column's value normalizes to a known hint, treats the row as a header row and
+    renames ALL non-semantic columns to their normalized first-row values (including
+    columns whose value is not in the hints list). Runs before AliasAnalyzer and
+    SemanticAnalyzer.
     """
 
     def __init__(self, hints: list[str]):
@@ -89,14 +89,13 @@ class HintsAnalyzer:
 
 
 class JaccardAnalyzer:
-    """Enabled by --jaccard-column-alignment.
+    """Enabled by --jaccard-column-alignment. Runs at merge time via MergeTimeColumnAligner.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
-    by comparing the set of cell values in each column using Jaccard similarity
-    (intersection over union). Works when both tables share overlapping data, e.g. column "0"
-    and column "family" both contain "Apiaceae", "Rosaceae".
-
-    Requires one side to be all-numeric and the other all-semantic; otherwise does nothing.
+    by comparing cell values across two fragments using Jaccard similarity (intersection over
+    union). Works when fragments share overlapping data, e.g. column "0" and column "family"
+    both contain "Apiaceae", "Rosaceae". Requires one side to be all-numeric and the other
+    all-semantic; otherwise does nothing.
     """
 
     def __init__(self, threshold: float = 0.5):
@@ -170,12 +169,12 @@ class JaccardAnalyzer:
 
 
 class AliasAnalyzer:
-    """Enabled by --column-aliases / --column-aliases-path.
+    """Enabled by --column-aliases / --column-aliases-path. Runs at load time via LoadTimeColumnAligner.
 
-    Applies an explicit user-provided rename dictionary. No heuristics, no data inspection.
-    Makes sense when both sides have semantic column names that differ across sources
-    (e.g. "familia" to "family"). Works on any column regardless of numeric/semantic
-    classification.
+    Applies an explicit user-provided rename dictionary to each fragment independently.
+    No heuristics, no data inspection. Makes sense when sources use different column names
+    for the same concept (e.g. "familia" → "family"). Works on any column regardless of
+    numeric/semantic classification.
     """
 
     def __init__(self, aliases: dict[str, str]):
@@ -195,12 +194,11 @@ class AliasAnalyzer:
 
 
 class SemanticAnalyzer:
-    """Enabled by --semantic-column-alignment.
+    """Enabled by --semantic-column-alignment. Runs at load time via LoadTimeColumnAligner.
 
-    Renames numeric columns ("0", "1", ...) in the left fragment to schema column names by
-    computing spaCy word-vector similarity between the cell values of each numeric column and
-    each schema column name. Only operates on left columns, so it fires even when there is no
-    right fragment to merge with. Does nothing without a schema.
+    Renames numeric columns ("0", "1", ...) in a fragment to schema column names by computing
+    spaCy word-vector similarity between each numeric column's cell values and each schema
+    column name. Does nothing without a schema or when no numeric columns are present.
     """
 
     def __init__(self, threshold: float = 0.5, language: str = "en", schema: Schema = {}):

@@ -11,8 +11,8 @@ from tablevalidate.schema import (
     ColumnValue,
     Row,
 )
-from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
-from tablemerge.analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
+from tablemerge.columns_aligner import MergeTimeColumnAligner
+from tablemerge.analyzers import MergeTimeAnalyzer
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
@@ -62,13 +62,11 @@ class TablesFileMerger:
         self,
         agreement: Agreement = SimpleCountAgreement(),
         column_agreement: bool = False,
-        load_time_analyzers: list[LoadTimeAnalyzer] = [],
-        merge_time_analyzers: list[MergeTimeAnalyzer] = [],
+        analyzers: list[MergeTimeAnalyzer] = [],
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
-        self.load_time_analyzers = load_time_analyzers
-        self.merge_time_analyzers = merge_time_analyzers
+        self.analyzers = analyzers
 
     def merge(self, tablesfiles: list[TablesFile]) -> TablesFile:
         if not tablesfiles:
@@ -90,15 +88,8 @@ class TablesFileMerger:
                 first_right = next(
                     (f for f, _ in merge_targets[1:] if f is not None), None
                 )
-                load_aligner = LoadTimeColumnAligner(
-                    left_fragment, self.load_time_analyzers
-                )
-                left_fragment = TableFragment(
-                    rows=[load_aligner.rename_row(r) for r in left_fragment.rows],
-                    page=left_fragment.page,
-                )
                 merge_aligner = MergeTimeColumnAligner(
-                    left_fragment, first_right, self.merge_time_analyzers
+                    left_fragment, first_right, self.analyzers
                 )
                 left_fragment = TableFragment(
                     rows=[merge_aligner.rename_row(r) for r in left_fragment.rows],
@@ -123,9 +114,7 @@ class TablesFileMerger:
 
                     right_uuid = right_tablesfile.uuid
                     right_rows = [
-                        merge_aligner.rename_row(load_aligner.rename_row(r)).model_copy(
-                            update={"row_": i}
-                        )
+                        merge_aligner.rename_row(r).model_copy(update={"row_": i})
                         for i, r in enumerate(right_fragment.rows)
                     ]
                     left_rows = table_fragment_builder.next_left_rows()
@@ -173,12 +162,10 @@ def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
-    load_time_analyzers: list[LoadTimeAnalyzer] = [],
-    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
+    analyzers: list[MergeTimeAnalyzer] = [],
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
         column_agreement=column_agreement,
-        load_time_analyzers=load_time_analyzers,
-        merge_time_analyzers=merge_time_analyzers,
+        analyzers=analyzers,
     ).merge(tablesfiles)

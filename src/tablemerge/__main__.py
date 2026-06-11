@@ -169,12 +169,16 @@ def merge_tablesfiles_paths(
     hints: list[str] = [],
     pretty: bool = False,
     transformers: list[FragmentTransformer] = [],
-    load_time_analyzers: list[LoadTimeAnalyzer] = [],
-    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
+    load_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_analyzers: list[MergeTimeAnalyzer] = [],
     post_processors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    loader = TablesFileLoader(transformers=transformers, compactor=compactor)
+    loader = TablesFileLoader(
+        transformers=transformers,
+        compactor=compactor,
+        analyzers=load_analyzers,
+    )
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
@@ -192,8 +196,7 @@ def merge_tablesfiles_paths(
     try:
         merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
-            load_time_analyzers=load_time_analyzers,
-            merge_time_analyzers=merge_time_analyzers,
+            analyzers=merge_analyzers,
         ).merge(tablesfiles)
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -228,8 +231,8 @@ def merge_resultsets(
     hints: list[str] = [],
     pretty: bool = False,
     transformers: list[FragmentTransformer] = [],
-    load_time_analyzers: list[LoadTimeAnalyzer] = [],
-    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
+    load_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
     post_processors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
@@ -251,8 +254,8 @@ def merge_resultsets(
         "column_names_hints": hints,
         "schema": serialize_schema(schema),
         "analyzers": {
-            **{type(a).__name__: a.settings for a in load_time_analyzers},
-            **{type(a).__name__: a.settings for a in merge_time_analyzers},
+            **{type(a).__name__: a.settings for a in load_analyzers},
+            **{type(a).__name__: a.settings for a in merge_analyzers},
         },
         "post_processors": {type(p).__name__: p.settings for p in post_processors},
         "paper_aliases": paper_aliases,
@@ -293,8 +296,8 @@ def merge_resultsets(
         remove_header_rows=remove_header_rows,
         hints=hints,
         pretty=pretty,
-        load_time_analyzers=load_time_analyzers,
-        merge_time_analyzers=merge_time_analyzers,
+        load_analyzers=load_analyzers,
+        merge_analyzers=merge_analyzers,
         post_processors=post_processors,
         compactor=compactor,
     )
@@ -546,7 +549,7 @@ def main():
     if args.paper_aliases_path:
         paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
 
-    load_time_analyzers, merge_time_analyzers = build_analyzers(
+    load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
         use_hints=args.hints_column_alignment,
@@ -579,8 +582,8 @@ def main():
         hints=hints,
         pretty=args.pretty,
         transformers=transformers,
-        load_time_analyzers=load_time_analyzers,
-        merge_time_analyzers=merge_time_analyzers,
+        load_analyzers=load_analyzers,
+        merge_analyzers=merge_analyzers,
         schema=schema,
         post_processors=post_processors,
         compactor=compactor,
