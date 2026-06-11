@@ -30,8 +30,8 @@ from .tablesfile_merger import TablesFileMerger
 from .schema import PostProcessor, Schema
 from .postprocessors import build_postprocessors
 from .fragment_transformer import (
-    NullFragmentTransformer,
     FragmentTransformer,
+    FilterTitleRowsTransformer,
     FragmentValuesReverser,
 )
 from .fragments_compactor import (
@@ -168,16 +168,13 @@ def merge_tablesfiles_paths(
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
-    filter_title_rows: bool = True,
+    transformers: list[FragmentTransformer] = [],
     load_time_analyzers: list[LoadTimeAnalyzer] = [],
     merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     post_processors: list[PostProcessor] = [],
-    transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    loader = TablesFileLoader(
-        transformer=transformer, filter_title_rows=filter_title_rows
-    )
+    loader = TablesFileLoader(transformers=transformers)
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
@@ -225,18 +222,17 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
-    filter_title_rows: bool = True,
     drop_empty_non_semantic_columns: bool = True,
     drop_empty_tables: bool = True,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
+    transformers: list[FragmentTransformer] = [],
     load_time_analyzers: list[LoadTimeAnalyzer] = [],
     merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
     post_processors: list[PostProcessor] = [],
-    transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
     paper_aliases: dict[str, str] = {},
@@ -247,7 +243,7 @@ def merge_resultsets(
 
     settings = {
         "agreement_method": agreement_method,
-        "filter_title_rows": filter_title_rows,
+        "transformers": {type(t).__name__: t.settings for t in transformers},
         "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
         "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
@@ -259,7 +255,6 @@ def merge_resultsets(
             **{type(a).__name__: a.settings for a in merge_time_analyzers},
         },
         "post_processors": {type(p).__name__: p.settings for p in post_processors},
-        "fragment_transformer": transformer.settings,
         "compactor": compactor.settings,
         "paper_aliases": paper_aliases,
     }
@@ -294,7 +289,7 @@ def merge_resultsets(
         output_path=output_path,
         metadata_map=resultset_metadata,
         agreement=agreement,
-        filter_title_rows=filter_title_rows,
+        transformers=transformers,
         only_semantic_columns=only_semantic_columns,
         remove_header_rows=remove_header_rows,
         hints=hints,
@@ -302,7 +297,6 @@ def merge_resultsets(
         load_time_analyzers=load_time_analyzers,
         merge_time_analyzers=merge_time_analyzers,
         post_processors=post_processors,
-        transformer=transformer,
         compactor=compactor,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -564,11 +558,11 @@ def main():
         hints=hints,
     )
 
-    transformer = (
-        FragmentValuesReverser(args.semantic_language)
-        if args.fix_reversed_column_values
-        else NullFragmentTransformer()
-    )
+    transformers: list[FragmentTransformer] = []
+    if args.fix_reversed_column_values:
+        transformers.append(FragmentValuesReverser(args.semantic_language))
+    if args.filter_title_rows:
+        transformers.append(FilterTitleRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(
         args.compact_consecutive_fragments, NullFragmentsCompactor()
@@ -579,18 +573,17 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
-        filter_title_rows=args.filter_title_rows,
         drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
         drop_empty_tables=args.drop_empty_tables,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,
         hints=hints,
         pretty=args.pretty,
+        transformers=transformers,
         load_time_analyzers=load_time_analyzers,
         merge_time_analyzers=merge_time_analyzers,
         schema=schema,
         post_processors=post_processors,
-        transformer=transformer,
         compactor=compactor,
         workers=args.workers,
         paper_aliases=paper_aliases,

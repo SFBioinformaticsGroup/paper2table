@@ -2,12 +2,8 @@ import json
 import pytest
 from pathlib import Path
 from tablemerge.tablesfile_loader import TablesFileLoader
-from tablevalidate.schema import Row, TableFragment, TableWithFragments, TablesFile
-
-
-@pytest.fixture
-def loader():
-    return TablesFileLoader()
+from tablemerge.fragment_transformer import FilterTitleRowsTransformer
+from tablevalidate.schema import Row, TablesFile
 
 
 def write_tablesfile(tmp_path: Path, tablesfile: dict) -> Path:
@@ -16,7 +12,8 @@ def write_tablesfile(tmp_path: Path, tablesfile: dict) -> Path:
     return path
 
 
-def test_load_returns_tablesfile(tmp_path, loader):
+def test_load_returns_tablesfile(tmp_path):
+    loader = TablesFileLoader()
     path = write_tablesfile(tmp_path, {
         "tables": [{"table_fragments": [{"rows": [{"species": "Ammi majus"}], "page": 1}]}],
         "citation": None,
@@ -25,7 +22,8 @@ def test_load_returns_tablesfile(tmp_path, loader):
     assert isinstance(result, TablesFile)
 
 
-def test_load_applies_filter_title_rows(tmp_path, loader):
+def test_load_applies_filter_title_rows(tmp_path):
+    loader = TablesFileLoader(transformers=[FilterTitleRowsTransformer()])
     path = write_tablesfile(tmp_path, {
         "tables": [{"table_fragments": [{"rows": [
             {"0": "Figure 1. Species list"},
@@ -38,7 +36,8 @@ def test_load_applies_filter_title_rows(tmp_path, loader):
     assert rows == [Row(**{"0": "Ammi majus", "1": "Apiaceae"})]
 
 
-def test_load_preserves_rows_without_title(tmp_path, loader):
+def test_load_preserves_rows_without_title(tmp_path):
+    loader = TablesFileLoader()
     path = write_tablesfile(tmp_path, {
         "tables": [{"table_fragments": [{"rows": [
             {"0": "Ammi majus", "1": "Apiaceae"},
