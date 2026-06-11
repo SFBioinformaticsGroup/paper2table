@@ -1,8 +1,8 @@
 import json
-import pytest
 from pathlib import Path
 from tablemerge.tablesfile_loader import TablesFileLoader
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
+from tablemerge.fragments_compactor import SafeConsecutiveFragmentsCompactor
 from tablevalidate.schema import Row, TablesFile
 
 
@@ -34,6 +34,21 @@ def test_load_applies_filter_title_rows(tmp_path):
     result = loader.load(path)
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [Row(**{"0": "Ammi majus", "1": "Apiaceae"})]
+
+
+def test_load_applies_compactor(tmp_path):
+    loader = TablesFileLoader(compactor=SafeConsecutiveFragmentsCompactor())
+    path = write_tablesfile(tmp_path, {
+        "tables": [
+            {"table_fragments": [{"rows": [{"species": "Ammi majus"}], "page": 1}]},
+            {"table_fragments": [{"rows": [{"species": "Rosa canina"}], "page": 2}]},
+        ],
+        "citation": None,
+    })
+    result = loader.load(path)
+    assert len(result.tables) == 1
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [Row(species="Ammi majus"), Row(species="Rosa canina")]
 
 
 def test_load_preserves_rows_without_title(tmp_path):

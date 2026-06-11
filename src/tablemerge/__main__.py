@@ -174,7 +174,7 @@ def merge_tablesfiles_paths(
     post_processors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
-    loader = TablesFileLoader(transformers=transformers)
+    loader = TablesFileLoader(transformers=transformers, compactor=compactor)
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
@@ -194,7 +194,6 @@ def merge_tablesfiles_paths(
             agreement=agreement,
             load_time_analyzers=load_time_analyzers,
             merge_time_analyzers=merge_time_analyzers,
-            compactor=compactor,
         ).merge(tablesfiles)
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
@@ -244,6 +243,7 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "transformers": {type(t).__name__: t.settings for t in transformers},
+        "compactor": compactor.settings,
         "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
         "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
@@ -255,7 +255,6 @@ def merge_resultsets(
             **{type(a).__name__: a.settings for a in merge_time_analyzers},
         },
         "post_processors": {type(p).__name__: p.settings for p in post_processors},
-        "compactor": compactor.settings,
         "paper_aliases": paper_aliases,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)

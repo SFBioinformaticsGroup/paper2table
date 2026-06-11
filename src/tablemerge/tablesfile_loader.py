@@ -3,20 +3,30 @@ from pathlib import Path
 
 from tablevalidate.schema import TablesFile, TableWithFragments
 from tablemerge.fragment_transformer import FragmentTransformer
+from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 
 
 class TablesFileLoader:
-    def __init__(self, transformers: list[FragmentTransformer] = []):
+    def __init__(
+        self,
+        transformers: list[FragmentTransformer] = [],
+        compactor: FragmentsCompactor = NullFragmentsCompactor(),
+    ):
         self.transformers = transformers
+        self.compactor = compactor
 
     @property
     def settings(self) -> dict:
-        return {type(t).__name__: t.settings for t in self.transformers}
+        return {
+            "transformers": {type(t).__name__: t.settings for t in self.transformers},
+            "compactor": self.compactor.settings,
+        }
 
     def load(self, path: Path) -> TablesFile:
         with open(path, "r", encoding="utf-8") as f:
             tablesfile = TablesFile.model_validate(json.load(f))
-        return self.transform_tablesfile(tablesfile)
+        tablesfile = self.transform_tablesfile(tablesfile)
+        return self.compactor.compact(tablesfile)
 
     def transform_tablesfile(self, tablesfile: TablesFile) -> TablesFile:
         return TablesFile(
