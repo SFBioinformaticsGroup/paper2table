@@ -26,11 +26,14 @@ def build_postprocessors(
     filter_columns: bool,
     order_columns: bool,
     coerce_types: bool,
+    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_tables: bool = True,
 ) -> list[PostProcessor]:
-    result: list[PostProcessor] = [
-        DropEmptyNonSemanticColumnsPostProcessor(),
-        DropEmptyTablesPostProcessor(),
-    ]
+    result: list[PostProcessor] = []
+    if drop_empty_non_semantic_columns:
+        result.append(DropEmptyNonSemanticColumnsPostProcessor())
+    if drop_empty_tables:
+        result.append(DropEmptyTablesPostProcessor())
     if schema:
         result.append(SchemaPostProcessor(schema, filter_columns, order_columns, coerce_types))
     return result
