@@ -11,7 +11,7 @@ from tablevalidate.schema import (
     ColumnValue,
     Row,
 )
-from tablemerge.columns_aligner import ColumnAligner
+from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablemerge.analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
 from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 from tablemerge.agreement import Agreement, SimpleCountAgreement
@@ -95,14 +95,18 @@ class TablesFileMerger:
                 first_right = next(
                     (f for f, _ in merge_targets[1:] if f is not None), None
                 )
-                aligner = ColumnAligner(
-                    left_fragment,
-                    first_right,
-                    load_time_analyzers=self.load_time_analyzers,
-                    merge_time_analyzers=self.merge_time_analyzers,
+                load_aligner = LoadTimeColumnAligner(
+                    left_fragment, self.load_time_analyzers
                 )
                 left_fragment = TableFragment(
-                    rows=[aligner.rename_row(r) for r in left_fragment.rows],
+                    rows=[load_aligner.rename_row(r) for r in left_fragment.rows],
+                    page=left_fragment.page,
+                )
+                merge_aligner = MergeTimeColumnAligner(
+                    left_fragment, first_right, self.merge_time_analyzers
+                )
+                left_fragment = TableFragment(
+                    rows=[merge_aligner.rename_row(r) for r in left_fragment.rows],
                     page=left_fragment.page,
                 )
 
@@ -124,7 +128,9 @@ class TablesFileMerger:
 
                     right_uuid = right_tablesfile.uuid
                     right_rows = [
-                        aligner.rename_row(r).model_copy(update={"row_": i})
+                        merge_aligner.rename_row(load_aligner.rename_row(r)).model_copy(
+                            update={"row_": i}
+                        )
                         for i, r in enumerate(right_fragment.rows)
                     ]
                     left_rows = table_fragment_builder.next_left_rows()
