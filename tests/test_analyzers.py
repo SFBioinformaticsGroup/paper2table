@@ -9,7 +9,7 @@ from tablemerge.analyzers import (
     SemanticAnalyzer,
     column_value_to_strings,
 )
-from tablemerge.columns_aligner import ColumnAligner
+from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 from test_columns_aligner import FOUR_COLUMNS_MAPPING, SPECIES, SPECIES_WITH_EDITS
 
@@ -483,13 +483,16 @@ def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model
             for scientific_name, area, family, vernacular_name in SPECIES
         ]
     )
-    aligner = ColumnAligner(
-        left,
-        right,
-        load_time_analyzers=[SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)],
-        merge_time_analyzers=[JaccardAnalyzer(0.5)],
+    load_aligner = LoadTimeColumnAligner(
+        left, analyzers=[SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)]
     )
-    assert aligner.mapping == FOUR_COLUMNS_MAPPING
+    renamed_left = TableFragment(
+        rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
+    )
+    merge_aligner = MergeTimeColumnAligner(
+        renamed_left, right, analyzers=[JaccardAnalyzer(0.5)]
+    )
+    assert merge_aligner.mapping == FOUR_COLUMNS_MAPPING
 
 
 @pytest.mark.integration
@@ -511,16 +514,19 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
             for scientific_name, area, family, vernacular_name in SPECIES_WITH_EDITS
         ]
     )
-    jaccard_mapping = ColumnAligner(
-        left, right, merge_time_analyzers=[JaccardAnalyzer(0.6)]
+    jaccard_mapping = MergeTimeColumnAligner(
+        left, right, analyzers=[JaccardAnalyzer(0.6)]
     ).mapping
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
-    chain_mapping = ColumnAligner(
-        left,
-        right,
-        load_time_analyzers=[SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)],
-        merge_time_analyzers=[JaccardAnalyzer(0.6)],
+    load_aligner = LoadTimeColumnAligner(
+        left, analyzers=[SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)]
+    )
+    renamed_left = TableFragment(
+        rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
+    )
+    chain_mapping = MergeTimeColumnAligner(
+        renamed_left, right, analyzers=[JaccardAnalyzer(0.6)]
     ).mapping
     assert chain_mapping["1"] == "area"
     assert chain_mapping["2"] == "family"
@@ -529,13 +535,15 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
 def test_chain_alias_before_jaccard():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
-    aligner = ColumnAligner(
-        left,
-        right,
-        load_time_analyzers=[AliasAnalyzer({"family": "official_family"})],
-        merge_time_analyzers=[JaccardAnalyzer()],
+    load_aligner = LoadTimeColumnAligner(
+        left, analyzers=[AliasAnalyzer({"family": "official_family"})]
     )
-    assert aligner.mapping == {"family": "official_family"}
+    assert load_aligner.mapping == {"family": "official_family"}
+    renamed_left = TableFragment(
+        rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
+    )
+    merge_aligner = MergeTimeColumnAligner(renamed_left, right, analyzers=[JaccardAnalyzer()])
+    assert merge_aligner.mapping == {"0": "official_family"}
 
 
 def test_hints_returns_empty_when_no_non_semantic_columns():
