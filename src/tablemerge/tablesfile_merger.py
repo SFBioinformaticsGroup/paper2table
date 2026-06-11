@@ -12,7 +12,7 @@ from tablevalidate.schema import (
     Row,
 )
 from tablemerge.columns_aligner import ColumnAligner
-from tablemerge.analyzers import Analyzer
+from tablemerge.analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
 from tablemerge.fragment_transformer import NullFragmentTransformer, FragmentTransformer
 from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
 from tablemerge.agreement import Agreement, SimpleCountAgreement
@@ -71,13 +71,15 @@ class TablesFileMerger:
         self,
         agreement: Agreement = SimpleCountAgreement(),
         column_agreement: bool = False,
-        analyzers: list[Analyzer] = [],
+        load_time_analyzers: list[LoadTimeAnalyzer] = [],
+        merge_time_analyzers: list[MergeTimeAnalyzer] = [],
         transformer: FragmentTransformer = NullFragmentTransformer(),
         compactor: FragmentsCompactor = NullFragmentsCompactor(),
     ):
         self.agreement = agreement
         self.column_agreement = column_agreement
-        self.analyzers = analyzers
+        self.load_time_analyzers = load_time_analyzers
+        self.merge_time_analyzers = merge_time_analyzers
         self.transformer = transformer
         self.compactor = compactor
 
@@ -108,7 +110,8 @@ class TablesFileMerger:
                 aligner = ColumnAligner(
                     left_fragment,
                     first_right,
-                    analyzers=self.analyzers,
+                    load_time_analyzers=self.load_time_analyzers,
+                    merge_time_analyzers=self.merge_time_analyzers,
                 )
                 left_fragment = TableFragment(
                     rows=[aligner.rename_row(r) for r in left_fragment.rows],
@@ -181,14 +184,16 @@ def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
-    analyzers: list[Analyzer] = [],
+    load_time_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
         column_agreement=column_agreement,
-        analyzers=analyzers,
+        load_time_analyzers=load_time_analyzers,
+        merge_time_analyzers=merge_time_analyzers,
         transformer=transformer,
         compactor=compactor,
     ).merge(tablesfiles)

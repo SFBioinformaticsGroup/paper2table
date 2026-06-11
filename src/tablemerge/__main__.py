@@ -12,7 +12,8 @@ from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
 from utils.column_names import normalize_column_name
 
 from .analyzers import (
-    Analyzer,
+    LoadTimeAnalyzer,
+    MergeTimeAnalyzer,
     HintsAnalyzer,
     JaccardAnalyzer,
     AliasAnalyzer,
@@ -113,17 +114,18 @@ def build_analyzers(
     schema: Schema = {},
     hints: list[str] = [],
     use_hints: bool = False,
-) -> list[Analyzer]:
-    result: list[Analyzer] = []
+) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
+    load_time: list[LoadTimeAnalyzer] = []
+    merge_time: list[MergeTimeAnalyzer] = []
     if use_hints and hints:
-        result.append(HintsAnalyzer(hints))
-    if use_jaccard:
-        result.append(JaccardAnalyzer(threshold))
+        load_time.append(HintsAnalyzer(hints))
     if aliases:
-        result.append(AliasAnalyzer(aliases))
+        load_time.append(AliasAnalyzer(aliases))
     if use_semantic:
-        result.append(SemanticAnalyzer(threshold, language, schema))
-    return result
+        load_time.append(SemanticAnalyzer(threshold, language, schema))
+    if use_jaccard:
+        merge_time.append(JaccardAnalyzer(threshold))
+    return load_time, merge_time
 
 
 TablesFileSource = tuple[str, str]  # (resultset_dir, actual_basename)
@@ -161,7 +163,8 @@ def merge_tablesfiles_paths(
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
-    analyzers: list[Analyzer] = [],
+    load_time_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     post_processors: list[PostProcessor] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
@@ -184,7 +187,8 @@ def merge_tablesfiles_paths(
     try:
         merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
-            analyzers=analyzers,
+            load_time_analyzers=load_time_analyzers,
+            merge_time_analyzers=merge_time_analyzers,
             transformer=transformer,
             compactor=compactor,
         ).merge(tablesfiles)
@@ -218,7 +222,8 @@ def merge_resultsets(
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
-    analyzers: list[Analyzer] = [],
+    load_time_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_time_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
     post_processors: list[PostProcessor] = [],
     transformer: FragmentTransformer = NullFragmentTransformer(),
@@ -236,7 +241,10 @@ def merge_resultsets(
         "remove_header_rows": remove_header_rows,
         "column_names_hints": hints,
         "schema": serialize_schema(schema),
-        "analyzers": {type(a).__name__: a.settings for a in analyzers},
+        "analyzers": {
+            **{type(a).__name__: a.settings for a in load_time_analyzers},
+            **{type(a).__name__: a.settings for a in merge_time_analyzers},
+        },
         "post_processors": {type(p).__name__: p.settings for p in post_processors},
         "fragment_transformer": transformer.settings,
         "compactor": compactor.settings,
@@ -277,7 +285,8 @@ def merge_resultsets(
         remove_header_rows=remove_header_rows,
         hints=hints,
         pretty=pretty,
-        analyzers=analyzers,
+        load_time_analyzers=load_time_analyzers,
+        merge_time_analyzers=merge_time_analyzers,
         post_processors=post_processors,
         transformer=transformer,
         compactor=compactor,
@@ -507,7 +516,7 @@ def main():
     if args.paper_aliases_path:
         paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
 
-    analyzers = build_analyzers(
+    load_time_analyzers, merge_time_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
         use_hints=args.hints_column_alignment,
@@ -541,7 +550,8 @@ def main():
         remove_header_rows=args.remove_header_rows,
         hints=hints,
         pretty=args.pretty,
-        analyzers=analyzers,
+        load_time_analyzers=load_time_analyzers,
+        merge_time_analyzers=merge_time_analyzers,
         schema=schema,
         post_processors=post_processors,
         transformer=transformer,
