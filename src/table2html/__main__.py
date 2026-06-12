@@ -125,6 +125,9 @@ def build_metadata_html(metadata: dict) -> list[str]:
     return html
 
 
+_ROW_PALETTE_SIZE = 5
+
+
 def agreement_css_class(level: int) -> str:
     if level <= 1:
         return "low"
@@ -138,30 +141,33 @@ def build_data_row(
     columns: list[str],
     uuid_to_reader: dict[str, str] | None = None,
 ) -> list[str]:
-    css_class = agreement_css_class(row.agreement_level_ or 0)
-    html = [f"<tr class='{css_class}'>"]
+    html = ["<tr>"]
     col_values = row.get_columns()
     for col in columns:
         if col == "row_":
             val = str(row.row_) if row.row_ is not None else ""
+            row_class = f" class='row-{row.row_ % _ROW_PALETTE_SIZE}'" if row.row_ is not None else ""
+            html.append(f"<td{row_class}>{val}</td>")
         elif col == "agreement_level_":
             val = str(row.agreement_level_) if row.agreement_level_ is not None else ""
+            css_class = agreement_css_class(row.agreement_level_ or 0)
+            html.append(f"<td class='{css_class}'>{val}</td>")
         elif col == "readers_":
             source_ids = row.sources_ or []
             mapping = uuid_to_reader or {}
             readers = list(
                 dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
             )
-            val = ", ".join(readers)
+            html.append(f"<td>{', '.join(readers)}</td>")
         elif col == "sources_":
-            val = ", ".join(row.sources_ or [])
+            html.append(f"<td>{', '.join(row.sources_ or [])}</td>")
         else:
             cell = col_values.get(col, "")
             if isinstance(cell, list):
                 val = ", ".join(v.value for v in cell)
             else:
                 val = cell or ""
-        html.append(f"<td>{val}</td>")
+            html.append(f"<td>{val}</td>")
     html.append("</tr>")
     return html
 
@@ -300,6 +306,11 @@ def build_css() -> list[str]:
         ".low { background-color: #fdd; }",
         ".medium { background-color: #ffd; }",
         ".high { background-color: #dfd; }",
+        ".row-0 { background-color: #aed6f1; }",
+        ".row-1 { background-color: #a9dfbf; }",
+        ".row-2 { background-color: #f9e79f; }",
+        ".row-3 { background-color: #f5cba7; }",
+        ".row-4 { background-color: #d7bde2; }",
     ]
 
 
