@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from tablemerge.tablesfile_loader import TablesFileLoader
-from tablemerge.fragment_transformer import FilterTitleRowsTransformer
+from tablemerge.fragment_transformer import FilterEmptyRowsTransformer, FilterTitleRowsTransformer
 from tablemerge.fragments_compactor import SafeConsecutiveFragmentsCompactor
 from tablevalidate.schema import Row, TablesFile
 
@@ -49,6 +49,21 @@ def test_load_applies_compactor(tmp_path):
     assert len(result.tables) == 1
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [Row(species="Ammi majus"), Row(species="Rosa canina")]
+
+
+def test_load_applies_filter_empty_rows(tmp_path):
+    loader = TablesFileLoader(transformers=[FilterEmptyRowsTransformer()])
+    path = write_tablesfile(tmp_path, {
+        "tables": [{"table_fragments": [{"rows": [
+            {"0": ""},
+            {"0": "Ammi majus", "1": "Apiaceae"},
+            {"0": "", "1": ""},
+        ], "page": 1}]}],
+        "citation": None,
+    })
+    result = loader.load(path)
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [Row(**{"0": "Ammi majus", "1": "Apiaceae"})]
 
 
 def test_load_preserves_rows_without_title(tmp_path):

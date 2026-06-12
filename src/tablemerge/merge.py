@@ -7,6 +7,7 @@ from tablevalidate.schema import (
     Row,
 )
 
+
 def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     if value is None:
         return False
@@ -44,8 +45,8 @@ def has_semantic_header_value(row: Row) -> bool:
 def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
     return any(
         value_matches_hints(val, hints_set)
-        for col, val in row.get_columns().items()
-        if not Row.is_empty_value(val) and not Row.is_semantic_column(col)
+        for _col, val in row.get_columns().items()
+        if not Row.is_empty_value(val)
     )
 
 
@@ -73,7 +74,6 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
         metadata=tablesfile.metadata,
         uuid=tablesfile.uuid,
     )
-
 
 
 def drop_empty_non_semantic_columns(tablesfile: TablesFile) -> TablesFile:

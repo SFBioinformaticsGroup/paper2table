@@ -546,6 +546,15 @@ def test_chain_alias_before_jaccard():
     assert merge_aligner.mapping == {"0": "official_family"}
 
 
+def test_chain_hints_then_alias_renames_through_intermediate_name():
+    fragment = wrap([Row(**{"0": "species"})])
+    aligner = LoadTimeColumnAligner(
+        fragment,
+        analyzers=[HintsAnalyzer(["species"]), AliasAnalyzer({"species": "scientific_name"})],
+    )
+    assert aligner.mapping == {"0": "scientific_name", "species": "scientific_name"}
+
+
 def test_hints_returns_empty_when_no_non_semantic_columns():
     left = wrap([Row(species="species", family="family")])
     result = HintsAnalyzer(["species", "family"]).build_mapping(

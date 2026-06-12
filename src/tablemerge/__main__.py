@@ -31,6 +31,7 @@ from .schema import PostProcessor, Schema
 from .postprocessors import build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
+    FilterEmptyRowsTransformer,
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
 )
@@ -567,6 +568,7 @@ def main():
         transformers.append(FragmentValuesReverser(args.semantic_language))
     if args.filter_title_rows:
         transformers.append(FilterTitleRowsTransformer())
+    transformers.append(FilterEmptyRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(
         args.compact_consecutive_fragments, NullFragmentsCompactor()
