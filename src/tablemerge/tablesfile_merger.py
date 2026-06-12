@@ -79,7 +79,7 @@ class TablesFileMerger:
             merged_fragments: list[TableFragment] = []
             fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles)
 
-            for merge_targets in fragments_clusters.values():
+            for _page, merge_targets in sorted(fragments_clusters.items()):
                 # TODO sort first so longest cluster is the first one
                 left_fragment, left_tablesfile = merge_targets[0]
                 if not left_fragment:
