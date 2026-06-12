@@ -9,7 +9,7 @@ from tablevalidate.schema import (
     ColumnValue,
 )
 from utils.coerce import coerce_str
-from .merge import drop_empty_non_semantic_columns, drop_empty_tables
+from .merge import drop_empty_non_semantic_columns, drop_empty_tables, filter_semantic_columns
 from .schema import Schema
 
 
@@ -17,6 +17,15 @@ class PostProcessor(Protocol):
     @property
     def settings(self) -> dict: ...
     def postprocess(self, tablesfile: TablesFile) -> TablesFile: ...
+
+
+class FilterSemanticColumnsPostProcessor:
+    @property
+    def settings(self) -> dict:
+        return {}
+
+    def postprocess(self, tablesfile: TablesFile) -> TablesFile:
+        return filter_semantic_columns(tablesfile)
 
 
 class DropEmptyNonSemanticColumnsPostProcessor:
@@ -146,10 +155,13 @@ def build_postprocessors(
     filter_columns: bool,
     order_columns: bool,
     coerce_types: bool,
+    only_semantic_columns: bool = False,
     drop_empty_non_semantic_columns: bool = True,
     drop_empty_tables: bool = True,
 ) -> list[PostProcessor]:
     result: list[PostProcessor] = []
+    if only_semantic_columns:
+        result.append(FilterSemanticColumnsPostProcessor())
     if drop_empty_non_semantic_columns:
         result.append(DropEmptyNonSemanticColumnsPostProcessor())
     if drop_empty_tables:
