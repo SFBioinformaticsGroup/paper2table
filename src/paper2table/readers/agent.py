@@ -29,7 +29,7 @@ def build_table_model(schema: str):
 def build_tables_model(schema: str):
     return create_model(
         "TablesModel",
-        tables=(list[build_table_model(schema)], ...),
+        tables=(list[build_table_model(schema)], []),
         citation=(str, ...),
     )
 
@@ -58,6 +58,7 @@ instructions = (
     " * When a table spans across multiple pages, generate multiple table_fragments,"
     " one for each page. Otherwise, generate a single table fragment",
     " * Annotate each table fragment with the page number where it appears",
+    " * Always return the tables field, even if no tables were found (return an empty list in that case)",
 )
 
 
