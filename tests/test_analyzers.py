@@ -694,6 +694,38 @@ def test_hints_handles_value_with_agreement_cells():
     assert result == {"0": "species"}
 
 
+def test_hints_unsafe_renames_semantic_columns_when_values_match_hints():
+    left = wrap([Row(species="species", family="family")])
+    result = HintsAnalyzer(["species", "family"], safe=False).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {"species": "species", "family": "family"}
+
+
+def test_hints_unsafe_renames_mix_of_semantic_and_numeric_columns():
+    left = wrap([Row(**{"0": "species", "family": "family"})])
+    result = HintsAnalyzer(["species", "family"], safe=False).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {"0": "species", "family": "family"}
+
+
+def test_hints_safe_still_returns_empty_when_all_columns_are_semantic():
+    left = wrap([Row(species="species", family="family")])
+    result = HintsAnalyzer(["species", "family"], safe=True).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {}
+
+
+def test_hints_unsafe_returns_empty_when_no_rows_match_hints():
+    left = wrap([Row(species="Ammi majus", family="Apiaceae")])
+    result = HintsAnalyzer(["species", "family"], safe=False).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {}
+
+
 def test_column_value_to_strings_returns_empty_for_none():
     assert column_value_to_strings(None) == []
 
