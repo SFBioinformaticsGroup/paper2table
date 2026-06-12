@@ -1198,8 +1198,8 @@ def test_has_hints_header_value_false_when_no_value_in_hints():
     )
 
 
-def test_has_hints_header_value_ignores_semantic_columns():
-    assert not has_hints_header_value(Row(family="family"), {"family"})
+def test_has_hints_header_value_includes_semantic_columns():
+    assert has_hints_header_value(Row(family="family"), {"family"})
 
 
 def test_has_hints_header_value_with_value_with_agreement():

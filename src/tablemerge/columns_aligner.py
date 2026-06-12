@@ -55,9 +55,10 @@ class LoadTimeColumnAligner(BaseColumnAligner):
         remaining = fragment.get_column_names()
         accumulated: dict[str, str] = {}
         for analyzer in self.analyzers:
-            if not remaining:
+            candidates = remaining + list(accumulated.values())
+            if not candidates:
                 break
-            new_mapping = analyzer.build_mapping(remaining, rows)
+            new_mapping = analyzer.build_mapping(candidates, rows)
             if not new_mapping:
                 continue
             mapped = self.accumulate_mapping(accumulated, new_mapping)

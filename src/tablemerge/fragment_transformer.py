@@ -45,6 +45,18 @@ class FilterTitleRowsTransformer:
         return bool(_TITLE_ROW_RE.match(text))
 
 
+class FilterEmptyRowsTransformer:
+    @property
+    def settings(self) -> dict:
+        return {}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        return TableFragment(
+            rows=[row for row in fragment.rows if not row.is_empty()],
+            page=fragment.page,
+        )
+
+
 class FragmentValuesReverser:
     def __init__(self, language: str = "en"):
         self.language = language
