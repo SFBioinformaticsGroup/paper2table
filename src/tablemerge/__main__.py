@@ -19,10 +19,7 @@ from .analyzers import (
     AliasAnalyzer,
     SemanticAnalyzer,
 )
-from .merge import (
-    filter_semantic_columns,
-    filter_header_rows,
-)
+from .merge import filter_semantic_columns
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
@@ -32,6 +29,7 @@ from .postprocessors import build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
     FilterEmptyRowsTransformer,
+    FilterHeaderRowsTransformer,
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
 )
@@ -166,19 +164,19 @@ def merge_tablesfiles_paths(
     metadata_map: dict[str, dict],
     agreement,
     only_semantic_columns: bool = False,
-    remove_header_rows: bool = False,
-    hints: list[str] = [],
     pretty: bool = False,
-    transformers: list[FragmentTransformer] = [],
+    pretransformers: list[FragmentTransformer] = [],
+    posttransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     post_processors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
     loader = TablesFileLoader(
-        transformers=transformers,
+        pretransformers=pretransformers,
         compactor=compactor,
         analyzers=load_analyzers,
+        posttransformers=posttransformers,
     )
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
@@ -201,8 +199,6 @@ def merge_tablesfiles_paths(
         ).merge(tablesfiles)
         if only_semantic_columns:
             merged_tablesfile = filter_semantic_columns(merged_tablesfile)
-        if remove_header_rows:
-            merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
         for post_processor in post_processors:
             merged_tablesfile = post_processor.postprocess(merged_tablesfile)
         print(
@@ -231,7 +227,7 @@ def merge_resultsets(
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
-    transformers: list[FragmentTransformer] = [],
+    pretransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
@@ -244,9 +240,13 @@ def merge_resultsets(
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
 
+    posttransformers: list[FragmentTransformer] = []
+    if remove_header_rows:
+        posttransformers.append(FilterHeaderRowsTransformer(hints))
+
     settings = {
         "agreement_method": agreement_method,
-        "transformers": {type(t).__name__: t.settings for t in transformers},
+        "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
         "compactor": compactor.settings,
         "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
         "drop_empty_tables": drop_empty_tables,
@@ -292,10 +292,9 @@ def merge_resultsets(
         output_path=output_path,
         metadata_map=resultset_metadata,
         agreement=agreement,
-        transformers=transformers,
+        pretransformers=pretransformers,
+        posttransformers=posttransformers,
         only_semantic_columns=only_semantic_columns,
-        remove_header_rows=remove_header_rows,
-        hints=hints,
         pretty=pretty,
         load_analyzers=load_analyzers,
         merge_analyzers=merge_analyzers,
@@ -563,12 +562,12 @@ def main():
         hints=hints,
     )
 
-    transformers: list[FragmentTransformer] = []
+    pretransformers: list[FragmentTransformer] = []
     if args.fix_reversed_column_values:
-        transformers.append(FragmentValuesReverser(args.semantic_language))
+        pretransformers.append(FragmentValuesReverser(args.semantic_language))
     if args.filter_title_rows:
-        transformers.append(FilterTitleRowsTransformer())
-    transformers.append(FilterEmptyRowsTransformer())
+        pretransformers.append(FilterTitleRowsTransformer())
+    pretransformers.append(FilterEmptyRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(
         args.compact_consecutive_fragments, NullFragmentsCompactor()
@@ -585,7 +584,7 @@ def main():
         remove_header_rows=args.remove_header_rows,
         hints=hints,
         pretty=args.pretty,
-        transformers=transformers,
+        pretransformers=pretransformers,
         load_analyzers=load_analyzers,
         merge_analyzers=merge_analyzers,
         schema=schema,

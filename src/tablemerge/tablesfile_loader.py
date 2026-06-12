@@ -11,37 +11,47 @@ from tablemerge.analyzers import LoadTimeAnalyzer
 class TablesFileLoader:
     def __init__(
         self,
-        transformers: list[FragmentTransformer] = [],
+        pretransformers: list[FragmentTransformer] = [],
         compactor: FragmentsCompactor = NullFragmentsCompactor(),
         analyzers: list[LoadTimeAnalyzer] = [],
+        posttransformers: list[FragmentTransformer] = [],
     ):
-        self.transformers = transformers
+        self.pretransformers = pretransformers
         self.compactor = compactor
         self.analyzers = analyzers
+        self.posttransformers = posttransformers
 
     @property
     def settings(self) -> dict:
         return {
-            "transformers": {type(t).__name__: t.settings for t in self.transformers},
+            "pretransformers": {
+                type(t).__name__: t.settings for t in self.pretransformers
+            },
             "compactor": self.compactor.settings,
-            "analyzers": {
-                type(a).__name__: a.settings for a in self.analyzers
+            "analyzers": {type(a).__name__: a.settings for a in self.analyzers},
+            "posttransformers": {
+                type(t).__name__: t.settings for t in self.posttransformers
             },
         }
 
     def load(self, path: Path) -> TablesFile:
         with open(path, "r", encoding="utf-8") as f:
             tablesfile = TablesFile.model_validate(json.load(f))
-        tablesfile = self.transform_tablesfile(tablesfile)
+        tablesfile = self.transform_tablesfile(tablesfile, self.pretransformers)
         tablesfile = self.compactor.compact(tablesfile)
-        return self.align_tablesfile(tablesfile)
+        tablesfile = self.align_tablesfile(tablesfile)
+        return self.transform_tablesfile(tablesfile, self.posttransformers)
 
-    def transform_tablesfile(self, tablesfile: TablesFile) -> TablesFile:
+    def transform_tablesfile(
+        self, tablesfile: TablesFile, transformers: list[FragmentTransformer]
+    ) -> TablesFile:
+        if not transformers:
+            return tablesfile
         return TablesFile(
             tables=[
                 TableWithFragments(
                     table_fragments=[
-                        self.transform_fragment(fragment)
+                        self.transform_fragment(fragment, transformers)
                         for fragment in table.get_table_fragments()
                     ]
                 )
@@ -52,8 +62,10 @@ class TablesFileLoader:
             uuid=tablesfile.uuid,
         )
 
-    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
-        for transformer in self.transformers:
+    def transform_fragment(
+        self, fragment: TableFragment, transformers: list[FragmentTransformer]
+    ) -> TableFragment:
+        for transformer in transformers:
             fragment = transformer.transform_fragment(fragment)
         return fragment
 
