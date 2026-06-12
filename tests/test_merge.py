@@ -650,8 +650,19 @@ def test_is_title_row_detects_tabla_prefix():
     assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "tabla 5"}))
 
 
-def test_is_title_row_false_when_multiple_non_empty_columns():
-    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figure 1", "1": "something"}))
+def test_is_title_row_false_when_multiple_non_empty_columns_dont_form_title():
+    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"family": "Apiaceae", "scientific_name": "Rosa canina"}))
+
+
+def test_is_title_row_detects_split_title_across_columns():
+    assert FilterTitleRowsTransformer().is_title_row(
+        Row(**{
+            "family": "Table 1: List of med",
+            "scientific_name": "icinal s",
+            "common_name": "pecies and us",
+            "notes": "es with their",
+        })
+    )
 
 
 def test_is_title_row_false_when_value_does_not_match():
