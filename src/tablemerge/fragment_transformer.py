@@ -32,17 +32,21 @@ class FilterTitleRowsTransformer:
             for col, val in row.get_columns().items()
             if not Row.is_empty_value(val)
         }
-        if len(non_empty) != 1:
+        if len(non_empty) == 0:
             return False
-        val = next(iter(non_empty.values()))
-        if isinstance(val, str):
-            text = val.strip()
-        elif isinstance(val, list):
-            texts = [v.value.strip() for v in val if v.value.strip()]
-            text = texts[0] if texts else ""
+        if len(non_empty) == 1:
+            text = self.extract_text(next(iter(non_empty.values())))
         else:
-            return False
-        return bool(_TITLE_ROW_RE.match(text))
+            text = "".join(self.extract_text(v) for v in non_empty.values())
+        return bool(_TITLE_ROW_RE.match(text.strip()))
+
+    def extract_text(self, val: ColumnValue) -> str:
+        if isinstance(val, str):
+            return val.strip()
+        if isinstance(val, list):
+            texts = [v.value.strip() for v in val if v.value.strip()]
+            return texts[0] if texts else ""
+        return ""
 
 
 class FilterEmptyRowsTransformer:
