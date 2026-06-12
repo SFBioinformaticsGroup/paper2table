@@ -118,12 +118,12 @@ def build_analyzers(
     aliases: dict[str, str],
     schema: Schema = {},
     hints: list[str] = [],
-    use_hints: bool = False,
+    hints_mode: str | None = None,
 ) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
     load_time: list[LoadTimeAnalyzer] = []
     merge_time: list[MergeTimeAnalyzer] = []
-    if use_hints and hints:
-        load_time.append(HintsAnalyzer(hints))
+    if hints_mode and hints:
+        load_time.append(HintsAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
         load_time.append(AliasAnalyzer(aliases))
     if use_semantic:
@@ -412,9 +412,11 @@ def parse_args():
     )
     parser.add_argument(
         "--hints-column-alignment",
-        action="store_true",
+        choices=["safe", "unsafe"],
+        default=None,
         help=(
-            "Rename non-semantic columns by matching the first row's values against hints. "
+            "Rename columns by matching the first row's values against hints. "
+            "'safe' renames only non-semantic columns; 'unsafe' also renames semantic columns. "
             "Requires --column-names-hints or --column-names-hints-path."
         ),
     )
@@ -535,7 +537,7 @@ def main():
             normalize_column_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
-    if args.hints_column_alignment and not hints:
+    if args.hints_column_alignment is not None and not hints:
         print(
             "Error: --hints-column-alignment requires --column-names-hints or "
             "--column-names-hints-path.",
@@ -552,7 +554,7 @@ def main():
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
-        use_hints=args.hints_column_alignment,
+        hints_mode=args.hints_column_alignment,
         threshold=args.column_alignment_threshold,
         language=args.semantic_language,
         aliases=aliases,

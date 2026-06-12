@@ -43,42 +43,49 @@ class MergeTimeAnalyzer(Protocol):
 
 
 class HintsAnalyzer:
-    """Enabled by --hints-column-alignment. Runs at load time via LoadTimeColumnAligner.
+    """Enabled by --hints-column-alignment safe|unsafe. Runs at load time via LoadTimeColumnAligner.
 
-    Inspects the first non-empty row of a fragment. If at least one non-semantic
+    Inspects the first non-empty row of a fragment. If at least one candidate
     column's value normalizes to a known hint, treats the row as a header row and
-    renames ALL non-semantic columns to their normalized first-row values (including
+    renames ALL candidate columns to their normalized first-row values (including
     columns whose value is not in the hints list). Runs before AliasAnalyzer and
     SemanticAnalyzer.
+
+    safe=True (default): only considers non-semantic columns.
+    safe=False: considers all columns, including semantic ones.
     """
 
-    def __init__(self, hints: list[str]):
+    def __init__(self, hints: list[str], safe: bool = True):
         self.hints = hints
+        self.safe = safe
 
     @property
     def settings(self) -> dict:
-        return {"hints": self.hints}
+        return {"hints": self.hints, "safe": self.safe}
 
     def build_mapping(
         self,
         column_names: list[str],
         rows: list[Row],
     ) -> dict[str, str]:
-        non_semantic = [c for c in column_names if not Row.is_semantic_column(c)]
-        if not non_semantic:
+        if self.safe:
+            candidates = [c for c in column_names if not Row.is_semantic_column(c)]
+        else:
+            candidates = list(column_names)
+        if not candidates:
             return {}
         first_row = next((r for r in rows if not r.is_empty()), None)
         if first_row is None:
             return {}
-        row_values = self._non_semantic_normalized_values(first_row, non_semantic)
+        row_values = self._normalized_values(first_row, candidates)
         hints_set = set(self.hints)
         if not any(val in hints_set for val in row_values.values()):
             return {}
         return row_values
 
-    def _non_semantic_normalized_values(self, row: Row, non_semantic: list[str]) -> dict[str, str]:
+    def _normalized_values(self, row: Row, columns: list[str]) -> dict[str, str]:
         result: dict[str, str] = {}
-        for col in non_semantic:
+        for col in columns:
             val = row.get_columns().get(col)
             if val is None:
                 continue
