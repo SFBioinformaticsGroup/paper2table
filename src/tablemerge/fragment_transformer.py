@@ -2,6 +2,7 @@ import re
 from typing import Protocol
 
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
+from tablemerge.merge import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 
 
@@ -57,6 +58,21 @@ class FilterEmptyRowsTransformer:
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
             rows=[row for row in fragment.rows if not row.is_empty()],
+            page=fragment.page,
+        )
+
+
+class FilterHeaderRowsTransformer:
+    def __init__(self, hints: list[str] = []):
+        self.hints = hints
+
+    @property
+    def settings(self) -> dict:
+        return {"hints": self.hints}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        return TableFragment(
+            rows=[row for row in fragment.rows if not is_header_row(row, self.hints)],
             page=fragment.page,
         )
 
