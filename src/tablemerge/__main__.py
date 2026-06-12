@@ -24,8 +24,8 @@ from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger
-from .schema import PostProcessor, Schema
-from .postprocessors import build_postprocessors
+from .schema import Schema
+from .postprocessor import PostProcessor, build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
     FilterEmptyRowsTransformer,
