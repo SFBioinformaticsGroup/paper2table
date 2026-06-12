@@ -19,7 +19,6 @@ from .analyzers import (
     AliasAnalyzer,
     SemanticAnalyzer,
 )
-from .merge import filter_semantic_columns
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
@@ -163,13 +162,12 @@ def merge_tablesfiles_paths(
     output_path,
     metadata_map: dict[str, dict],
     agreement,
-    only_semantic_columns: bool = False,
     pretty: bool = False,
     pretransformers: list[FragmentTransformer] = [],
     posttransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
-    post_processors: list[PostProcessor] = [],
+    postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
     loader = TablesFileLoader(
@@ -197,10 +195,8 @@ def merge_tablesfiles_paths(
             agreement=agreement,
             analyzers=merge_analyzers,
         ).merge(tablesfiles)
-        if only_semantic_columns:
-            merged_tablesfile = filter_semantic_columns(merged_tablesfile)
-        for post_processor in post_processors:
-            merged_tablesfile = post_processor.postprocess(merged_tablesfile)
+        for postprocessor in postprocessors:
+            merged_tablesfile = postprocessor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -231,7 +227,7 @@ def merge_resultsets(
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
-    post_processors: list[PostProcessor] = [],
+    postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
     paper_aliases: dict[str, str] = {},
@@ -258,7 +254,7 @@ def merge_resultsets(
             **{type(a).__name__: a.settings for a in load_analyzers},
             **{type(a).__name__: a.settings for a in merge_analyzers},
         },
-        "post_processors": {type(p).__name__: p.settings for p in post_processors},
+        "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
         "paper_aliases": paper_aliases,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
@@ -294,11 +290,10 @@ def merge_resultsets(
         agreement=agreement,
         pretransformers=pretransformers,
         posttransformers=posttransformers,
-        only_semantic_columns=only_semantic_columns,
         pretty=pretty,
         load_analyzers=load_analyzers,
         merge_analyzers=merge_analyzers,
-        post_processors=post_processors,
+        postprocessors=postprocessors,
         compactor=compactor,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -512,11 +507,12 @@ def main():
         )
         sys.exit(1)
     schema = load_schema(args.schema_path) if args.schema_path else {}
-    post_processors = build_postprocessors(
+    postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
+        only_semantic_columns=args.only_semantic_columns,
         drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
         drop_empty_tables=args.drop_empty_tables,
     )
@@ -588,7 +584,7 @@ def main():
         load_analyzers=load_analyzers,
         merge_analyzers=merge_analyzers,
         schema=schema,
-        post_processors=post_processors,
+        postprocessors=postprocessors,
         compactor=compactor,
         workers=args.workers,
         paper_aliases=paper_aliases,
