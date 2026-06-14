@@ -18,6 +18,11 @@ def column_value_to_strings(value: ColumnValue) -> list[str]:
     return [entry.value for entry in value]
 
 
+# ====================
+# Load Time Analyzers
+# ===================
+
+
 class LoadTimeAnalyzer(Protocol):
     @property
     def settings(self) -> dict: ...
@@ -29,27 +34,14 @@ class LoadTimeAnalyzer(Protocol):
     ) -> dict[str, str]: ...
 
 
-class MergeTimeAnalyzer(Protocol):
-    @property
-    def settings(self) -> dict: ...
-
-    def build_mapping(
-        self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
-    ) -> dict[str, str]: ...
-
-
-class HintsAnalyzer:
+class HintsLoadTimeAnalyzer:
     """Enabled by --hints-column-alignment safe|unsafe. Runs at load time via LoadTimeColumnAligner.
 
     Inspects the first non-empty row of a fragment. If at least one candidate
     column's value normalizes to a known hint, treats the row as a header row and
     renames ALL candidate columns to their normalized first-row values (including
-    columns whose value is not in the hints list). Runs before AliasAnalyzer and
-    ColumnNameSemanticAnalyzer.
+    columns whose value is not in the hints list). Runs before AliasLoadTimeAnalyzer and
+    ColumnNameSemanticLoadTimeAnalyzer.
 
     safe=True (default): only considers non-semantic columns.
     safe=False: considers all columns, including semantic ones.
@@ -95,7 +87,149 @@ class HintsAnalyzer:
         return result
 
 
-class JaccardAnalyzer:
+class AliasLoadTimeAnalyzer:
+    """Enabled by --column-aliases / --column-aliases-path. Runs at load time via LoadTimeColumnAligner.
+
+    Applies an explicit user-provided rename dictionary to each fragment independently.
+    No heuristics, no data inspection. Makes sense when sources use different column names
+    for the same concept (e.g. "familia" → "family"). Works on any column regardless of
+    numeric/semantic classification.
+    """
+
+    def __init__(self, aliases: dict[str, str]):
+        self.aliases = aliases
+
+    @property
+    def settings(self) -> dict:
+        return {"aliases": self.aliases}
+
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]:
+        all_cols = list(dict.fromkeys(column_names))
+        return {col: self.aliases[col] for col in all_cols if col in self.aliases}
+
+
+class ColumnNameSemanticLoadTimeAnalyzer:
+    """Enabled by --semantic-column-alignment. Runs at load time via LoadTimeColumnAligner.
+
+    Renames numeric columns ("0", "1", ...) in a fragment to schema column names by computing
+    spaCy word-vector similarity between each numeric column's cell values and each schema
+    column name. Does nothing without a schema or when no numeric columns are present.
+    """
+
+    def __init__(
+        self, threshold: float = 0.5, language: str = "en", schema: Schema = {}
+    ):
+        self.threshold = threshold
+        self.language = language
+        self.schema = schema
+        self._nlp = None
+
+    @property
+    def settings(self) -> dict:
+        return {"threshold": self.threshold, "language": self.language}
+
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]:
+        if not self.schema:
+            return {}
+
+        numeric = [c for c in column_names if not Row.is_semantic_column(c)]
+
+        if not numeric:
+            return {}
+
+        schema_cols = list(self.schema.keys())
+        nlp = self.load_model()
+        scores = []
+
+        for numeric_col in numeric:
+            values = self.sample_values(rows, numeric_col)
+            if not values:
+                continue
+            for schema_col in schema_cols:
+                score = self.semantic_score(nlp, values, schema_col)
+                if score >= self.threshold:
+                    scores.append((score, numeric_col, schema_col))
+
+        return self._greedy_assignment(scores)
+
+    def _greedy_assignment(
+        self, scores: list[tuple[float, str, str]]
+    ) -> dict[str, str]:
+        """Resolves (score, source, target) candidates into a 1-to-1 mapping.
+
+        When one source matches multiple targets, the highest-scoring target wins.
+        When multiple sources match the same target, the highest-scoring source wins.
+        """
+        sorted_scores = sorted(scores, key=lambda x: -x[0])
+        mapping: dict[str, str] = {}
+        used_targets: set[str] = set()
+        for _, source, target in sorted_scores:
+            if source not in mapping and target not in used_targets:
+                mapping[source] = target
+                used_targets.add(target)
+        return mapping
+
+    def load_model(self):
+        if self._nlp is None:
+            self._nlp = load_spacy_model(self.language)
+        return self._nlp
+
+    def sample_values(self, rows: list[Row], col_name: str) -> list[str]:
+        values = []
+        for row in rows:
+            cell = row.get_columns().get(col_name)
+            if cell is None:
+                continue
+            text = (
+                cell.strip()
+                if isinstance(cell, str)
+                else (cell[0].value.strip() if cell else "")
+            )
+            if text:
+                values.append(text)
+        return values
+
+    def semantic_score(
+        self, nlp: spacy.language.Language, values: list[str], col_name: str
+    ) -> float:
+        col_name_doc = nlp(col_name.replace("_", " ").replace("-", " "))
+        if not col_name_doc.has_vector:
+            return 0.0
+        scores = []
+        for value in values:
+            value_doc = nlp(value[:128])
+            if value_doc.has_vector:
+                scores.append(col_name_doc.similarity(value_doc))
+        return sum(scores) / len(scores) if scores else 0.0
+
+
+# ====================
+# Merge Time Analyzers
+# ====================
+
+
+class MergeTimeAnalyzer(Protocol):
+    @property
+    def settings(self) -> dict: ...
+
+    def build_mapping(
+        self,
+        left_column_names: list[str],
+        right_column_names: list[str],
+        left_rows: list[Row],
+        right_rows: list[Row],
+    ) -> dict[str, str]: ...
+
+
+class JaccardMergeTimeAnalyzer:
     """Enabled by --jaccard-column-alignment. Runs at merge time via MergeTimeColumnAligner.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
@@ -175,132 +309,12 @@ class JaccardAnalyzer:
         return len(a & b) / union if union else 0.0
 
 
-class AliasAnalyzer:
-    """Enabled by --column-aliases / --column-aliases-path. Runs at load time via LoadTimeColumnAligner.
-
-    Applies an explicit user-provided rename dictionary to each fragment independently.
-    No heuristics, no data inspection. Makes sense when sources use different column names
-    for the same concept (e.g. "familia" → "family"). Works on any column regardless of
-    numeric/semantic classification.
-    """
-
-    def __init__(self, aliases: dict[str, str]):
-        self.aliases = aliases
-
-    @property
-    def settings(self) -> dict:
-        return {"aliases": self.aliases}
-
-    def build_mapping(
-        self,
-        column_names: list[str],
-        rows: list[Row],
-    ) -> dict[str, str]:
-        all_cols = list(dict.fromkeys(column_names))
-        return {col: self.aliases[col] for col in all_cols if col in self.aliases}
-
-
-class ColumnNameSemanticAnalyzer:
-    """Enabled by --semantic-column-alignment. Runs at load time via LoadTimeColumnAligner.
-
-    Renames numeric columns ("0", "1", ...) in a fragment to schema column names by computing
-    spaCy word-vector similarity between each numeric column's cell values and each schema
-    column name. Does nothing without a schema or when no numeric columns are present.
-    """
-
-    def __init__(self, threshold: float = 0.5, language: str = "en", schema: Schema = {}):
-        self.threshold = threshold
-        self.language = language
-        self.schema = schema
-        self._nlp = None
-
-    @property
-    def settings(self) -> dict:
-        return {"threshold": self.threshold, "language": self.language}
-
-    def build_mapping(
-        self,
-        column_names: list[str],
-        rows: list[Row],
-    ) -> dict[str, str]:
-        if not self.schema:
-            return {}
-
-        numeric = [c for c in column_names if not Row.is_semantic_column(c)]
-
-        if not numeric:
-            return {}
-
-        schema_cols = list(self.schema.keys())
-        nlp = self.load_model()
-        scores = []
-
-        for numeric_col in numeric:
-            values = self.sample_values(rows, numeric_col)
-            if not values:
-                continue
-            for schema_col in schema_cols:
-                score = self.semantic_score(nlp, values, schema_col)
-                if score >= self.threshold:
-                    scores.append((score, numeric_col, schema_col))
-
-        return self._greedy_assignment(scores)
-
-    def _greedy_assignment(self, scores: list[tuple[float, str, str]]) -> dict[str, str]:
-        """Resolves (score, source, target) candidates into a 1-to-1 mapping.
-
-        When one source matches multiple targets, the highest-scoring target wins.
-        When multiple sources match the same target, the highest-scoring source wins.
-        """
-        sorted_scores = sorted(scores, key=lambda x: -x[0])
-        mapping: dict[str, str] = {}
-        used_targets: set[str] = set()
-        for _, source, target in sorted_scores:
-            if source not in mapping and target not in used_targets:
-                mapping[source] = target
-                used_targets.add(target)
-        return mapping
-
-    def load_model(self):
-        if self._nlp is None:
-            self._nlp = load_spacy_model(self.language)
-        return self._nlp
-
-    def sample_values(self, rows: list[Row], col_name: str) -> list[str]:
-        values = []
-        for row in rows:
-            cell = row.get_columns().get(col_name)
-            if cell is None:
-                continue
-            text = (
-                cell.strip()
-                if isinstance(cell, str)
-                else (cell[0].value.strip() if cell else "")
-            )
-            if text:
-                values.append(text)
-        return values
-
-    def semantic_score(
-        self, nlp: spacy.language.Language, values: list[str], col_name: str
-    ) -> float:
-        col_name_doc = nlp(col_name.replace("_", " ").replace("-", " "))
-        if not col_name_doc.has_vector:
-            return 0.0
-        scores = []
-        for value in values:
-            value_doc = nlp(value[:128])
-            if value_doc.has_vector:
-                scores.append(col_name_doc.similarity(value_doc))
-        return sum(scores) / len(scores) if scores else 0.0
-
-
-class ColumnValueSemanticAnalyzer:
-    """Enabled by --semantic-column-alignment. Runs at merge time via MergeTimeColumnAligner, after JaccardAnalyzer.
+class ColumnValueSemanticMergeTimeAnalyzer:
+    """Enabled by --semantic-column-alignment. Runs at merge time via MergeTimeColumnAligner, after JaccardMergeTimeAnalyzer.
 
     Renames numeric columns ("0", "1", ...) to semantic ones by computing spaCy word-vector
     similarity between each numeric column's cell values and the semantic column names from
-    the opposing fragment. Unlike ColumnNameSemanticAnalyzer (which uses a schema), this
+    the opposing fragment. Unlike ColumnNameSemanticLoadTimeAnalyzer (which uses a schema), this
     analyzer uses the column names already present in the other fragment as rename targets,
     so it works without a schema. Requires one side to be all-numeric and the other
     all-semantic; otherwise does nothing.

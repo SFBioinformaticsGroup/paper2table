@@ -2,7 +2,7 @@
 # pyright: reportArgumentType=false
 import pytest
 from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
-from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
+from tablemerge.analyzers import JaccardMergeTimeAnalyzer, AliasLoadTimeAnalyzer
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
 from tablemerge.tablesfile_loader import TablesFileLoader
 from tablemerge.merge import (
@@ -100,7 +100,7 @@ def test_two_tables_with_different_column_names_and_alignment():
     table_2 = [Row(**{"0": "apiaceae", "1": "ammi majus l."})]
 
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -801,7 +801,7 @@ def test_merge_aligns_right_numeric_columns_multiple_rows():
         Row(**{"0": "Betulaceae", "1": "Betula pendula L."}),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -825,7 +825,7 @@ def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
     result = merge_tablesfiles(
         [wrap(table_1), wrap(table_2)],
         agreement=SimpleCountAgreement(),
-        analyzers=[JaccardAnalyzer()],
+        analyzers=[JaccardMergeTimeAnalyzer()],
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -847,7 +847,7 @@ def test_merge_aligns_left_numeric_columns_multiple_rows():
         Row(family="Lamiaceae", scientific_name="Mentha spicata L."),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1), wrap(table_2)], analyzers=[JaccardAnalyzer()]
+        [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
@@ -1037,7 +1037,7 @@ def test_merge_tablesfiles_normalizes_citation_dashes():
 
 
 def test_alias_applies_with_single_tablesfile():
-    loader = TablesFileLoader(analyzers=[AliasAnalyzer({"familia": "family"})])
+    loader = TablesFileLoader(analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
     tablesfile = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")]))
     result = merge_tablesfiles([tablesfile])
     rows = result.tables[0].get_table_fragments()[0].rows
@@ -1049,7 +1049,7 @@ def test_alias_applies_with_single_tablesfile():
 def test_alias_applies_to_left_only_page_in_multi_file_merge():
     # File A has page 1; file B has page 2 only. Page 1 has no right counterpart.
     # The alias should still be applied to the left-only page 1 fragment.
-    loader = TablesFileLoader(analyzers=[AliasAnalyzer({"familia": "family"})])
+    loader = TablesFileLoader(analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
     table_a = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")], page=1))
     table_b = loader.align_tablesfile(wrap([Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2))
     result = merge_tablesfiles([table_a, table_b])

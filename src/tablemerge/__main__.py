@@ -14,11 +14,11 @@ from utils.column_names import normalize_column_name
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
-    HintsAnalyzer,
-    JaccardAnalyzer,
-    AliasAnalyzer,
-    ColumnNameSemanticAnalyzer,
-    ColumnValueSemanticAnalyzer,
+    HintsLoadTimeAnalyzer,
+    JaccardMergeTimeAnalyzer,
+    AliasLoadTimeAnalyzer,
+    ColumnNameSemanticLoadTimeAnalyzer,
+    ColumnValueSemanticMergeTimeAnalyzer,
 )
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
@@ -123,15 +123,15 @@ def build_analyzers(
     load_time: list[LoadTimeAnalyzer] = []
     merge_time: list[MergeTimeAnalyzer] = []
     if hints_mode and hints:
-        load_time.append(HintsAnalyzer(hints, safe=(hints_mode == "safe")))
+        load_time.append(HintsLoadTimeAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
-        load_time.append(AliasAnalyzer(aliases))
+        load_time.append(AliasLoadTimeAnalyzer(aliases))
     if use_jaccard:
-        merge_time.append(JaccardAnalyzer(threshold))
+        merge_time.append(JaccardMergeTimeAnalyzer(threshold))
     if use_column_name_semantic:
-        load_time.append(ColumnNameSemanticAnalyzer(threshold, language, schema))
+        load_time.append(ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema))
     if use_column_value_semantic:
-        merge_time.append(ColumnValueSemanticAnalyzer(threshold, language))
+        merge_time.append(ColumnValueSemanticMergeTimeAnalyzer(threshold, language))
     return load_time, merge_time
 
 
