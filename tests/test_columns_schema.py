@@ -1,4 +1,5 @@
-from utils.columns_schema import tokenize_schema, parse_schema
+from utils.tokenize_schema import tokenize_schema
+from utils.column_schema import ColumnSchema
 from tablemerge.__main__ import parse_aliases
 
 
@@ -32,8 +33,10 @@ species:str
 
 
 def test_parse_schema_ignores_comments():
-    schema = parse_schema("family:str # ignored\nspecies:int")
-    assert schema == {"family": (str, ...), "species": (int, ...)}
+    schema = ColumnSchema.parse("family:str # ignored\nspecies:int")
+    assert schema.column_names() == ["family", "species"]
+    assert schema.column_type("family") is str
+    assert schema.column_type("species") is int
 
 
 def test_parse_aliases_ignores_comments():

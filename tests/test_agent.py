@@ -1,31 +1,33 @@
 import pytest
 
-from utils.columns_schema import parse_schema
+from utils.column_schema import ColumnSchema
+
 
 def test_parse_schema_space_separated():
-    assert parse_schema("name:str age:int") == {"name": (str, ...), "age": (int, ...)}
+    schema = ColumnSchema.parse("name:str age:int")
+    assert schema.column_names() == ["name", "age"]
+    assert schema.column_type("name") is str
+    assert schema.column_type("age") is int
 
 
 def test_parse_schema_comma_separated():
-    assert parse_schema("name:str, age:int, active:bool") == {
-        "name": (str, ...),
-        "age": (int, ...),
-        "active": (bool, ...),
-    }
+    schema = ColumnSchema.parse("name:str, age:int, active:bool")
+    assert schema.column_names() == ["name", "age", "active"]
+    assert schema.column_type("active") is bool
 
 
 def test_parse_schema_newline_separated():
-    assert parse_schema("height:float\nweight:float") == {
-        "height": (float, ...),
-        "weight": (float, ...),
-    }
+    schema = ColumnSchema.parse("height:float\nweight:float")
+    assert schema.column_names() == ["height", "weight"]
+    assert schema.column_type("height") is float
+    assert schema.column_type("weight") is float
 
 
 def test_parse_schema_invalid_format():
     with pytest.raises(ValueError):
-        parse_schema("name-str")
+        ColumnSchema.parse("name-str")
 
 
 def test_parse_schema_unsupported_type():
     with pytest.raises(ValueError):
-        parse_schema("name:dict")
+        ColumnSchema.parse("name:dict")

@@ -2,14 +2,16 @@ import argparse
 import functools
 import json
 import sys
+from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
-from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
+from utils.tokenize_schema import tokenize_schema
 from utils.column_names import normalize_column_name
+from utils.column_schema import ColumnSchema
 
 from .analyzers import (
     LoadTimeAnalyzer,
@@ -24,7 +26,6 @@ from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger
-from .schema import Schema
 from .postprocessor import PostProcessor, build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
@@ -96,8 +97,8 @@ def load_text_or_file(value: str) -> str:
     return value
 
 
-def load_schema(value: str) -> dict:
-    return parse_schema(load_text_or_file(value))
+def load_schema(value: str) -> ColumnSchema:
+    return ColumnSchema.parse(load_text_or_file(value))
 
 
 def parse_aliases(text: str) -> dict[str, str]:
@@ -116,7 +117,7 @@ def build_analyzers(
     use_column_value_semantic: bool,
     language: str,
     aliases: dict[str, str],
-    schema: Schema = {},
+    schema: Optional[ColumnSchema] = None,
     hints: list[str] = [],
     hints_mode: str | None = None,
 ) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
@@ -230,7 +231,7 @@ def merge_resultsets(
     pretransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
-    schema: Schema = {},
+    schema: Optional[ColumnSchema] = None,
     postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
@@ -253,7 +254,7 @@ def merge_resultsets(
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
         "column_names_hints": hints,
-        "schema": serialize_schema(schema),
+        "schema": schema.serialize() if schema else {},
         "analyzers": {
             **{type(a).__name__: a.settings for a in load_analyzers},
             **{type(a).__name__: a.settings for a in merge_analyzers},
@@ -522,7 +523,7 @@ def main():
         if flag and not args.schema_path:
             print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
             sys.exit(1)
-    schema = load_schema(args.schema_path) if args.schema_path else {}
+    schema: Optional[ColumnSchema] = load_schema(args.schema_path) if args.schema_path else None
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,

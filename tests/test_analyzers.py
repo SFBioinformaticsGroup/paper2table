@@ -12,6 +12,7 @@ from tablemerge.analyzers import (
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
+from utils.column_schema import ColumnSchema
 from test_columns_aligner import FOUR_COLUMNS_MAPPING, SPECIES, SPECIES_WITH_EDITS
 
 
@@ -22,9 +23,9 @@ def en_spacy_model():
     try:
         spacy.load("en_core_web_md")
     except OSError:
-        spacy.cli.download(
+        spacy.cli.download(  # pyright: ignore[reportAttributeAccessIssue]
             "en_core_web_md"
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
 
 
 @pytest.fixture(scope="session")
@@ -34,27 +35,18 @@ def es_spacy_model():
     try:
         spacy.load("es_core_news_md")
     except OSError:
-        spacy.cli.download(
+        spacy.cli.download(  # pyright: ignore[reportAttributeAccessIssue]
             "es_core_news_md"
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
 
 
-COLOR_ANIMAL_SCHEMA = {
-    "color": (str, ...),
-    "animal": (str, ...),
-    "identifier": (str, ...),
-}
-COLOR_ANIMAL_SCHEMA_ES = {
-    "color": (str, ...),
-    "animal": (str, ...),
-    "identificador": (str, ...),
-}
-SPECIES_SCHEMA = {
-    "scientific_name": (str, ...),
-    "area": (str, ...),
-    "family": (str, ...),
-    "vernacular_name": (str, ...),
-}
+COLOR_ANIMAL_SCHEMA = ColumnSchema({"color": str, "animal": str, "identifier": str})
+COLOR_ANIMAL_SCHEMA_ES = ColumnSchema(
+    {"color": str, "animal": str, "identificador": str}
+)
+SPECIES_SCHEMA = ColumnSchema(
+    {"scientific_name": str, "area": str, "family": str, "vernacular_name": str}
+)
 
 
 def wrap(rows: list[Row]) -> TableFragment:
@@ -129,9 +121,9 @@ def test_alias_ignores_unknown_cols():
 
 
 def test_alias_maps_multiple_columns():
-    result = AliasLoadTimeAnalyzer({"familia": "family", "especie": "species"}).build_mapping(
-        ["familia", "especie"], []
-    )
+    result = AliasLoadTimeAnalyzer(
+        {"familia": "family", "especie": "species"}
+    ).build_mapping(["familia", "especie"], [])
     assert result == {"familia": "family", "especie": "species"}
 
 
@@ -254,9 +246,9 @@ def test_semantic_maps_color_and_animal_columns(en_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = ColumnNameSemanticLoadTimeAnalyzer(threshold=0.3, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
-        left.get_column_names(), left.rows
-    )
+    result = ColumnNameSemanticLoadTimeAnalyzer(
+        threshold=0.3, schema=COLOR_ANIMAL_SCHEMA
+    ).build_mapping(left.get_column_names(), left.rows)
     assert result == {"0": "color", "1": "animal"}
 
 
@@ -311,9 +303,9 @@ def test_semantic_does_not_map_below_threshold(en_spacy_model):
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
-    result = ColumnNameSemanticLoadTimeAnalyzer(threshold=0.99, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
-        left.get_column_names(), left.rows
-    )
+    result = ColumnNameSemanticLoadTimeAnalyzer(
+        threshold=0.99, schema=COLOR_ANIMAL_SCHEMA
+    ).build_mapping(left.get_column_names(), left.rows)
     assert result == {}
 
 
@@ -385,9 +377,7 @@ def test_semantic_maps_color_and_animal_columns_in_spanish(es_spacy_model):
     )
     result = ColumnNameSemanticLoadTimeAnalyzer(
         threshold=0.3, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
-    ).build_mapping(
-        left.get_column_names(), left.rows
-    )
+    ).build_mapping(left.get_column_names(), left.rows)
     assert result == {"0": "color", "1": "animal"}
 
 
@@ -459,9 +449,7 @@ def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
     )
     result = ColumnNameSemanticLoadTimeAnalyzer(
         threshold=0.99, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
-    ).build_mapping(
-        left.get_column_names(), left.rows
-    )
+    ).build_mapping(left.get_column_names(), left.rows)
     assert result == {}
 
 
@@ -543,7 +531,9 @@ def test_chain_alias_before_jaccard():
     renamed_left = TableFragment(
         rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
     )
-    merge_aligner = MergeTimeColumnAligner(renamed_left, right, analyzers=[JaccardMergeTimeAnalyzer()])
+    merge_aligner = MergeTimeColumnAligner(
+        renamed_left, right, analyzers=[JaccardMergeTimeAnalyzer()]
+    )
     assert merge_aligner.mapping == {"0": "official_family"}
 
 
@@ -551,7 +541,10 @@ def test_chain_hints_then_alias_renames_through_intermediate_name():
     fragment = wrap([Row(**{"0": "species"})])
     aligner = LoadTimeColumnAligner(
         fragment,
-        analyzers=[HintsLoadTimeAnalyzer(["species"]), AliasLoadTimeAnalyzer({"species": "scientific_name"})],
+        analyzers=[
+            HintsLoadTimeAnalyzer(["species"]),
+            AliasLoadTimeAnalyzer({"species": "scientific_name"}),
+        ],
     )
     assert aligner.mapping == {"0": "scientific_name", "species": "scientific_name"}
 
@@ -618,11 +611,13 @@ def test_hints_normalizes_accented_value_to_ascii_hint():
 
 
 def test_hints_skips_empty_rows_before_header_row():
-    left = wrap([
-        Row(**{"0": "", "1": ""}),
-        Row(**{"0": "", "1": ""}),
-        Row(**{"0": "species", "1": "family"}),
-    ])
+    left = wrap(
+        [
+            Row(**{"0": "", "1": ""}),
+            Row(**{"0": "", "1": ""}),
+            Row(**{"0": "species", "1": "family"}),
+        ]
+    )
     result = HintsLoadTimeAnalyzer(["species", "family"]).build_mapping(
         left.get_column_names(), left.rows
     )
@@ -630,10 +625,12 @@ def test_hints_skips_empty_rows_before_header_row():
 
 
 def test_hints_maps_only_non_empty_hint_matching_cells_in_header_row():
-    left = wrap([
-        Row(**{"0": "", "1": ""}),
-        Row(**{"0": "species", "1": ""}),
-    ])
+    left = wrap(
+        [
+            Row(**{"0": "", "1": ""}),
+            Row(**{"0": "species", "1": ""}),
+        ]
+    )
     result = HintsLoadTimeAnalyzer(["species", "family"]).build_mapping(
         left.get_column_names(), left.rows
     )
@@ -641,10 +638,12 @@ def test_hints_maps_only_non_empty_hint_matching_cells_in_header_row():
 
 
 def test_hints_renames_all_columns_including_non_hint_values():
-    left = wrap([
-        Row(**{"0": "", "1": ""}),
-        Row(**{"0": "species", "1": "foo"}),
-    ])
+    left = wrap(
+        [
+            Row(**{"0": "", "1": ""}),
+            Row(**{"0": "species", "1": "foo"}),
+        ]
+    )
     result = HintsLoadTimeAnalyzer(["species", "family"]).build_mapping(
         left.get_column_names(), left.rows
     )
@@ -652,12 +651,18 @@ def test_hints_renames_all_columns_including_non_hint_values():
 
 
 def test_hints_renames_all_columns_when_single_hint_matches():
-    left = wrap([Row(**{
-        "0": "family",
-        "1": "Scientific name",
-        "2": "Species",
-        "3": "Notes",
-    })])
+    left = wrap(
+        [
+            Row(
+                **{
+                    "0": "family",
+                    "1": "Scientific name",
+                    "2": "Species",
+                    "3": "Notes",
+                }
+            )
+        ]
+    )
     result = HintsLoadTimeAnalyzer(["family"]).build_mapping(
         left.get_column_names(), left.rows
     )
@@ -670,12 +675,18 @@ def test_hints_renames_all_columns_when_single_hint_matches():
 
 
 def test_hints_skips_null_column_when_other_columns_trigger_mapping():
-    left = wrap([Row(**{
-        "0": "family",
-        "1": "Scientific name",
-        "2": "species",
-        "3": None,
-    })])
+    left = wrap(
+        [
+            Row(
+                **{
+                    "0": "family",
+                    "1": "Scientific name",
+                    "2": "species",
+                    "3": None,
+                }
+            )
+        ]
+    )
     result = HintsLoadTimeAnalyzer(["family"]).build_mapping(
         left.get_column_names(), left.rows
     )
@@ -772,14 +783,39 @@ def test_column_value_semantic_returns_empty_when_left_has_mixed_columns():
 
 
 @pytest.mark.integration
-def test_column_value_semantic_maps_numeric_to_semantic_by_value_similarity(en_spacy_model):
-    left_colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
+def test_column_value_semantic_maps_numeric_to_semantic_by_value_similarity(
+    en_spacy_model,
+):
+    left_colors = [
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "orange",
+        "purple",
+        "cyan",
+        "brown",
+    ]
     left_animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
     right_colors = [
-        "magenta", "violet", "maroon", "indigo", "turquoise", "crimson", "teal", "beige"
+        "magenta",
+        "violet",
+        "maroon",
+        "indigo",
+        "turquoise",
+        "crimson",
+        "teal",
+        "beige",
     ]
     right_animals = [
-        "lion", "tiger", "bear", "elephant", "giraffe", "zebra", "monkey", "eagle"
+        "lion",
+        "tiger",
+        "bear",
+        "elephant",
+        "giraffe",
+        "zebra",
+        "monkey",
+        "eagle",
     ]
     left = wrap(
         [

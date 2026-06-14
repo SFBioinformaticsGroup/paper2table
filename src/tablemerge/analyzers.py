@@ -1,13 +1,13 @@
 import re
-from typing import Protocol
+from typing import Optional, Protocol
 
 from unidecode import unidecode
 import spacy
 
 from tablevalidate.schema import ColumnValue, Row
-from tablemerge.schema import Schema
 from tablemerge.spacy_utils import load_spacy_model
 from utils.column_names import normalize_column_name
+from utils.column_schema import ColumnSchema
 
 
 def column_value_to_strings(value: ColumnValue) -> list[str]:
@@ -121,7 +121,10 @@ class ColumnNameSemanticLoadTimeAnalyzer:
     """
 
     def __init__(
-        self, threshold: float = 0.5, language: str = "en", schema: Schema = {}
+        self,
+        threshold: float = 0.5,
+        language: str = "en",
+        schema: Optional[ColumnSchema] = None,
     ):
         self.threshold = threshold
         self.language = language
@@ -145,7 +148,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         if not numeric:
             return {}
 
-        schema_cols = list(self.schema.keys())
+        schema_cols = self.schema.column_names()
         nlp = self.load_model()
         scores = []
 
