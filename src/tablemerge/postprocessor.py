@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, Optional, Protocol
 
 from tablevalidate.schema import (
     TablesFile,
@@ -9,8 +9,12 @@ from tablevalidate.schema import (
     ColumnValue,
 )
 from utils.coerce import coerce_str
-from .merge import drop_empty_non_semantic_columns, drop_empty_tables, filter_semantic_columns
-from .schema import Schema
+from utils.column_schema import ColumnSchema
+from .merge import (
+    drop_empty_non_semantic_columns,
+    drop_empty_tables,
+    filter_semantic_columns,
+)
 
 
 class PostProcessor(Protocol):
@@ -49,7 +53,7 @@ class DropEmptyTablesPostProcessor:
 class SchemaPostProcessor:
     def __init__(
         self,
-        schema: Schema,
+        schema: ColumnSchema,
         filter_columns: bool = False,
         order_columns: bool = False,
         coerce_types: bool = False,
@@ -93,24 +97,35 @@ class SchemaPostProcessor:
         }
 
     def _filter_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
-        schema_keys = self.schema.keys()
-        kept = [t for t in tablesfile.tables if schema_keys & self._table_column_names(t)]
+        schema_keys = set(self.schema.column_names())
+        kept = [
+            t for t in tablesfile.tables if schema_keys & self._table_column_names(t)
+        ]
         return self._rebuild_tablesfile(tablesfile, kept)
 
     def _order_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
-        schema_keys = list(self.schema.keys())
+        schema_keys = self.schema.column_names()
 
         def reorder_row(row: Row) -> Row:
             cols = row.get_columns()
             ordered = {k: cols[k] for k in schema_keys if k in cols}
             ordered |= {k: v for k, v in cols.items() if k not in ordered}
-            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, row_=row.row_, **ordered)
+            return Row(
+                agreement_level_=row.agreement_level_,
+                sources_=row.sources_,
+                row_=row.row_,
+                **ordered
+            )
 
         def reorder_fragment(fragment: TableFragment) -> TableFragment:
-            return TableFragment(rows=list(map(reorder_row, fragment.rows)), page=fragment.page)
+            return TableFragment(
+                rows=list(map(reorder_row, fragment.rows)), page=fragment.page
+            )
 
         tables = [
-            TableWithFragments(table_fragments=list(map(reorder_fragment, t.get_table_fragments())))
+            TableWithFragments(
+                table_fragments=list(map(reorder_fragment, t.get_table_fragments()))
+            )
             for t in tablesfile.tables
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
@@ -132,26 +147,35 @@ class SchemaPostProcessor:
         def coerce_row(row: Row) -> Row:
             cols = {
                 col: (
-                    coerce_column_value(val, self.schema[col][0])
+                    coerce_column_value(val, self.schema.column_type(col))
                     if col in self.schema
                     else val
                 )
                 for col, val in row.get_columns().items()
             }
-            return Row(agreement_level_=row.agreement_level_, sources_=row.sources_, row_=row.row_, **cols)
+            return Row(
+                agreement_level_=row.agreement_level_,
+                sources_=row.sources_,
+                row_=row.row_,
+                **cols
+            )
 
         def coerce_fragment(fragment: TableFragment) -> TableFragment:
-            return TableFragment(rows=list(map(coerce_row, fragment.rows)), page=fragment.page)
+            return TableFragment(
+                rows=list(map(coerce_row, fragment.rows)), page=fragment.page
+            )
 
         tables = [
-            TableWithFragments(table_fragments=list(map(coerce_fragment, t.get_table_fragments())))
+            TableWithFragments(
+                table_fragments=list(map(coerce_fragment, t.get_table_fragments()))
+            )
             for t in tablesfile.tables
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
 
 
 def build_postprocessors(
-    schema: Schema,
+    schema: Optional[ColumnSchema],
     filter_columns: bool,
     order_columns: bool,
     coerce_types: bool,
@@ -167,5 +191,7 @@ def build_postprocessors(
     if drop_empty_tables:
         result.append(DropEmptyTablesPostProcessor())
     if schema:
-        result.append(SchemaPostProcessor(schema, filter_columns, order_columns, coerce_types))
+        result.append(
+            SchemaPostProcessor(schema, filter_columns, order_columns, coerce_types)
+        )
     return result

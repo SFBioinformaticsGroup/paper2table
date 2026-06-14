@@ -5,7 +5,7 @@ from typing import Callable
 
 from pydantic_ai import Agent, BinaryContent
 
-from utils.columns_schema import parse_schema
+from utils.column_schema import ColumnSchema
 
 from ..mapping import TablesMapping, TablesMappingMetadata
 from ..tables_reader import TablesReader
@@ -29,7 +29,7 @@ def build_instructions(schema):
         "==================",
         "You must look for tables that approximately match the following columns:",
         "",
-        ", ".join(parse_schema(schema).keys()),
+        ", ".join(ColumnSchema.parse(schema).column_names()),
         "",
         "EXPECTED OUTPUT",
         "===============",
