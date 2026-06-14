@@ -232,6 +232,22 @@ class MergeTimeAnalyzer(Protocol):
     ) -> dict[str, str]: ...
 
 
+def renameable_cols(cols: list[str], schema: Optional[ColumnSchema]) -> list[str]:
+    """Columns eligible to be renamed (sources). With schema: any column not in schema.
+    Without schema: only numeric columns (existing behavior)."""
+    if schema:
+        return [c for c in cols if c not in schema]
+    return [c for c in cols if not Row.is_semantic_column(c)]
+
+
+def target_cols(cols: list[str], schema: Optional[ColumnSchema]) -> list[str]:
+    """Columns eligible as rename targets. With schema: columns in schema.
+    Without schema: only semantic columns (existing behavior)."""
+    if schema:
+        return [c for c in cols if c in schema]
+    return [c for c in cols if Row.is_semantic_column(c)]
+
+
 class JaccardMergeTimeAnalyzer:
     """Enabled by --jaccard-column-alignment. Runs at merge time via MergeTimeColumnAligner.
 
@@ -240,14 +256,18 @@ class JaccardMergeTimeAnalyzer:
     Works when fragments share overlapping data, e.g. column "0" and column "family"
     both contain "Apiaceae", "Rosaceae". Requires one side to be all-numeric and the other
     all-semantic; otherwise does nothing.
+
+    When schema is provided, also renames semantic columns that are not in the schema to
+    schema columns from the opposing fragment, using the same Jaccard value-overlap logic.
     """
 
-    def __init__(self, threshold: float = 0.5):
+    def __init__(self, threshold: float = 0.5, schema: Optional[ColumnSchema] = None):
         self.threshold = threshold
+        self.schema = schema
 
     @property
     def settings(self) -> dict:
-        return {"threshold": self.threshold}
+        return {"threshold": self.threshold, "schema": bool(self.schema)}
 
     def build_mapping(
         self,
@@ -256,37 +276,37 @@ class JaccardMergeTimeAnalyzer:
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
-        right_numeric = [c for c in right_column_names if not Row.is_semantic_column(c)]
-        left_semantic = [c for c in left_column_names if Row.is_semantic_column(c)]
-        right_semantic = [c for c in right_column_names if Row.is_semantic_column(c)]
+        left_src = renameable_cols(left_column_names, self.schema)
+        right_src = renameable_cols(right_column_names, self.schema)
+        left_tgt = target_cols(left_column_names, self.schema)
+        right_tgt = target_cols(right_column_names, self.schema)
 
-        if right_numeric and left_semantic and not left_numeric:
-            numeric_cols, numeric_rows = right_numeric, right_rows
-            semantic_cols, semantic_rows = left_semantic, left_rows
-        elif left_numeric and right_semantic and not right_numeric:
-            numeric_cols, numeric_rows = left_numeric, left_rows
-            semantic_cols, semantic_rows = right_semantic, right_rows
+        if right_src and left_tgt and not left_src:
+            src_cols, src_rows = right_src, right_rows
+            tgt_col_list, tgt_rows = left_tgt, left_rows
+        elif left_src and right_tgt and not right_src:
+            src_cols, src_rows = left_src, left_rows
+            tgt_col_list, tgt_rows = right_tgt, right_rows
         else:
             return {}
 
-        num_sets = {c: self.column_value_set(numeric_rows, c) for c in numeric_cols}
-        sem_sets = {c: self.column_value_set(semantic_rows, c) for c in semantic_cols}
+        src_sets = {c: self.column_value_set(src_rows, c) for c in src_cols}
+        tgt_sets = {c: self.column_value_set(tgt_rows, c) for c in tgt_col_list}
 
         scores = [
-            (self.jaccard(num_sets[nc], sem_sets[sc]), nc, sc)
-            for nc in numeric_cols
-            for sc in semantic_cols
-            if self.jaccard(num_sets[nc], sem_sets[sc]) >= self.threshold
+            (self.jaccard(src_sets[sc], tgt_sets[tc]), sc, tc)
+            for sc in src_cols
+            for tc in tgt_col_list
+            if self.jaccard(src_sets[sc], tgt_sets[tc]) >= self.threshold
         ]
         scores.sort(key=lambda x: -x[0])
 
         mapping: dict[str, str] = {}
         used: set[str] = set()
-        for _, nc, sc in scores:
-            if nc not in mapping and sc not in used:
-                mapping[nc] = sc
-                used.add(sc)
+        for _, sc, tc in scores:
+            if sc not in mapping and tc not in used:
+                mapping[sc] = tc
+                used.add(tc)
         return mapping
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
@@ -321,16 +341,25 @@ class ColumnValueSemanticMergeTimeAnalyzer:
     analyzer uses the column names already present in the other fragment as rename targets,
     so it works without a schema. Requires one side to be all-numeric and the other
     all-semantic; otherwise does nothing.
+
+    When schema is provided, also renames semantic columns that are not in the schema to
+    schema columns from the opposing fragment, using the same value-similarity logic.
     """
 
-    def __init__(self, threshold: float = 0.5, language: str = "en"):
+    def __init__(
+        self,
+        threshold: float = 0.5,
+        language: str = "en",
+        schema: Optional[ColumnSchema] = None,
+    ):
         self.threshold = threshold
         self.language = language
+        self.schema = schema
         self._nlp = None
 
     @property
     def settings(self) -> dict:
-        return {"threshold": self.threshold, "language": self.language}
+        return {"threshold": self.threshold, "language": self.language, "schema": bool(self.schema)}
 
     def build_mapping(
         self,
@@ -339,30 +368,30 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
-        right_numeric = [c for c in right_column_names if not Row.is_semantic_column(c)]
-        left_semantic = [c for c in left_column_names if Row.is_semantic_column(c)]
-        right_semantic = [c for c in right_column_names if Row.is_semantic_column(c)]
+        left_src = renameable_cols(left_column_names, self.schema)
+        right_src = renameable_cols(right_column_names, self.schema)
+        left_tgt = target_cols(left_column_names, self.schema)
+        right_tgt = target_cols(right_column_names, self.schema)
 
-        if right_numeric and left_semantic and not left_numeric:
-            numeric_cols, numeric_rows = right_numeric, right_rows
-            semantic_cols = left_semantic
-        elif left_numeric and right_semantic and not right_numeric:
-            numeric_cols, numeric_rows = left_numeric, left_rows
-            semantic_cols = right_semantic
+        if right_src and left_tgt and not left_src:
+            src_cols, src_rows = right_src, right_rows
+            tgt_col_list = left_tgt
+        elif left_src and right_tgt and not right_src:
+            src_cols, src_rows = left_src, left_rows
+            tgt_col_list = right_tgt
         else:
             return {}
 
         nlp = self.load_model()
         scores = []
-        for numeric_col in numeric_cols:
-            values = self.sample_values(numeric_rows, numeric_col)
+        for src_col in src_cols:
+            values = self.sample_values(src_rows, src_col)
             if not values:
                 continue
-            for semantic_col in semantic_cols:
-                score = self.semantic_score(nlp, values, semantic_col)
+            for tgt_col in tgt_col_list:
+                score = self.semantic_score(nlp, values, tgt_col)
                 if score >= self.threshold:
-                    scores.append((score, numeric_col, semantic_col))
+                    scores.append((score, src_col, tgt_col))
 
         return self.greedy_assignment(scores)
 

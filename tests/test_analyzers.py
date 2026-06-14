@@ -755,6 +755,54 @@ def test_extract_column_str_values_returns_empty_for_none():
     assert JaccardMergeTimeAnalyzer().extract_column_str_values(None) == []
 
 
+def test_jaccard_renames_semantic_not_in_schema_to_schema_column():
+    schema = ColumnSchema({"family": str})
+    left = wrap([Row(**{"familia": "Apiaceae"}), Row(**{"familia": "Rosaceae"})])
+    right = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
+    result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"familia": "family"}
+
+
+def test_jaccard_renames_semantic_not_in_schema_to_schema_column_with_partial_overlap():
+    schema = ColumnSchema({"family": str})
+    left = wrap([
+        Row(**{"familia": "Apiaceae"}),
+        Row(**{"familia": "Rosaceae"}),
+        Row(**{"familia": "Lamiaceae"}),
+    ])
+    right = wrap([
+        Row(family="Apiaceae"),
+        Row(family="Rosaceae"),
+        Row(family="Asteraceae"),
+    ])
+    result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"familia": "family"}
+
+
+def test_jaccard_both_out_of_schema_with_schema_returns_empty():
+    schema = ColumnSchema({"family": str})
+    left = wrap([Row(**{"familia": "Apiaceae"})])
+    right = wrap([Row(**{"especie": "Ammi"})])
+    result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_jaccard_schema_column_not_renamed_even_with_schema():
+    schema = ColumnSchema({"family": str})
+    left = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
+    right = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
+    result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
 def test_column_value_semantic_returns_empty_when_both_numeric():
     left = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
     right = wrap([Row(**{"1": "Apiaceae"}), Row(**{"1": "Rosaceae"})])
@@ -833,3 +881,25 @@ def test_column_value_semantic_maps_numeric_to_semantic_by_value_similarity(
         left.get_column_names(), right.get_column_names(), left.rows, right.rows
     )
     assert result == {"0": "color", "1": "animal"}
+
+
+@pytest.mark.integration
+def test_column_value_semantic_renames_semantic_not_in_schema_to_schema_column(
+    en_spacy_model,
+):
+    schema = ColumnSchema({"color": str, "animal": str})
+    colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
+    animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    left = wrap(
+        [Row(color=color, animal=animal) for color, animal in zip(colors, animals)]
+    )
+    right = wrap(
+        [
+            Row(**{"animalia": color, "tone": animal})
+            for color, animal in zip(colors, animals)
+        ]
+    )
+    result = ColumnValueSemanticMergeTimeAnalyzer(threshold=0.3, schema=schema).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"animalia": "color", "tone": "animal"}
