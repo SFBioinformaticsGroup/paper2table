@@ -9,6 +9,8 @@ from tablemerge.spacy_utils import load_spacy_model
 from utils.column_names import normalize_column_name
 from utils.column_schema import ColumnSchema
 
+REMOVE_COLUMN = "<remove>"
+
 
 def column_value_to_strings(value: ColumnValue) -> list[str]:
     if value is None:
@@ -114,6 +116,9 @@ class AliasLoadTimeAnalyzer:
     No heuristics, no data inspection. Makes sense when sources use different column names
     for the same concept (e.g. "familia" → "family"). Works on any column regardless of
     numeric/semantic classification.
+
+    A target value of REMOVE_COLUMN ("<remove>") signals that the column should be dropped
+    entirely from the fragment (e.g. "notes:<remove>" removes the "notes" column).
     """
 
     def __init__(self, aliases: dict[str, str]):
