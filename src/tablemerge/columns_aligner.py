@@ -1,5 +1,5 @@
 from tablevalidate.schema import TableFragment, Row
-from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
+from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer, REMOVE_COLUMN
 
 
 class BaseColumnAligner:
@@ -11,11 +11,16 @@ class BaseColumnAligner:
     def rename_row(self, row: Row) -> Row:
         if not self.mapping:
             return row
+        renamed_columns = {}
+        for column, value in row.get_columns().items():
+            new_name = self.rename_column(column)
+            if new_name != REMOVE_COLUMN:
+                renamed_columns[new_name] = value
         return Row(
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,
             row_=row.row_,
-            **{self.rename_column(k): v for k, v in row.get_columns().items()},
+            **renamed_columns,
         )
 
     def rename_column(self, col_name: str) -> str:

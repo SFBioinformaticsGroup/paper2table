@@ -8,6 +8,7 @@ from tablemerge.analyzers import (
     ColumnValueSemanticMergeTimeAnalyzer,
     HintsLoadTimeAnalyzer,
     JaccardMergeTimeAnalyzer,
+    REMOVE_COLUMN,
     column_value_to_strings,
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
@@ -132,6 +133,31 @@ def test_alias_deduplicates_duplicate_column_names():
         ["familia", "familia"], []
     )
     assert result == {"familia": "family"}
+
+
+def test_alias_remove_column_produces_remove_sentinel():
+    result = AliasLoadTimeAnalyzer({"notes": REMOVE_COLUMN}).build_mapping(
+        ["family", "notes"], []
+    )
+    assert result == {"notes": REMOVE_COLUMN}
+
+
+def test_alias_remove_column_drops_column_from_row():
+    fragment = wrap([Row(**{"family": "Apiaceae", "notes": "some note"})])
+    aligner = LoadTimeColumnAligner(
+        fragment,
+        analyzers=[AliasLoadTimeAnalyzer({"notes": REMOVE_COLUMN})],
+    )
+    assert aligner.rename_row(fragment.rows[0]) == Row(family="Apiaceae")
+
+
+def test_alias_remove_column_keeps_other_columns_intact():
+    fragment = wrap([Row(**{"family": "Apiaceae", "genus": "Ammi", "notes": "x"})])
+    aligner = LoadTimeColumnAligner(
+        fragment,
+        analyzers=[AliasLoadTimeAnalyzer({"notes": REMOVE_COLUMN})],
+    )
+    assert aligner.rename_row(fragment.rows[0]) == Row(family="Apiaceae", genus="Ammi")
 
 
 def test_semantic_returns_empty_when_both_numeric():
