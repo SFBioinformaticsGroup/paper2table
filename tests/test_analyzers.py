@@ -4,9 +4,10 @@ import pytest
 
 from tablemerge.analyzers import (
     AliasAnalyzer,
+    ColumnNameSemanticAnalyzer,
+    ColumnValueSemanticAnalyzer,
     HintsAnalyzer,
     JaccardAnalyzer,
-    SemanticAnalyzer,
     column_value_to_strings,
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
@@ -61,13 +62,13 @@ def wrap(rows: list[Row]) -> TableFragment:
 
 
 def test_greedy_assignment_one_source_multiple_targets_highest_score_wins():
-    analyzer = SemanticAnalyzer()
+    analyzer = ColumnNameSemanticAnalyzer()
     scores = [(0.9, "0", "color"), (0.7, "0", "animal")]
     assert analyzer._greedy_assignment(scores) == {"0": "color"}
 
 
 def test_greedy_assignment_multiple_sources_same_target_highest_score_wins():
-    analyzer = SemanticAnalyzer()
+    analyzer = ColumnNameSemanticAnalyzer()
     scores = [(0.9, "0", "color"), (0.7, "1", "color")]
     assert analyzer._greedy_assignment(scores) == {"0": "color"}
 
@@ -144,7 +145,7 @@ def test_alias_deduplicates_duplicate_column_names():
 def test_semantic_returns_empty_when_both_numeric():
     left = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
     right = wrap([Row(**{"1": "Apiaceae"}), Row(**{"1": "Rosaceae"})])
-    result = SemanticAnalyzer().build_mapping(
+    result = ColumnNameSemanticAnalyzer().build_mapping(
         left.get_column_names() + right.get_column_names(), left.rows
     )
     assert result == {}
@@ -153,7 +154,7 @@ def test_semantic_returns_empty_when_both_numeric():
 def test_semantic_returns_empty_when_both_semantic():
     left = wrap([Row(**{"family": "Apiaceae"})])
     right = wrap([Row(**{"genus": "Ammi"})])
-    result = SemanticAnalyzer().build_mapping(
+    result = ColumnNameSemanticAnalyzer().build_mapping(
         left.get_column_names() + right.get_column_names(), left.rows
     )
     assert result == {}
@@ -161,7 +162,7 @@ def test_semantic_returns_empty_when_both_semantic():
 
 def test_semantic_returns_empty_when_numeric_rows_are_empty():
     left = wrap([Row(**{"family": "Apiaceae"})])
-    result = SemanticAnalyzer().build_mapping(
+    result = ColumnNameSemanticAnalyzer().build_mapping(
         left.get_column_names(), left.rows
     )
     assert result == {}
@@ -173,7 +174,7 @@ def test_semantic_returns_empty_both_numeric_species_data():
         for scientific_name, area, family, vernacular_name in SPECIES
     ]
     left = wrap(rows)
-    result = SemanticAnalyzer().build_mapping(
+    result = ColumnNameSemanticAnalyzer().build_mapping(
         left.get_column_names(), left.rows
     )
     assert result == {}
@@ -190,7 +191,7 @@ def test_semantic_returns_empty_both_semantic_species_data():
         for scientific_name, area, family, vernacular_name in SPECIES
     ]
     left = wrap(rows)
-    result = SemanticAnalyzer().build_mapping(
+    result = ColumnNameSemanticAnalyzer().build_mapping(
         left.get_column_names(), left.rows
     )
     assert result == {}
@@ -253,7 +254,7 @@ def test_semantic_maps_color_and_animal_columns(en_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.3, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
+    result = ColumnNameSemanticAnalyzer(threshold=0.3, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
         left.get_column_names(), left.rows
     )
     assert result == {"0": "color", "1": "animal"}
@@ -310,7 +311,7 @@ def test_semantic_does_not_map_below_threshold(en_spacy_model):
             for color, animal, code in zip(left_colors, left_animals, left_codes)
         ]
     )
-    result = SemanticAnalyzer(threshold=0.99, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
+    result = ColumnNameSemanticAnalyzer(threshold=0.99, schema=COLOR_ANIMAL_SCHEMA).build_mapping(
         left.get_column_names(), left.rows
     )
     assert result == {}
@@ -382,7 +383,7 @@ def test_semantic_maps_color_and_animal_columns_in_spanish(es_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(
+    result = ColumnNameSemanticAnalyzer(
         threshold=0.3, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
     ).build_mapping(
         left.get_column_names(), left.rows
@@ -456,7 +457,7 @@ def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
             for color, animal, code in zip(right_colors, right_animals, right_codes)
         ]
     )
-    result = SemanticAnalyzer(
+    result = ColumnNameSemanticAnalyzer(
         threshold=0.99, language="es", schema=COLOR_ANIMAL_SCHEMA_ES
     ).build_mapping(
         left.get_column_names(), left.rows
@@ -484,7 +485,7 @@ def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model
         ]
     )
     load_aligner = LoadTimeColumnAligner(
-        left, analyzers=[SemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)]
+        left, analyzers=[ColumnNameSemanticAnalyzer(0.3, schema=SPECIES_SCHEMA)]
     )
     renamed_left = TableFragment(
         rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
@@ -520,7 +521,7 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
     load_aligner = LoadTimeColumnAligner(
-        left, analyzers=[SemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)]
+        left, analyzers=[ColumnNameSemanticAnalyzer(0.1, schema=SPECIES_SCHEMA)]
     )
     renamed_left = TableFragment(
         rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
@@ -741,3 +742,58 @@ def test_column_value_to_strings_returns_empty_for_none():
 
 def test_extract_column_str_values_returns_empty_for_none():
     assert JaccardAnalyzer().extract_column_str_values(None) == []
+
+
+def test_column_value_semantic_returns_empty_when_both_numeric():
+    left = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
+    right = wrap([Row(**{"1": "Apiaceae"}), Row(**{"1": "Rosaceae"})])
+    result = ColumnValueSemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_column_value_semantic_returns_empty_when_both_semantic():
+    left = wrap([Row(**{"family": "Apiaceae"})])
+    right = wrap([Row(**{"genus": "Ammi"})])
+    result = ColumnValueSemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+def test_column_value_semantic_returns_empty_when_left_has_mixed_columns():
+    left = wrap([Row(**{"0": "Apiaceae", "family": "Rosaceae"})])
+    right = wrap([Row(**{"1": "Ammi"})])
+    result = ColumnValueSemanticAnalyzer().build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {}
+
+
+@pytest.mark.integration
+def test_column_value_semantic_maps_numeric_to_semantic_by_value_similarity(en_spacy_model):
+    left_colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
+    left_animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    right_colors = [
+        "magenta", "violet", "maroon", "indigo", "turquoise", "crimson", "teal", "beige"
+    ]
+    right_animals = [
+        "lion", "tiger", "bear", "elephant", "giraffe", "zebra", "monkey", "eagle"
+    ]
+    left = wrap(
+        [
+            Row(color=color, animal=animal)
+            for color, animal in zip(left_colors, left_animals)
+        ]
+    )
+    right = wrap(
+        [
+            Row(**{"0": color, "1": animal})
+            for color, animal in zip(right_colors, right_animals)
+        ]
+    )
+    result = ColumnValueSemanticAnalyzer(threshold=0.3).build_mapping(
+        left.get_column_names(), right.get_column_names(), left.rows, right.rows
+    )
+    assert result == {"0": "color", "1": "animal"}

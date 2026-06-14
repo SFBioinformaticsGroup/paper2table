@@ -17,7 +17,8 @@ from .analyzers import (
     HintsAnalyzer,
     JaccardAnalyzer,
     AliasAnalyzer,
-    SemanticAnalyzer,
+    ColumnNameSemanticAnalyzer,
+    ColumnValueSemanticAnalyzer,
 )
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
@@ -124,10 +125,11 @@ def build_analyzers(
         load_time.append(HintsAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
         load_time.append(AliasAnalyzer(aliases))
-    if use_semantic:
-        load_time.append(SemanticAnalyzer(threshold, language, schema))
     if use_jaccard:
         merge_time.append(JaccardAnalyzer(threshold))
+    if use_semantic:
+        load_time.append(ColumnNameSemanticAnalyzer(threshold, language, schema))
+        merge_time.append(ColumnValueSemanticAnalyzer(threshold, language))
     return load_time, merge_time
 
 
