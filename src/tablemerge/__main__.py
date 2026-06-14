@@ -123,16 +123,19 @@ def build_analyzers(
 ) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
     load_time: list[LoadTimeAnalyzer] = []
     merge_time: list[MergeTimeAnalyzer] = []
+
     if hints_mode and hints:
         load_time.append(HintsLoadTimeAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
         load_time.append(AliasLoadTimeAnalyzer(aliases))
-    if use_jaccard:
-        merge_time.append(JaccardMergeTimeAnalyzer(threshold))
     if use_column_name_semantic:
         load_time.append(ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema))
+
+    if use_jaccard:
+        merge_time.append(JaccardMergeTimeAnalyzer(threshold, schema))
     if use_column_value_semantic:
-        merge_time.append(ColumnValueSemanticMergeTimeAnalyzer(threshold, language))
+        merge_time.append(ColumnValueSemanticMergeTimeAnalyzer(threshold, language, schema))
+
     return load_time, merge_time
 
 
