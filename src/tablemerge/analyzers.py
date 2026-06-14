@@ -144,11 +144,16 @@ class AliasLoadTimeAnalyzer:
 class ColumnNameSemanticLoadTimeAnalyzer:
     """Enabled by --semantic-column-alignment. Runs at load time via LoadTimeColumnAligner.
 
-    Renames columns not in the schema to schema column names by computing spaCy word-vector
+    Renames any column to the closest schema column name by computing spaCy word-vector
     similarity between each candidate column's cell values and each schema column name.
-    Candidates include numeric columns ("0", "1", ...) and semantic columns whose name is
-    not already in the schema. Does nothing without a schema or when all columns are already
-    in the schema.
+    Does nothing without a schema.
+
+    Rename rules by candidate type:
+    - Numeric ("0", "1", ...): always renamed if similarity is above threshold.
+    - Semantic (any named column): renamed only when the schema column scores strictly
+      higher than the candidate's own name against its values, preventing false renames
+      when the existing name already explains the data. This guard applies equally whether
+      the candidate is already in the schema or not.
     """
 
     def __init__(
@@ -174,7 +179,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         if not self.schema:
             return {}
 
-        candidates = renamable_source_columns(column_names, self.schema)
+        candidates = list(column_names)
 
         if not candidates:
             return {}

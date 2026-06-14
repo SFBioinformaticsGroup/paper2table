@@ -510,6 +510,16 @@ def test_semantic_does_not_rename_semantic_column_when_own_name_is_closer(en_spa
 
 
 @pytest.mark.integration
+def test_semantic_renames_schema_column_when_target_is_closer(en_spacy_model):
+    animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    fragment = wrap([Row(**{"color": animal}) for animal in animals])
+    result = ColumnNameSemanticLoadTimeAnalyzer(
+        threshold=0.3, schema=COLOR_ANIMAL_SCHEMA
+    ).build_mapping(fragment.get_column_names(), fragment.rows)
+    assert result == {"color": "animal"}
+
+
+@pytest.mark.integration
 def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model):
     left = wrap(
         [
@@ -565,7 +575,7 @@ def test_semantic_chain_species_edits_preserves_jaccard_mappings(en_spacy_model)
     assert jaccard_mapping == {"1": "area", "2": "family"}
 
     load_aligner = LoadTimeColumnAligner(
-        left, analyzers=[ColumnNameSemanticLoadTimeAnalyzer(0.1, schema=SPECIES_SCHEMA)]
+        left, analyzers=[ColumnNameSemanticLoadTimeAnalyzer(0.5, schema=SPECIES_SCHEMA)]
     )
     renamed_left = TableFragment(
         rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
