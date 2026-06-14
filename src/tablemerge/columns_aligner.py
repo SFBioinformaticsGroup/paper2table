@@ -1,5 +1,23 @@
-from tablevalidate.schema import TableFragment, Row
+from tablevalidate.schema import TableFragment, Row, ColumnValue
 from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer, REMOVE_COLUMN
+
+
+def append_column_value(existing: ColumnValue, new_value: ColumnValue) -> ColumnValue:
+    if existing is None:
+        return new_value
+    if new_value is None:
+        return existing
+    if isinstance(existing, str) and isinstance(new_value, str):
+        if not existing:
+            return new_value
+        if not new_value:
+            return existing
+        sep = " " if existing.endswith(".") else ". "
+        return existing + sep + new_value
+    # TODO this is not totally right
+    if isinstance(existing, list) and isinstance(new_value, list):
+        return existing + new_value
+    return existing
 
 
 class BaseColumnAligner:
@@ -15,7 +33,13 @@ class BaseColumnAligner:
         for column, value in row.get_columns().items():
             new_name = self.rename_column(column)
             if new_name != REMOVE_COLUMN:
-                renamed_columns[new_name] = value
+                if new_name in renamed_columns:
+                    if column == new_name:
+                        renamed_columns[new_name] = append_column_value(value, renamed_columns[new_name])
+                    else:
+                        renamed_columns[new_name] = append_column_value(renamed_columns[new_name], value)
+                else:
+                    renamed_columns[new_name] = value
         return Row(
             agreement_level_=row.agreement_level_,
             sources_=row.sources_,

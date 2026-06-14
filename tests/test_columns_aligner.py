@@ -3,10 +3,11 @@
 import pytest
 
 from tablemerge.analyzers import AliasLoadTimeAnalyzer, JaccardMergeTimeAnalyzer
-from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
+from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner, append_column_value
 from tablevalidate.schema import (
     Row,
     TableFragment,
+    ValueWithAgreement,
 )
 
 
@@ -342,3 +343,61 @@ def test_column_aligner_jaccard_no_op_without_right_fragment():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     aligner = MergeTimeColumnAligner(left, None, analyzers=[JaccardMergeTimeAnalyzer()])
     assert aligner.mapping == {}
+
+
+def test_append_column_value_str_no_dot():
+    assert append_column_value("hello", "world") == "hello. world"
+
+
+def test_append_column_value_str_existing_ends_with_dot():
+    assert append_column_value("hello.", "world") == "hello. world"
+
+
+def test_append_column_value_existing_none():
+    assert append_column_value(None, "world") == "world"
+
+
+def test_append_column_value_new_none():
+    assert append_column_value("hello", None) == "hello"
+
+
+def test_append_column_value_list():
+    existing = [ValueWithAgreement(value="a", agreement_level=2)]
+    new_value = [ValueWithAgreement(value="b", agreement_level=1)]
+    assert append_column_value(existing, new_value) == [
+        ValueWithAgreement(value="a", agreement_level=2),
+        ValueWithAgreement(value="b", agreement_level=1),
+    ]
+
+
+def test_rename_row_appends_string_when_target_column_already_exists():
+    left = wrap([Row(**{"notes": "hello", "description": "world"})])
+    aligner = LoadTimeColumnAligner(
+        left, analyzers=[AliasLoadTimeAnalyzer({"notes": "description"})]
+    )
+    row = Row(**{"notes": "extra info", "description": "main text"})
+    assert aligner.rename_row(row) == Row(description="main text. extra info")
+
+
+def test_rename_row_appends_string_when_target_ends_with_dot():
+    left = wrap([Row(**{"notes": "hello", "description": "world"})])
+    aligner = LoadTimeColumnAligner(
+        left, analyzers=[AliasLoadTimeAnalyzer({"notes": "description"})]
+    )
+    row = Row(**{"notes": "extra info", "description": "main text."})
+    assert aligner.rename_row(row) == Row(description="main text. extra info")
+
+
+def test_rename_row_appends_list_when_target_column_already_exists():
+    left = wrap([Row(**{"notes": "hello", "description": "world"})])
+    aligner = LoadTimeColumnAligner(
+        left, analyzers=[AliasLoadTimeAnalyzer({"notes": "description"})]
+    )
+    row = Row(**{
+        "description": [ValueWithAgreement(value="main text", agreement_level=2)],
+        "notes": [ValueWithAgreement(value="extra info", agreement_level=1)],
+    })
+    assert aligner.rename_row(row) == Row(description=[
+        ValueWithAgreement(value="main text", agreement_level=2),
+        ValueWithAgreement(value="extra info", agreement_level=1),
+    ])
