@@ -18,6 +18,26 @@ def column_value_to_strings(value: ColumnValue) -> list[str]:
     return [entry.value for entry in value]
 
 
+def renamable_source_columns(
+    columns: list[str], schema: Optional[ColumnSchema]
+) -> list[str]:
+    """Columns eligible to be renamed. With schema: any column not in schema.
+    Without schema: only numeric columns."""
+    if schema:
+        return [c for c in columns if c not in schema]
+    return [c for c in columns if not Row.is_semantic_column(c)]
+
+
+def renamable_target_columns(
+    columns: list[str], schema: Optional[ColumnSchema]
+) -> list[str]:
+    """Columns eligible as rename targets. With schema: columns in schema.
+    Without schema: only semantic columns."""
+    if schema:
+        return [c for c in columns if c in schema]
+    return [c for c in columns if Row.is_semantic_column(c)]
+
+
 # ====================
 # Load Time Analyzers
 # ===================
@@ -53,7 +73,7 @@ class HintsLoadTimeAnalyzer:
 
     @property
     def settings(self) -> dict:
-        return {"hints": self.hints, "safe": self.safe}
+        return {"hints": bool(self.hints), "safe": self.safe}
 
     def build_mapping(
         self,
@@ -109,7 +129,11 @@ class AliasLoadTimeAnalyzer:
         rows: list[Row],
     ) -> dict[str, str]:
         all_columns = list(dict.fromkeys(column_names))
-        return {column: self.aliases[column] for column in all_columns if column in self.aliases}
+        return {
+            column: self.aliases[column]
+            for column in all_columns
+            if column in self.aliases
+        }
 
 
 class ColumnNameSemanticLoadTimeAnalyzer:
@@ -145,7 +169,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         if not self.schema:
             return {}
 
-        candidates = renameable_columns(column_names, self.schema)
+        candidates = renamable_source_columns(column_names, self.schema)
 
         if not candidates:
             return {}
@@ -242,22 +266,6 @@ class MergeTimeAnalyzer(Protocol):
     ) -> dict[str, str]: ...
 
 
-def renameable_columns(columns: list[str], schema: Optional[ColumnSchema]) -> list[str]:
-    """Columns eligible to be renamed (sources). With schema: any column not in schema.
-    Without schema: only numeric columns."""
-    if schema:
-        return [c for c in columns if c not in schema]
-    return [c for c in columns if not Row.is_semantic_column(c)]
-
-
-def target_columns(columns: list[str], schema: Optional[ColumnSchema]) -> list[str]:
-    """Columns eligible as rename targets. With schema: columns in schema.
-    Without schema: only semantic columns."""
-    if schema:
-        return [c for c in columns if c in schema]
-    return [c for c in columns if Row.is_semantic_column(c)]
-
-
 class JaccardMergeTimeAnalyzer:
     """Enabled by --jaccard-column-alignment. Runs at merge time via MergeTimeColumnAligner.
 
@@ -286,10 +294,10 @@ class JaccardMergeTimeAnalyzer:
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_sources = renameable_columns(left_column_names, self.schema)
-        right_sources = renameable_columns(right_column_names, self.schema)
-        left_targets = target_columns(left_column_names, self.schema)
-        right_targets = target_columns(right_column_names, self.schema)
+        left_sources = renamable_source_columns(left_column_names, self.schema)
+        right_sources = renamable_source_columns(right_column_names, self.schema)
+        left_targets = renamable_target_columns(left_column_names, self.schema)
+        right_targets = renamable_target_columns(right_column_names, self.schema)
 
         if right_sources and left_targets and not left_sources:
             source_columns, source_rows = right_sources, right_rows
@@ -301,7 +309,9 @@ class JaccardMergeTimeAnalyzer:
             return {}
 
         source_sets = {c: self.column_value_set(source_rows, c) for c in source_columns}
-        target_sets = {c: self.column_value_set(target_rows, c) for c in target_column_names}
+        target_sets = {
+            c: self.column_value_set(target_rows, c) for c in target_column_names
+        }
 
         scores = [
             (self.jaccard(source_sets[source], target_sets[target]), source, target)
@@ -369,7 +379,11 @@ class ColumnValueSemanticMergeTimeAnalyzer:
 
     @property
     def settings(self) -> dict:
-        return {"threshold": self.threshold, "language": self.language, "schema": bool(self.schema)}
+        return {
+            "threshold": self.threshold,
+            "language": self.language,
+            "schema": bool(self.schema),
+        }
 
     def build_mapping(
         self,
@@ -378,10 +392,10 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         left_rows: list[Row],
         right_rows: list[Row],
     ) -> dict[str, str]:
-        left_sources = renameable_columns(left_column_names, self.schema)
-        right_sources = renameable_columns(right_column_names, self.schema)
-        left_targets = target_columns(left_column_names, self.schema)
-        right_targets = target_columns(right_column_names, self.schema)
+        left_sources = renamable_source_columns(left_column_names, self.schema)
+        right_sources = renamable_source_columns(right_column_names, self.schema)
+        left_targets = renamable_target_columns(left_column_names, self.schema)
+        right_targets = renamable_target_columns(right_column_names, self.schema)
 
         if right_sources and left_targets and not left_sources:
             source_columns, source_rows = right_sources, right_rows
