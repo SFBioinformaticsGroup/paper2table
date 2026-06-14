@@ -1,10 +1,10 @@
+import os
 import signal
-import sys
 
 
 def do_handle_sigint(_sig, _frame):
     print("\nCancelled")
-    sys.exit(1)
+    os._exit(1)
 
 
 def handle_sigint():

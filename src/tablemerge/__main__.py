@@ -9,9 +9,12 @@ from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
+from utils.handle_sigint import handle_sigint
 from utils.tokenize_schema import tokenize_schema
 from utils.column_names import normalize_column_name
 from utils.column_schema import ColumnSchema
+
+handle_sigint()
 
 from .analyzers import (
     LoadTimeAnalyzer,
