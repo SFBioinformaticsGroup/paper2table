@@ -112,7 +112,8 @@ def parse_aliases(text: str) -> dict[str, str]:
 def build_analyzers(
     use_jaccard: bool,
     threshold: float,
-    use_semantic: bool,
+    use_column_name_semantic: bool,
+    use_column_value_semantic: bool,
     language: str,
     aliases: dict[str, str],
     schema: Schema = {},
@@ -127,8 +128,9 @@ def build_analyzers(
         load_time.append(AliasAnalyzer(aliases))
     if use_jaccard:
         merge_time.append(JaccardAnalyzer(threshold))
-    if use_semantic:
+    if use_column_name_semantic:
         load_time.append(ColumnNameSemanticAnalyzer(threshold, language, schema))
+    if use_column_value_semantic:
         merge_time.append(ColumnValueSemanticAnalyzer(threshold, language))
     return load_time, merge_time
 
@@ -377,15 +379,29 @@ def parse_args():
         help="Minimum similarity threshold for column alignment (default: 0.5)",
     )
     parser.add_argument(
-        "--semantic-column-alignment",
+        "--column-name-semantic-alignment",
         action="store_true",
-        help="Add NLP-based semantic alignment after Jaccard alignment",
+        help=(
+            "Rename numeric columns by comparing their cell values against schema column names "
+            "using spaCy similarity. Runs at load time. Requires -p/--schema-path."
+        ),
+    )
+    parser.add_argument(
+        "--column-value-semantic-alignment",
+        action="store_true",
+        help=(
+            "Rename numeric columns by comparing their cell values against semantic column names "
+            "from the opposing fragment using spaCy similarity. Runs at merge time after Jaccard."
+        ),
     )
     parser.add_argument(
         "--semantic-language",
         choices=["en", "es"],
         default="en",
-        help="Language for spaCy model used by --semantic-column-alignment (default: en)",
+        help=(
+            "Language for the spaCy model used by --column-name-semantic-alignment and "
+            "--column-value-semantic-alignment (default: en)"
+        ),
     )
     parser.add_argument(
         "--column-aliases",
@@ -496,18 +512,16 @@ def parse_args():
 
 def main():
     args = parse_args()
-    schema_flags = [
-        args.filter_schema_columns,
-        args.order_schema_columns,
-        args.coerce_schema_column_types,
+    schema_required = [
+        (args.filter_schema_columns, "--filter-schema-columns"),
+        (args.order_schema_columns, "--order-schema-columns"),
+        (args.coerce_schema_column_types, "--coerce-schema-column-types"),
+        (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
     ]
-    if any(schema_flags) and not args.schema_path:
-        print(
-            "Error: --filter-schema-columns, --order-schema-columns, and "
-            "--coerce-schema-column-types all require -p/--schema-path.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    for flag, name in schema_required:
+        if flag and not args.schema_path:
+            print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
+            sys.exit(1)
     schema = load_schema(args.schema_path) if args.schema_path else {}
     postprocessors = build_postprocessors(
         schema=schema,
@@ -551,7 +565,8 @@ def main():
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
-        use_semantic=args.semantic_column_alignment,
+        use_column_name_semantic=args.column_name_semantic_alignment,
+        use_column_value_semantic=args.column_value_semantic_alignment,
         hints_mode=args.hints_column_alignment,
         threshold=args.column_alignment_threshold,
         language=args.semantic_language,
