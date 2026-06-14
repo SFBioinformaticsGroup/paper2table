@@ -454,6 +454,33 @@ def test_semantic_does_not_map_below_threshold_in_spanish(es_spacy_model):
 
 
 @pytest.mark.integration
+def test_semantic_maps_semantic_not_in_schema_columns(en_spacy_model):
+    colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
+    animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
+    fragment = wrap(
+        [
+            Row(**{"animalia": color, "tone": animal})
+            for color, animal in zip(colors, animals)
+        ]
+    )
+    result = ColumnNameSemanticLoadTimeAnalyzer(
+        threshold=0.3, schema=COLOR_ANIMAL_SCHEMA
+    ).build_mapping(fragment.get_column_names(), fragment.rows)
+    assert result == {"animalia": "color", "tone": "animal"}
+
+
+@pytest.mark.integration
+def test_semantic_does_not_rename_semantic_column_when_own_name_is_closer(en_spacy_model):
+    colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
+    fragment = wrap([Row(**{"color": color}) for color in colors])
+    schema = ColumnSchema({"hue": str})
+    result = ColumnNameSemanticLoadTimeAnalyzer(
+        threshold=0.3, schema=schema
+    ).build_mapping(fragment.get_column_names(), fragment.rows)
+    assert result == {}
+
+
+@pytest.mark.integration
 def test_semantic_chain_does_not_disrupt_jaccard_on_species_exact(en_spacy_model):
     left = wrap(
         [
