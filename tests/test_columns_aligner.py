@@ -2,7 +2,7 @@
 # pyright: reportArgumentType=false
 import pytest
 
-from tablemerge.analyzers import AliasAnalyzer, JaccardAnalyzer
+from tablemerge.analyzers import AliasLoadTimeAnalyzer, JaccardMergeTimeAnalyzer
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablevalidate.schema import (
     Row,
@@ -27,7 +27,7 @@ def test_column_aligner_right_numeric_to_left_semantic():
             Row(**{"0": "Rosaceae", "1": "Rosa canina L."}),
         ]
     )
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {
         "0": "family",
         "1": "scientific_name",
     }
@@ -46,7 +46,7 @@ def test_column_aligner_left_numeric_to_right_semantic():
             Row(**{"dia": "martes", "day": "tuesday"}),
         ]
     )
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {
         "0": "dia",
         "1": "day",
     }
@@ -55,13 +55,13 @@ def test_column_aligner_left_numeric_to_right_semantic():
 def test_column_aligner_both_semantic_returns_empty():
     left = wrap([Row(**{"family": "Apiaceae"})])
     right = wrap([Row(**{"family": "Apiaceae"})])
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {}
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {}
 
 
 def test_column_aligner_both_numeric_returns_empty():
     left = wrap([Row(**{"0": "Apiaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"})])
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {}
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {}
 
 
 def test_column_aligner_no_value_overlap_returns_empty():
@@ -77,7 +77,7 @@ def test_column_aligner_no_value_overlap_returns_empty():
             Row(**{"0": "blue"}),
         ]
     )
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {}
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {}
 
 
 def test_column_aligner_partial_overlap_above_threshold():
@@ -92,7 +92,7 @@ def test_column_aligner_partial_overlap_above_threshold():
             Row(**{"0": "Apiaceae"}),
         ]
     )
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {
         "0": "family"
     }
 
@@ -110,7 +110,7 @@ def test_column_aligner_threshold(threshold, expected):
     right = wrap([Row(**{"0": "Apiaceae"})])
     assert (
         MergeTimeColumnAligner(
-            left, right, analyzers=[JaccardAnalyzer(threshold=threshold)]
+            left, right, analyzers=[JaccardMergeTimeAnalyzer(threshold=threshold)]
         ).mapping
         == expected
     )
@@ -119,7 +119,7 @@ def test_column_aligner_threshold(threshold, expected):
 def test_column_aligner_empty_fragment():
     left = wrap([])
     right = wrap([Row(**{"0": "Apiaceae"})])
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {}
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {}
 
 
 def test_column_aligner_one_col_matches_one_does_not():
@@ -135,20 +135,20 @@ def test_column_aligner_one_col_matches_one_does_not():
             Row(**{"0": "Rosaceae", "1": "www"}),
         ]
     )
-    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()]).mapping == {
+    assert MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {
         "0": "family"
     }
 
 
 def test_column_aligner_none_right_returns_empty():
     left = wrap([Row(**{"family": "Apiaceae"})])
-    assert MergeTimeColumnAligner(left, None, analyzers=[JaccardAnalyzer()]).mapping == {}
+    assert MergeTimeColumnAligner(left, None, analyzers=[JaccardMergeTimeAnalyzer()]).mapping == {}
 
 
 def test_column_aligner_rename_maps_numeric_to_semantic():
     left = wrap([Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."})])
     right = wrap([Row(**{"0": "Apiaceae", "1": "Ammi majus L."})])
-    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()])
+    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()])
     assert aligner.rename_column("0") == "family"
     assert aligner.rename_column("1") == "scientific_name"
     assert aligner.rename_column("family") == "family"
@@ -157,7 +157,7 @@ def test_column_aligner_rename_maps_numeric_to_semantic():
 def test_column_aligner_rename_row_renames_columns():
     left = wrap([Row(**{"family": "Apiaceae", "scientific_name": "Ammi majus L."})])
     right = wrap([Row(**{"0": "Apiaceae", "1": "Ammi majus L."})])
-    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()])
+    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()])
     row = Row(**{"0": "Rosaceae", "1": "Rosa canina L."})
     assert aligner.rename_row(row) == Row(
         family="Rosaceae", scientific_name="Rosa canina L."
@@ -167,7 +167,7 @@ def test_column_aligner_rename_row_renames_columns():
 def test_column_aligner_rename_row_noop_when_no_mapping():
     left = wrap([Row(**{"family": "Apiaceae"})])
     right = wrap([Row(**{"genus": "Ammi"})])
-    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardAnalyzer()])
+    aligner = MergeTimeColumnAligner(left, right, analyzers=[JaccardMergeTimeAnalyzer()])
     row = Row(family="Rosaceae")
     assert aligner.rename_row(row) is row
 
@@ -234,7 +234,7 @@ def test_column_aligner_four_columns_exact(threshold):
     )
     assert (
         MergeTimeColumnAligner(
-            left, right, analyzers=[JaccardAnalyzer(threshold=threshold)]
+            left, right, analyzers=[JaccardMergeTimeAnalyzer(threshold=threshold)]
         ).mapping
         == FOUR_COLUMNS_MAPPING
     )
@@ -269,7 +269,7 @@ def test_column_aligner_four_columns_with_text_edits(threshold, expected):
     )
     assert (
         MergeTimeColumnAligner(
-            left, right, analyzers=[JaccardAnalyzer(threshold=threshold)]
+            left, right, analyzers=[JaccardMergeTimeAnalyzer(threshold=threshold)]
         ).mapping
         == expected
     )
@@ -304,7 +304,7 @@ def test_column_aligner_four_columns_partial_column_match(threshold):
         ]
     )
     assert MergeTimeColumnAligner(
-        left, right, analyzers=[JaccardAnalyzer(threshold=threshold)]
+        left, right, analyzers=[JaccardMergeTimeAnalyzer(threshold=threshold)]
     ).mapping == {
         "0": "scientific_name",
         "1": "area",
@@ -314,7 +314,7 @@ def test_column_aligner_four_columns_partial_column_match(threshold):
 
 def test_column_aligner_with_alias_on_semantic_to_semantic():
     left = wrap([Row(**{"familia": "Apiaceae"}), Row(**{"familia": "Rosaceae"})])
-    aligner = LoadTimeColumnAligner(left, analyzers=[AliasAnalyzer({"familia": "family"})])
+    aligner = LoadTimeColumnAligner(left, analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
     assert aligner.mapping == {"familia": "family"}
 
 
@@ -322,23 +322,23 @@ def test_column_aligner_alias_before_jaccard():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
     right = wrap([Row(**{"0": "Apiaceae"}), Row(**{"0": "Rosaceae"})])
     load_aligner = LoadTimeColumnAligner(
-        left, analyzers=[AliasAnalyzer({"family": "official_family"})]
+        left, analyzers=[AliasLoadTimeAnalyzer({"family": "official_family"})]
     )
     assert load_aligner.mapping == {"family": "official_family"}
     renamed_left = TableFragment(
         rows=[load_aligner.rename_row(r) for r in left.rows], page=left.page
     )
-    merge_aligner = MergeTimeColumnAligner(renamed_left, right, analyzers=[JaccardAnalyzer()])
+    merge_aligner = MergeTimeColumnAligner(renamed_left, right, analyzers=[JaccardMergeTimeAnalyzer()])
     assert merge_aligner.mapping == {"0": "official_family"}
 
 
 def test_column_aligner_alias_applies_without_right_fragment():
     left = wrap([Row(**{"familia": "Apiaceae"}), Row(**{"familia": "Rosaceae"})])
-    aligner = LoadTimeColumnAligner(left, analyzers=[AliasAnalyzer({"familia": "family"})])
+    aligner = LoadTimeColumnAligner(left, analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
     assert aligner.mapping == {"familia": "family"}
 
 
 def test_column_aligner_jaccard_no_op_without_right_fragment():
     left = wrap([Row(**{"family": "Apiaceae"}), Row(**{"family": "Rosaceae"})])
-    aligner = MergeTimeColumnAligner(left, None, analyzers=[JaccardAnalyzer()])
+    aligner = MergeTimeColumnAligner(left, None, analyzers=[JaccardMergeTimeAnalyzer()])
     assert aligner.mapping == {}

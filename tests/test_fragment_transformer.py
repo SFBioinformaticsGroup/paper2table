@@ -1,4 +1,6 @@
 # pyright: reportCallIssue=false
+# pyright: reportArgumentType=false
+
 import pytest
 
 from tablemerge.fragment_transformer import (
