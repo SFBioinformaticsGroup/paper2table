@@ -171,18 +171,24 @@ tablemerge --jaccard-column-alignment tests/data/demo_resultsets/*
 tablemerge --jaccard-column-alignment --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
 ```
 
-`--semantic-column-alignment` adds an NLP-based pass (spaCy) after Jaccard, comparing column values semantically against column names. Requires a spaCy model:
+`--column-value-semantic-alignment` adds a merge-time NLP pass (spaCy) that runs after Jaccard, comparing each numeric column's cell values against the semantic column names from the opposing fragment. No schema required:
 
 ```bash
 python -m spacy download en_core_web_md
-tablemerge --jaccard-column-alignment --semantic-column-alignment tests/data/demo_resultsets/*
+tablemerge --jaccard-column-alignment --column-value-semantic-alignment tests/data/demo_resultsets/*
+```
+
+`--column-name-semantic-alignment` adds a load-time NLP pass (spaCy) that compares each numeric column's cell values against the schema column names. Requires `-p`:
+
+```bash
+tablemerge -p tests/data/demo_schema.txt --column-name-semantic-alignment tests/data/demo_resultsets/*
 ```
 
 Use `--semantic-language` to select the spaCy model language (`en` or `es`, default `en`):
 
 ```bash
 python -m spacy download es_core_news_md
-tablemerge --jaccard-column-alignment --semantic-column-alignment --semantic-language es tests/data/demo_resultsets/*
+tablemerge --jaccard-column-alignment --column-value-semantic-alignment --semantic-language es tests/data/demo_resultsets/*
 ```
 
 ### Column aliases
@@ -253,14 +259,14 @@ tablemerge --compact-consecutive-fragments unsafe tests/data/demo_resultsets/*
 |------|-----------|---------|-----------|
 | 1 | `pretransformers` per fragment | `FragmentValuesReverser`, `FilterTitleRowsTransformer`, `FilterEmptyRowsTransformer` | per flag |
 | 2 | `compactor.compact` | `SafeConsecutiveFragmentsCompactor`, `UnsafeConsecutiveFragmentsCompactor` | `--compact-consecutive-fragments` |
-| 3 | `analyzers` per fragment via `LoadTimeColumnAligner` | `HintsAnalyzer`, `AliasAnalyzer`, `SemanticAnalyzer` | per flag |
+| 3 | `analyzers` per fragment via `LoadTimeColumnAligner` | `HintsAnalyzer`, `AliasAnalyzer`, `ColumnNameSemanticAnalyzer` | per flag |
 | 4 | `posttransformers` per fragment | `FilterHeaderRowsTransformer` | `--remove-header-rows` |
 
 **Phase 2 — Merge time** (`TablesFileMerger`, once per fragment pair):
 
 | Step | Operation | Classes | Condition |
 |------|-----------|---------|-----------|
-| 1 | column alignment via `MergeTimeColumnAligner` | `JaccardAnalyzer` | `--jaccard-column-alignment` |
+| 1 | column alignment via `MergeTimeColumnAligner` | `JaccardAnalyzer`, `ColumnValueSemanticAnalyzer` | per flag |
 | 2 | row merging | `TableFragmentBuilder` | always |
 
 **Phase 3 — Post-merge** (applied once to the merged output):
@@ -324,8 +330,9 @@ classDiagram
 
     LoadTimeAnalyzer <|.. HintsAnalyzer
     LoadTimeAnalyzer <|.. AliasAnalyzer
-    LoadTimeAnalyzer <|.. SemanticAnalyzer
+    LoadTimeAnalyzer <|.. ColumnNameSemanticAnalyzer
     MergeTimeAnalyzer <|.. JaccardAnalyzer
+    MergeTimeAnalyzer <|.. ColumnValueSemanticAnalyzer
     FragmentTransformer <|.. FragmentValuesReverser
     FragmentTransformer <|.. FilterTitleRowsTransformer
     FragmentTransformer <|.. FilterEmptyRowsTransformer
