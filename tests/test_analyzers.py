@@ -497,9 +497,12 @@ def test_semantic_maps_semantic_not_in_schema_columns(en_spacy_model):
 
 @pytest.mark.integration
 def test_semantic_does_not_rename_semantic_column_when_own_name_is_closer(en_spacy_model):
-    colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
-    fragment = wrap([Row(**{"color": color}) for color in colors])
-    schema = ColumnSchema({"hue": str})
+    dog_breeds = [
+        "poodle", "labrador", "beagle", "bulldog", "terrier",
+        "husky", "boxer", "dachshund",
+    ]
+    fragment = wrap([Row(**{"dog": breed}) for breed in dog_breeds])
+    schema = ColumnSchema({"canine": str})
     result = ColumnNameSemanticLoadTimeAnalyzer(
         threshold=0.3, schema=schema
     ).build_mapping(fragment.get_column_names(), fragment.rows)
