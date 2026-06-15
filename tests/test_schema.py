@@ -1,5 +1,9 @@
 # pyright: reportCallIssue=false
 from tablemerge.schema import SchemaPostProcessor
+from tablemerge.postprocessors import (
+    DropEmptyNonSemanticColumnsPostProcessor,
+    DropEmptyTablesPostProcessor,
+)
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -213,3 +217,29 @@ def test_coerce_types_none_column_value_left_unchanged():
         ]
         is None
     )
+
+
+def test_drop_empty_non_semantic_columns_postprocessor_removes_all_null_column():
+    tablesfile = wrap([
+        Row(**{"0": None, "family": "Apiaceae"}),
+        Row(**{"0": None, "family": "Fabaceae"}),
+    ])
+    result = DropEmptyNonSemanticColumnsPostProcessor().postprocess(tablesfile)
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="Apiaceae"),
+        Row(family="Fabaceae"),
+    ]
+
+
+def test_drop_empty_tables_postprocessor_removes_empty_table():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(table_fragments=[TableFragment(rows=[Row(family="Apiaceae")], page=1)]),
+            TableWithFragments(table_fragments=[TableFragment(rows=[Row(family="")], page=2)]),
+        ],
+        citation="",
+    )
+    result = DropEmptyTablesPostProcessor().postprocess(tablesfile)
+    assert len(result.tables) == 1
+    assert result.tables[0].get_table_fragments()[0].rows == [Row(family="Apiaceae")]

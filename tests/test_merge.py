@@ -10,6 +10,10 @@ from tablemerge.merge import (
     DistinctReadersAgreement,
     filter_semantic_columns,
     filter_header_rows,
+    filter_title_rows,
+    drop_empty_non_semantic_columns,
+    drop_empty_tables,
+    is_title_row,
     is_header_row,
     has_semantic_header_value,
     has_hints_header_value,
@@ -599,6 +603,105 @@ def test_filter_semantic_columns_keeps_all_if_no_numeric():
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert len(rows) == 1
     assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}
+
+
+def test_drop_empty_non_semantic_columns_removes_all_null_column():
+    table = [
+        Row(**{"family": "Apiaceae", "0": None, "1": "value"}),
+        Row(**{"family": "Rosaceae", "0": None, "1": "other"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="apiaceae", **{"1": "value"}, agreement_level_=1),
+        Row(family="rosaceae", **{"1": "other"}, agreement_level_=1),
+    ]
+
+
+def test_drop_empty_non_semantic_columns_keeps_column_with_any_value():
+    table = [
+        Row(**{"family": "Apiaceae", "0": None}),
+        Row(**{"family": "Rosaceae", "0": "has_value"}),
+    ]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(family="apiaceae", **{"0": None}, agreement_level_=1),
+        Row(family="rosaceae", **{"0": "has_value"}, agreement_level_=1),
+    ]
+
+
+def test_drop_empty_non_semantic_columns_does_not_touch_semantic_columns():
+    table = [Row(family=None, scientific_name="Ammi majus")]
+    result = merge_tablesfiles([wrap(table)])
+    dropped = drop_empty_non_semantic_columns(result)
+    rows = dropped.tables[0].get_table_fragments()[0].rows
+    assert rows == [Row(family=None, scientific_name="ammi majus", agreement_level_=1)]
+
+
+def test_is_title_row_detects_figure_prefix():
+    assert is_title_row(Row(**{"0": "Figure 1. Species table"}))
+
+
+def test_is_title_row_detects_fig_dot_prefix():
+    assert is_title_row(Row(**{"0": "Fig.3 caption"}))
+
+
+def test_is_title_row_detects_fig_dot_with_space():
+    assert is_title_row(Row(**{"0": "fig. 2"}))
+
+
+def test_is_title_row_detects_table_prefix():
+    assert is_title_row(Row(**{"0": "TABLE 3"}))
+
+
+def test_is_title_row_detects_figura_prefix():
+    assert is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
+
+
+def test_is_title_row_detects_tabla_prefix():
+    assert is_title_row(Row(**{"0": "tabla 5"}))
+
+
+def test_is_title_row_false_when_multiple_non_empty_columns():
+    assert not is_title_row(Row(**{"0": "Figure 1", "1": "something"}))
+
+
+def test_is_title_row_false_when_value_does_not_match():
+    assert not is_title_row(Row(**{"0": "Apiaceae"}))
+
+
+def test_filter_title_rows_removes_title_in_first_three_rows():
+    table = [
+        Row(**{"0": "Figure 1. Species"}),
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+    ]
+    result = filter_title_rows(wrap(table))
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+    ]
+
+
+def test_filter_title_rows_does_not_remove_title_after_first_three_rows():
+    table = [
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
+        Row(**{"0": "Figure 2. Continued"}),
+    ]
+    result = filter_title_rows(wrap(table))
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
+        Row(**{"0": "Figure 2. Continued"}),
+    ]
 
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():
@@ -1211,3 +1314,66 @@ def test_value_matches_hints_returns_false_for_none():
 
 def test_to_values_with_agreement_returns_empty_list_for_none():
     assert to_values_with_agreement(None) == []
+
+
+def test_table_fragment_is_empty_all_empty_rows():
+    fragment = TableFragment(rows=[Row(family="", scientific_name=None)], page=1)
+    assert fragment.is_empty()
+
+
+def test_table_fragment_is_empty_false_when_has_data():
+    fragment = TableFragment(rows=[Row(family="Apiaceae")], page=1)
+    assert not fragment.is_empty()
+
+
+def test_table_fragment_is_empty_true_when_no_rows():
+    fragment = TableFragment(rows=[], page=1)
+    assert fragment.is_empty()
+
+
+def test_table_with_fragments_is_empty_all_fragments_empty():
+    table = TableWithFragments(table_fragments=[
+        TableFragment(rows=[Row(family="")], page=1),
+        TableFragment(rows=[Row(family="")], page=2),
+    ])
+    assert table.is_empty()
+
+
+def test_table_with_fragments_is_empty_false_when_any_fragment_has_data():
+    table = TableWithFragments(table_fragments=[
+        TableFragment(rows=[Row(family="")], page=1),
+        TableFragment(rows=[Row(family="Apiaceae")], page=2),
+    ])
+    assert not table.is_empty()
+
+
+def test_drop_empty_tables_removes_empty_table():
+    non_empty = wrap([Row(family="Apiaceae")])
+    empty = wrap([Row(family="")])
+    combined = TablesFile(
+        tables=non_empty.tables + empty.tables,
+        citation="",
+    )
+    result = drop_empty_tables(combined)
+    assert result.tables == non_empty.tables
+
+
+def test_drop_empty_tables_removes_empty_fragments():
+    non_empty_fragment = TableFragment(rows=[Row(family="Apiaceae")], page=1)
+    empty_fragment = TableFragment(rows=[Row(family="")], page=2)
+    table = TableWithFragments(table_fragments=[non_empty_fragment, empty_fragment])
+    tablesfile = TablesFile(tables=[table], citation="")
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == [TableWithFragments(table_fragments=[non_empty_fragment])]
+
+
+def test_drop_empty_tables_keeps_all_when_none_empty():
+    tablesfile = wrap([Row(family="Apiaceae"), Row(family="Fabaceae")])
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == tablesfile.tables
+
+
+def test_drop_empty_tables_returns_empty_tables_list_when_all_empty():
+    tablesfile = wrap([Row(family="")])
+    result = drop_empty_tables(tablesfile)
+    assert result.tables == []

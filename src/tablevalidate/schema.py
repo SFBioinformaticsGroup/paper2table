@@ -100,6 +100,9 @@ class TableFragment(BaseModel):
     def columns_count(self) -> int:
         return len(self.get_column_names())
 
+    def is_empty(self) -> bool:
+        return all(row.is_empty() for row in self.rows)
+
 
 class TableWithRows(BaseModel):
     rows: List[Row]
@@ -108,12 +111,18 @@ class TableWithRows(BaseModel):
     def get_table_fragments(self) -> List[TableFragment]:
         return [TableFragment(rows=self.rows, page=self.page)]
 
+    def is_empty(self) -> bool:
+        return all(row.is_empty() for row in self.rows)
+
 
 class TableWithFragments(BaseModel):
     table_fragments: List[TableFragment]
 
     def get_table_fragments(self) -> List[TableFragment]:
         return list(self.table_fragments)
+
+    def is_empty(self) -> bool:
+        return all(fragment.is_empty() for fragment in self.table_fragments)
 
 
 Table = Union[TableWithRows, TableWithFragments]
