@@ -45,7 +45,7 @@ def test_fragment_agreement_level_column_shown_first():
     out = joined(build_fragment_html(1, fragment))
     headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
     assert headers[0] == "agreement_level_"
-    assert "<td>2</td>" in out
+    assert "<td class='medium'>2</td>" in out
 
 
 def test_fragment_no_agreement_level_column_when_absent():
@@ -257,7 +257,7 @@ def test_build_data_row_simple():
 
 def test_build_data_row_applies_css_class():
     row = Row(x="v", agreement_level_=2)
-    out = joined(build_data_row(row, ["x"]))
+    out = joined(build_data_row(row, ["x", "agreement_level_"]))
     assert "class='medium'" in out
 
 
