@@ -76,7 +76,7 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
     )
 
 
-def drop_empty_non_semantic_columns(tablesfile: TablesFile) -> TablesFile:
+def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
     filtered_tables = []
     for table in tablesfile.tables:
         filtered_fragments = []
@@ -85,8 +85,7 @@ def drop_empty_non_semantic_columns(tablesfile: TablesFile) -> TablesFile:
             empty_cols = {
                 col
                 for col in all_cols
-                if not Row.is_semantic_column(col)
-                and all(
+                if all(
                     Row.is_empty_value(row.get_columns().get(col))
                     for row in fragment.rows
                 )

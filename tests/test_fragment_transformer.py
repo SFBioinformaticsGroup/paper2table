@@ -6,6 +6,8 @@ import pytest
 from tablemerge.fragment_transformer import (
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
+    LeadingRowNumberTransformer,
+    SplitColumnTransformer,
 )
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 
@@ -120,7 +122,7 @@ def test_filter_title_rows_transformer_keeps_title_after_first_three_rows():
 
 
 def test_filter_title_rows_transformer_settings_is_empty():
-    assert FilterTitleRowsTransformer().settings == {}
+    assert FilterTitleRowsTransformer().settings == {"enabled": True}
 
 
 def test_fragment_values_reverser_settings_contains_language():
@@ -149,3 +151,158 @@ def test_fragment_values_reverser_keeps_fragment_with_unknown_terms(en_spacy_mod
     reverser = FragmentValuesReverser("en")
     fragment = make_fragment(Row(col_a="xkzqpwb vnrmt"), Row(col_b="qptnmrv bwpqzkx"))
     assert reverser.transform_fragment(fragment) == fragment
+
+
+def test_split_column_transformer_finds_and_conjunction():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("city_and_country") == ("city", "country")
+
+
+def test_split_column_transformer_finds_or_conjunction():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("city_or_country") == ("city", "country")
+
+
+def test_split_column_transformer_finds_multi_token_headers():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("first_name_and_last_name") == ("first_name", "last_name")
+
+
+def test_split_column_transformer_returns_none_when_no_conjunction():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("city_country") is None
+
+
+def test_split_column_transformer_returns_none_conjunction_at_start():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("and_city_country") is None
+
+
+def test_split_column_transformer_returns_none_conjunction_at_end():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.find_conjunction_split("city_country_and") is None
+
+
+def test_split_column_transformer_finds_spanish_y_conjunction():
+    transformer = SplitColumnTransformer("es")
+    assert transformer.find_conjunction_split("ciudad_y_pais") == ("ciudad", "pais")
+
+
+def test_split_column_transformer_returns_none_unknown_language():
+    transformer = SplitColumnTransformer("de")
+    assert transformer.find_conjunction_split("stadt_und_land") is None
+
+
+def test_split_column_transformer_settings():
+    transformer = SplitColumnTransformer("en")
+    assert transformer.settings == {"language": "en"}
+
+
+@pytest.mark.integration
+def test_split_column_transformer_splits_city_and_country_values(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(
+        Row(city_and_country="Lima Peru"),
+        Row(city_and_country="Santiago Chile"),
+        Row(city_and_country="Caracas Venezuela"),
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Lima", country="Peru"),
+        Row(city="Santiago", country="Chile"),
+        Row(city="Caracas", country="Venezuela"),
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_handles_multi_token_city(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country="Buenos Aires Argentina"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Buenos Aires", country="Argentina")
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_handles_empty_cell(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country=""))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="", country="")
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_handles_none_cell(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country=None))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city=None, country=None)
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_handles_list_value_cell(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(
+        Row(city_and_country=[ValueWithAgreement(value="Lima Peru", agreement_level=2)])
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(
+            city=[ValueWithAgreement(value="Lima", agreement_level=2)],
+            country=[ValueWithAgreement(value="Peru", agreement_level=2)],
+        )
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_leaves_non_conjunction_columns_unchanged(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country="Lima Peru", population="11000000"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Lima", country="Peru", population="11000000")
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_preserves_row_special_fields(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(
+        Row(city_and_country="Bogota Colombia", agreement_level_=3, sources_=["s1"], row_=5)
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Bogota", country="Colombia", agreement_level_=3, sources_=["s1"], row_=5)
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_returns_unchanged_when_no_conjunction_columns(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city="Lima", country="Peru"))
+    assert transformer.transform_fragment(fragment) == fragment
+
+
+@pytest.mark.integration
+def test_split_column_transformer_strips_parentheses_around_full_part(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country="Buenos Aires (Argentina)"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Buenos Aires", country="Argentina")
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_strips_dash_separator(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country="Buenos Aires - Argentina"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Buenos Aires", country="Argentina")
+    )
+
+
+@pytest.mark.integration
+def test_split_column_transformer_preserves_parentheses_within_part(en_spacy_model):
+    transformer = SplitColumnTransformer("en")
+    fragment = make_fragment(Row(city_and_country="(Ciudad de) La Paz - Bolivia"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="(Ciudad de) La Paz", country="Bolivia")
+    )

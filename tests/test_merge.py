@@ -8,7 +8,7 @@ from tablemerge.tablesfile_loader import TablesFileLoader
 from tablemerge.merge import (
     filter_semantic_columns,
     filter_header_rows,
-    drop_empty_non_semantic_columns,
+    drop_empty_columns,
     drop_empty_tables,
     is_header_row,
     has_semantic_header_value,
@@ -608,13 +608,13 @@ def test_filter_semantic_columns_keeps_all_if_no_numeric():
     assert set(rows[0].get_columns().keys()) == {"family", "scientific_name"}
 
 
-def test_drop_empty_non_semantic_columns_removes_all_null_column():
+def test_drop_empty_columns_removes_all_null_column():
     table = [
         Row(**{"family": "Apiaceae", "0": None, "1": "value"}),
         Row(**{"family": "Rosaceae", "0": None, "1": "other"}),
     ]
     result = merge_tablesfiles([wrap(table)])
-    dropped = drop_empty_non_semantic_columns(result)
+    dropped = drop_empty_columns(result)
     rows = dropped.tables[0].get_table_fragments()[0].rows
     assert rows == [
         Row(family="apiaceae", **{"1": "value"}, agreement_level_=1, row_=0),
@@ -622,13 +622,13 @@ def test_drop_empty_non_semantic_columns_removes_all_null_column():
     ]
 
 
-def test_drop_empty_non_semantic_columns_keeps_column_with_any_value():
+def test_drop_empty_columns_keeps_column_with_any_value():
     table = [
         Row(**{"family": "Apiaceae", "0": None}),
         Row(**{"family": "Rosaceae", "0": "has_value"}),
     ]
     result = merge_tablesfiles([wrap(table)])
-    dropped = drop_empty_non_semantic_columns(result)
+    dropped = drop_empty_columns(result)
     rows = dropped.tables[0].get_table_fragments()[0].rows
     assert rows == [
         Row(family="apiaceae", **{"0": None}, agreement_level_=1, row_=0),
@@ -636,12 +636,12 @@ def test_drop_empty_non_semantic_columns_keeps_column_with_any_value():
     ]
 
 
-def test_drop_empty_non_semantic_columns_does_not_touch_semantic_columns():
+def test_drop_empty_columns_drops_empty_semantic_columns():
     table = [Row(family=None, scientific_name="Ammi majus")]
     result = merge_tablesfiles([wrap(table)])
-    dropped = drop_empty_non_semantic_columns(result)
+    dropped = drop_empty_columns(result)
     rows = dropped.tables[0].get_table_fragments()[0].rows
-    assert rows == [Row(family=None, scientific_name="ammi majus", agreement_level_=1, row_=0)]
+    assert rows == [Row(scientific_name="ammi majus", agreement_level_=1, row_=0)]
 
 
 def test_is_title_row_detects_figure_prefix():

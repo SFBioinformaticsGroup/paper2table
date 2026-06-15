@@ -36,6 +36,8 @@ from .fragment_transformer import (
     FilterHeaderRowsTransformer,
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
+    LeadingRowNumberTransformer,
+    SplitColumnTransformer,
 )
 from .fragments_compactor import (
     FragmentsCompactor,
@@ -228,7 +230,7 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
-    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_columns: bool = True,
     drop_empty_tables: bool = True,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
@@ -255,7 +257,7 @@ def merge_resultsets(
         "agreement_method": agreement_method,
         "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
         "compactor": compactor.settings,
-        "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
+        "drop_empty_columns": drop_empty_columns,
         "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
@@ -344,11 +346,11 @@ def parse_args():
         help="Skip removing rows whose values match their column names (title rows)",
     )
     parser.add_argument(
-        "--no-drop-empty-non-semantic-columns",
+        "--no-drop-empty-columns",
         action="store_false",
-        dest="drop_empty_non_semantic_columns",
+        dest="drop_empty_columns",
         default=True,
-        help="Skip dropping non-semantic columns that are entirely empty after merging",
+        help="Skip dropping columns that are entirely empty after merging",
     )
     parser.add_argument(
         "--no-drop-empty-tables",
@@ -493,6 +495,25 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--strip-leading-row-numbers",
+        action="store_true",
+        default=False,
+        help=(
+            "Strip leading sequential numbering from cell values "
+            "('1. text' becomes 'text'). "
+            "Applied per column when all sampled values share the pattern and numbers are strictly increasing."
+        ),
+    )
+    parser.add_argument(
+        "--split-conjunction-columns",
+        action="store_true",
+        help=(
+            "Split semantic columns whose names contain a conjunction (e.g. 'city_and_country') "
+            "into two columns by finding the best split point in each cell using spaCy similarity. "
+            "Uses --semantic-language for the model."
+        ),
+    )
+    parser.add_argument(
         "--compact-consecutive-fragments",
         choices=["no", "safe", "unsafe"],
         default="no",
@@ -536,7 +557,7 @@ def main():
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
         only_semantic_columns=args.only_semantic_columns,
-        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
     )
 
@@ -587,6 +608,10 @@ def main():
         pretransformers.append(FragmentValuesReverser(args.semantic_language))
     if args.filter_title_rows:
         pretransformers.append(FilterTitleRowsTransformer())
+    if args.strip_leading_row_numbers:
+        pretransformers.append(LeadingRowNumberTransformer())
+    if args.split_conjunction_columns:
+        pretransformers.append(SplitColumnTransformer(args.semantic_language))
     pretransformers.append(FilterEmptyRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(
@@ -598,7 +623,7 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
-        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,

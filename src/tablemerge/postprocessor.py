@@ -11,7 +11,7 @@ from tablevalidate.schema import (
 from utils.coerce import coerce_str
 from utils.column_schema import ColumnSchema
 from .merge import (
-    drop_empty_non_semantic_columns,
+    drop_empty_columns,
     drop_empty_tables,
     filter_semantic_columns,
 )
@@ -26,25 +26,25 @@ class PostProcessor(Protocol):
 class FilterSemanticColumnsPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return filter_semantic_columns(tablesfile)
 
 
-class DropEmptyNonSemanticColumnsPostProcessor:
+class DropEmptyColumnsPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
-        return drop_empty_non_semantic_columns(tablesfile)
+        return drop_empty_columns(tablesfile)
 
 
 class DropEmptyTablesPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return drop_empty_tables(tablesfile)
@@ -180,14 +180,14 @@ def build_postprocessors(
     order_columns: bool,
     coerce_types: bool,
     only_semantic_columns: bool = False,
-    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_columns: bool = True,
     drop_empty_tables: bool = True,
 ) -> list[PostProcessor]:
     result: list[PostProcessor] = []
     if only_semantic_columns:
         result.append(FilterSemanticColumnsPostProcessor())
-    if drop_empty_non_semantic_columns:
-        result.append(DropEmptyNonSemanticColumnsPostProcessor())
+    if drop_empty_columns:
+        result.append(DropEmptyColumnsPostProcessor())
     if drop_empty_tables:
         result.append(DropEmptyTablesPostProcessor())
     if schema:

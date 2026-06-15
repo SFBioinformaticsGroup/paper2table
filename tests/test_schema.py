@@ -1,7 +1,7 @@
 # pyright: reportCallIssue=false
 from tablemerge.postprocessor import (
     SchemaPostProcessor,
-    DropEmptyNonSemanticColumnsPostProcessor,
+    DropEmptyColumnsPostProcessor,
     DropEmptyTablesPostProcessor,
 )
 from utils.column_schema import ColumnSchema
@@ -227,14 +227,14 @@ def test_coerce_types_none_column_value_left_unchanged():
     )
 
 
-def test_drop_empty_non_semantic_columns_postprocessor_removes_all_null_column():
+def test_drop_empty_columns_postprocessor_removes_all_null_column():
     tablesfile = wrap(
         [
             Row(**{"0": None, "family": "Apiaceae"}),
             Row(**{"0": None, "family": "Fabaceae"}),
         ]
     )
-    result = DropEmptyNonSemanticColumnsPostProcessor().postprocess(tablesfile)
+    result = DropEmptyColumnsPostProcessor().postprocess(tablesfile)
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
         Row(family="Apiaceae"),
