@@ -122,7 +122,7 @@ def test_filter_title_rows_transformer_keeps_title_after_first_three_rows():
 
 
 def test_filter_title_rows_transformer_settings_is_empty():
-    assert FilterTitleRowsTransformer().settings == {}
+    assert FilterTitleRowsTransformer().settings == {"enabled": True}
 
 
 def test_fragment_values_reverser_settings_contains_language():

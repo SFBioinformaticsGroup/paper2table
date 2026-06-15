@@ -23,7 +23,7 @@ _LEADING_NUMBER_RE = re.compile(r"^(\d+)\.\s+")
 class FilterTitleRowsTransformer:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         head = [row for row in fragment.rows[:3] if not self.is_title_row(row)]
@@ -127,7 +127,7 @@ class LeadingRowNumberTransformer:
 class FilterEmptyRowsTransformer:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
@@ -149,6 +149,7 @@ class FilterHeaderRowsTransformer:
             rows=[row for row in fragment.rows if not is_header_row(row, self.hints)],
             page=fragment.page,
         )
+
 
 class SplitColumnTransformer:
     CONJUNCTIONS: dict[str, set[str]] = {
@@ -183,7 +184,9 @@ class SplitColumnTransformer:
             text = text[1:-1].strip()
         return text
 
-    def split_cell_value(self, value: str, left_header_doc, right_header_doc) -> tuple[str, str]:
+    def split_cell_value(
+        self, value: str, left_header_doc, right_header_doc
+    ) -> tuple[str, str]:
         tokens = value.split()
         if len(tokens) <= 1:
             return (value, "")
@@ -193,7 +196,9 @@ class SplitColumnTransformer:
         for i in range(1, len(tokens)):
             left_doc = nlp(" ".join(tokens[:i]))
             right_doc = nlp(" ".join(tokens[i:]))
-            score = left_header_doc.similarity(left_doc) + right_header_doc.similarity(right_doc)
+            score = left_header_doc.similarity(left_doc) + right_header_doc.similarity(
+                right_doc
+            )
             if score > best_score:
                 best_score = score
                 best_index = i
@@ -207,13 +212,25 @@ class SplitColumnTransformer:
         if column_value is None:
             return (None, None)
         if isinstance(column_value, str):
-            return self.split_cell_value(column_value, left_header_doc, right_header_doc)
+            return self.split_cell_value(
+                column_value, left_header_doc, right_header_doc
+            )
         left_list = []
         right_list = []
         for entry in column_value:
-            left_val, right_val = self.split_cell_value(entry.value, left_header_doc, right_header_doc)
-            left_list.append(ValueWithAgreement(value=left_val, agreement_level=entry.agreement_level))
-            right_list.append(ValueWithAgreement(value=right_val, agreement_level=entry.agreement_level))
+            left_val, right_val = self.split_cell_value(
+                entry.value, left_header_doc, right_header_doc
+            )
+            left_list.append(
+                ValueWithAgreement(
+                    value=left_val, agreement_level=entry.agreement_level
+                )
+            )
+            right_list.append(
+                ValueWithAgreement(
+                    value=right_val, agreement_level=entry.agreement_level
+                )
+            )
         return (left_list, right_list)
 
     def transform_row(
@@ -227,7 +244,9 @@ class SplitColumnTransformer:
             if col in column_splits:
                 left_header, right_header = column_splits[col]
                 left_doc, right_doc = header_docs[col]
-                left_value, right_value = self.split_column_value(value, left_doc, right_doc)
+                left_value, right_value = self.split_column_value(
+                    value, left_doc, right_doc
+                )
                 new_cols[left_header] = left_value
                 new_cols[right_header] = right_value
             else:
@@ -256,7 +275,10 @@ class SplitColumnTransformer:
                 nlp(right_header.replace("_", " ")),
             )
         return TableFragment(
-            rows=[self.transform_row(row, column_splits, header_docs) for row in fragment.rows],
+            rows=[
+                self.transform_row(row, column_splits, header_docs)
+                for row in fragment.rows
+            ],
             page=fragment.page,
         )
 

@@ -26,7 +26,7 @@ class PostProcessor(Protocol):
 class FilterSemanticColumnsPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return filter_semantic_columns(tablesfile)
@@ -35,7 +35,7 @@ class FilterSemanticColumnsPostProcessor:
 class DropEmptyColumnsPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return drop_empty_columns(tablesfile)
@@ -44,7 +44,7 @@ class DropEmptyColumnsPostProcessor:
 class DropEmptyTablesPostProcessor:
     @property
     def settings(self) -> dict:
-        return {}
+        return {"enabled": True}
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return drop_empty_tables(tablesfile)
