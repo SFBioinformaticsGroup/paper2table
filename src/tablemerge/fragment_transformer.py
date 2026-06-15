@@ -76,7 +76,6 @@ class FilterHeaderRowsTransformer:
             page=fragment.page,
         )
 
-
 class FragmentValuesReverser:
     def __init__(self, language: str = "en"):
         self.language = language

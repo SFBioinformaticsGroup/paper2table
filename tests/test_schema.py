@@ -4,6 +4,7 @@ from tablemerge.postprocessor import (
     DropEmptyNonSemanticColumnsPostProcessor,
     DropEmptyTablesPostProcessor,
 )
+from utils.column_schema import ColumnSchema
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -36,7 +37,7 @@ def rows_of(tf: TablesFile, table=0, fragment=0):
     return tf.tables[table].get_table_fragments()[fragment].rows
 
 
-FILTER_SCHEMA = {"name": (str, ...), "species": (str, ...)}
+FILTER_SCHEMA = ColumnSchema({"name": str, "species": str})
 
 
 def filter_processor() -> SchemaPostProcessor:
@@ -79,7 +80,7 @@ def test_filter_all_tables_dropped_returns_empty():
     assert result.tables == []
 
 
-_ORDER_SCHEMA = {"name": (str, ...), "species": (str, ...), "family": (str, ...)}
+_ORDER_SCHEMA = ColumnSchema({"name": str, "species": str, "family": str})
 
 
 def order_processor() -> SchemaPostProcessor:
@@ -119,18 +120,13 @@ def test_order_preserves_metadata():
 
 
 def test_order_preserves_row_number():
-    result = order_processor().postprocess(
-        wrap([Row(name="Rosa", row_=7)])
-    )
+    result = order_processor().postprocess(wrap([Row(name="Rosa", row_=7)]))
     assert rows_of(result)[0].row_ == 7
 
 
-COERCE_SCHEMA = {
-    "year": (int, ...),
-    "length": (float, ...),
-    "active": (bool, ...),
-    "label": (str, ...),
-}
+COERCE_SCHEMA = ColumnSchema(
+    {"year": int, "length": float, "active": bool, "label": str}
+)
 
 
 def coerce_processor() -> SchemaPostProcessor:
@@ -232,10 +228,12 @@ def test_coerce_types_none_column_value_left_unchanged():
 
 
 def test_drop_empty_non_semantic_columns_postprocessor_removes_all_null_column():
-    tablesfile = wrap([
-        Row(**{"0": None, "family": "Apiaceae"}),
-        Row(**{"0": None, "family": "Fabaceae"}),
-    ])
+    tablesfile = wrap(
+        [
+            Row(**{"0": None, "family": "Apiaceae"}),
+            Row(**{"0": None, "family": "Fabaceae"}),
+        ]
+    )
     result = DropEmptyNonSemanticColumnsPostProcessor().postprocess(tablesfile)
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
@@ -247,8 +245,12 @@ def test_drop_empty_non_semantic_columns_postprocessor_removes_all_null_column()
 def test_drop_empty_tables_postprocessor_removes_empty_table():
     tablesfile = TablesFile(
         tables=[
-            TableWithFragments(table_fragments=[TableFragment(rows=[Row(family="Apiaceae")], page=1)]),
-            TableWithFragments(table_fragments=[TableFragment(rows=[Row(family="")], page=2)]),
+            TableWithFragments(
+                table_fragments=[TableFragment(rows=[Row(family="Apiaceae")], page=1)]
+            ),
+            TableWithFragments(
+                table_fragments=[TableFragment(rows=[Row(family="")], page=2)]
+            ),
         ],
         citation="",
     )

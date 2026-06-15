@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import create_model
 from pydantic_ai import Agent, BinaryContent
 
-from utils.columns_schema import parse_schema
+from utils.column_schema import ColumnSchema
 
 from ..tables_reader import TablesReader
 from ..tables_reader.pydantic import TablesModelWrapper
@@ -18,8 +18,10 @@ def build_table_model(schema: str):
         "name:str, age:int, alive:bool"
         "height:float\nweight:float"
     """
-    fields = parse_schema(schema)
-    RowModel = create_model("RowModel", **fields)  # pyright: ignore[reportCallIssue, reportArgumentType]
+    fields = ColumnSchema.parse_pydantic(schema)
+    RowModel = create_model(
+        "RowModel", **fields  # pyright: ignore[reportCallIssue, reportArgumentType]
+    )
     TableFragmentModel = create_model(
         "TableFragment", rows=(list[RowModel], ...), page=(int, ...)
     )

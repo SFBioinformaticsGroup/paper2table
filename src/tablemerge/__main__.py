@@ -2,28 +2,30 @@ import argparse
 import functools
 import json
 import sys
+from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
-from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
+from utils.tokenize_schema import tokenize_schema
 from utils.column_names import normalize_column_name
+from utils.column_schema import ColumnSchema
 
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
-    HintsAnalyzer,
-    JaccardAnalyzer,
-    AliasAnalyzer,
-    SemanticAnalyzer,
+    HintsLoadTimeAnalyzer,
+    JaccardMergeTimeAnalyzer,
+    AliasLoadTimeAnalyzer,
+    ColumnNameSemanticLoadTimeAnalyzer,
+    ColumnValueSemanticMergeTimeAnalyzer,
 )
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger
-from .schema import Schema
 from .postprocessor import PostProcessor, build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
@@ -95,8 +97,8 @@ def load_text_or_file(value: str) -> str:
     return value
 
 
-def load_schema(value: str) -> dict:
-    return parse_schema(load_text_or_file(value))
+def load_schema(value: str) -> ColumnSchema:
+    return ColumnSchema.parse(load_text_or_file(value))
 
 
 def parse_aliases(text: str) -> dict[str, str]:
@@ -111,23 +113,29 @@ def parse_aliases(text: str) -> dict[str, str]:
 def build_analyzers(
     use_jaccard: bool,
     threshold: float,
-    use_semantic: bool,
+    use_column_name_semantic: bool,
+    use_column_value_semantic: bool,
     language: str,
     aliases: dict[str, str],
-    schema: Schema = {},
+    schema: Optional[ColumnSchema] = None,
     hints: list[str] = [],
     hints_mode: str | None = None,
 ) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
     load_time: list[LoadTimeAnalyzer] = []
     merge_time: list[MergeTimeAnalyzer] = []
+
     if hints_mode and hints:
-        load_time.append(HintsAnalyzer(hints, safe=(hints_mode == "safe")))
+        load_time.append(HintsLoadTimeAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
-        load_time.append(AliasAnalyzer(aliases))
-    if use_semantic:
-        load_time.append(SemanticAnalyzer(threshold, language, schema))
+        load_time.append(AliasLoadTimeAnalyzer(aliases))
+    if use_column_name_semantic:
+        load_time.append(ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema))
+
     if use_jaccard:
-        merge_time.append(JaccardAnalyzer(threshold))
+        merge_time.append(JaccardMergeTimeAnalyzer(threshold, schema))
+    if use_column_value_semantic:
+        merge_time.append(ColumnValueSemanticMergeTimeAnalyzer(threshold, language, schema))
+
     return load_time, merge_time
 
 
@@ -226,7 +234,7 @@ def merge_resultsets(
     pretransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
-    schema: Schema = {},
+    schema: Optional[ColumnSchema] = None,
     postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
@@ -249,7 +257,7 @@ def merge_resultsets(
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
         "column_names_hints": hints,
-        "schema": serialize_schema(schema),
+        "schema": schema.serialize() if schema else {},
         "analyzers": {
             **{type(a).__name__: a.settings for a in load_analyzers},
             **{type(a).__name__: a.settings for a in merge_analyzers},
@@ -375,15 +383,29 @@ def parse_args():
         help="Minimum similarity threshold for column alignment (default: 0.5)",
     )
     parser.add_argument(
-        "--semantic-column-alignment",
+        "--column-name-semantic-alignment",
         action="store_true",
-        help="Add NLP-based semantic alignment after Jaccard alignment",
+        help=(
+            "Rename numeric columns by comparing their cell values against schema column names "
+            "using spaCy similarity. Runs at load time. Requires -p/--schema-path."
+        ),
+    )
+    parser.add_argument(
+        "--column-value-semantic-alignment",
+        action="store_true",
+        help=(
+            "Rename numeric columns by comparing their cell values against semantic column names "
+            "from the opposing fragment using spaCy similarity. Runs at merge time after Jaccard."
+        ),
     )
     parser.add_argument(
         "--semantic-language",
         choices=["en", "es"],
         default="en",
-        help="Language for spaCy model used by --semantic-column-alignment (default: en)",
+        help=(
+            "Language for the spaCy model used by --column-name-semantic-alignment and "
+            "--column-value-semantic-alignment (default: en)"
+        ),
     )
     parser.add_argument(
         "--column-aliases",
@@ -494,19 +516,17 @@ def parse_args():
 
 def main():
     args = parse_args()
-    schema_flags = [
-        args.filter_schema_columns,
-        args.order_schema_columns,
-        args.coerce_schema_column_types,
+    schema_required = [
+        (args.filter_schema_columns, "--filter-schema-columns"),
+        (args.order_schema_columns, "--order-schema-columns"),
+        (args.coerce_schema_column_types, "--coerce-schema-column-types"),
+        (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
     ]
-    if any(schema_flags) and not args.schema_path:
-        print(
-            "Error: --filter-schema-columns, --order-schema-columns, and "
-            "--coerce-schema-column-types all require -p/--schema-path.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    schema = load_schema(args.schema_path) if args.schema_path else {}
+    for flag, name in schema_required:
+        if flag and not args.schema_path:
+            print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
+            sys.exit(1)
+    schema: Optional[ColumnSchema] = load_schema(args.schema_path) if args.schema_path else None
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -549,7 +569,8 @@ def main():
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
-        use_semantic=args.semantic_column_alignment,
+        use_column_name_semantic=args.column_name_semantic_alignment,
+        use_column_value_semantic=args.column_value_semantic_alignment,
         hints_mode=args.hints_column_alignment,
         threshold=args.column_alignment_threshold,
         language=args.semantic_language,
