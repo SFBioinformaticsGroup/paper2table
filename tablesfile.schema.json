@@ -76,19 +76,36 @@
       ]
     },
     "metadata": {
-      "type": "object",
-      "properties": {
-        "filename": {
-          "type": "string"
+      "oneOf": [
+        {
+          "type": "null"
         },
-        "curations": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/curation"
-          }
+        {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "curations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/curation"
+              }
+            }
+          },
+          "additionalProperties": true
         }
-      },
-      "additionalProperties": true
+      ]
+    },
+    "uuid": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
     }
   },
   "additionalProperties": false,
@@ -128,6 +145,9 @@
     "columnValue": {
       "oneOf": [
         {
+          "type": "null"
+        },
+        {
           "type": "string"
         },
         {
@@ -140,12 +160,29 @@
     },
     "row": {
       "type": "object",
-      "patternProperties": {
-        "^(?!agreement_level_).*$": {
-          "$ref": "#/$defs/columnValue"
+      "properties": {
+        "agreement_level_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer"}
+          ]
         },
-        "^agreement_level_$": {
-          "type": "integer"
+        "sources_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "array", "items": {"type": "string"}}
+          ]
+        },
+        "row_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer"}
+          ]
+        }
+      },
+      "patternProperties": {
+        "^.*[^_]$": {
+          "$ref": "#/$defs/columnValue"
         }
       },
       "additionalProperties": false
