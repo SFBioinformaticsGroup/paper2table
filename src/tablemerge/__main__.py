@@ -36,6 +36,7 @@ from .fragment_transformer import (
     FilterHeaderRowsTransformer,
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
+    LeadingRowNumberTransformer,
 )
 from .fragments_compactor import (
     FragmentsCompactor,
@@ -493,6 +494,16 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--strip-leading-row-numbers",
+        action="store_true",
+        default=False,
+        help=(
+            "Strip leading sequential numbering from cell values "
+            "('1. text' becomes 'text'). "
+            "Applied per column when all sampled values share the pattern and numbers are strictly increasing."
+        ),
+    )
+    parser.add_argument(
         "--compact-consecutive-fragments",
         choices=["no", "safe", "unsafe"],
         default="no",
@@ -587,6 +598,8 @@ def main():
         pretransformers.append(FragmentValuesReverser(args.semantic_language))
     if args.filter_title_rows:
         pretransformers.append(FilterTitleRowsTransformer())
+    if args.strip_leading_row_numbers:
+        pretransformers.append(LeadingRowNumberTransformer())
     pretransformers.append(FilterEmptyRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(

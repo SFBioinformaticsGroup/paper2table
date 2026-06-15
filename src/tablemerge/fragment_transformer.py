@@ -17,6 +17,8 @@ _TITLE_ROW_RE = re.compile(
     r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE
 )
 
+_LEADING_NUMBER_RE = re.compile(r"^(\d+)\.\s+")
+
 
 class FilterTitleRowsTransformer:
     @property
@@ -48,6 +50,78 @@ class FilterTitleRowsTransformer:
             texts = [v.value.strip() for v in val if v.value.strip()]
             return texts[0] if texts else ""
         return ""
+
+
+class LeadingRowNumberTransformer:
+    @property
+    def settings(self) -> dict:
+        return {"enabled": True}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        column_names = Row.column_names(fragment.rows)
+        columns_to_strip = {
+            col for col in column_names if self.should_strip_column(col, fragment.rows)
+        }
+        if not columns_to_strip:
+            return fragment
+        return TableFragment(
+            rows=[self.transform_row(row, columns_to_strip) for row in fragment.rows],
+            page=fragment.page,
+        )
+
+    def should_strip_column(self, column: str, rows: list[Row]) -> bool:
+        samples: list[str] = []
+        for row in rows:
+            val = row.get_columns().get(column)
+            if val is None or Row.is_empty_value(val):
+                continue
+            text = self.extract_text(val)
+            if text:
+                samples.append(text)
+            if len(samples) == 5:
+                break
+        if len(samples) < 2:
+            return False
+        numbers: list[int] = []
+        for text in samples:
+            match = _LEADING_NUMBER_RE.match(text)
+            if not match:
+                return False
+            numbers.append(int(match.group(1)))
+        return all(numbers[i] < numbers[i + 1] for i in range(len(numbers) - 1))
+
+    def extract_text(self, val: ColumnValue) -> str:
+        if isinstance(val, str):
+            return val.strip()
+        if isinstance(val, list):
+            texts = [v.value.strip() for v in val if v.value.strip()]
+            return texts[0] if texts else ""
+        return ""
+
+    def transform_row(self, row: Row, columns_to_strip: set[str]) -> Row:
+        new_cols = {
+            col: self.strip_leading_number(val) if col in columns_to_strip else val
+            for col, val in row.get_columns().items()
+        }
+        return Row(
+            **new_cols,
+            agreement_level_=row.agreement_level_,
+            sources_=row.sources_,
+            row_=row.row_,
+        )
+
+    def strip_leading_number(self, val: ColumnValue) -> ColumnValue:
+        if isinstance(val, str):
+            return _LEADING_NUMBER_RE.sub("", val)
+        if isinstance(val, list):
+            return [
+                ValueWithAgreement(
+                    value=_LEADING_NUMBER_RE.sub("", v.value),
+                    agreement_level=v.agreement_level,
+                )
+                for v in val
+            ]
+        return val
 
 
 class FilterEmptyRowsTransformer:

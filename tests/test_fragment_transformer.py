@@ -6,6 +6,7 @@ import pytest
 from tablemerge.fragment_transformer import (
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
+    LeadingRowNumberTransformer,
 )
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 
