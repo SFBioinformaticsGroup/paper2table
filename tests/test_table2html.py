@@ -6,6 +6,7 @@ from table2html.__main__ import (
     build_fragment_html,
     build_html,
     build_metadata_html,
+    compute_rowspans,
     render_citation,
 )
 from tablevalidate.schema import Row, TableFragment, TablesFile, ValueWithAgreement
@@ -307,3 +308,78 @@ def test_render_citation_list():
         ValueWithAgreement(value="Smith et al.", agreement_level=1),
     ]
     assert render_citation(citation) == "Smith 2020, Smith et al."
+
+
+def test_compute_rowspans_no_row_numbers():
+    rows = [Row(family="Apiaceae"), Row(family="Apiaceae")]
+    assert compute_rowspans(rows, ["family"]) == [{"family": 1}, {"family": 1}]
+
+
+def test_compute_rowspans_different_row_numbers():
+    rows = [Row(family="Apiaceae", row_=0), Row(family="Apiaceae", row_=1)]
+    assert compute_rowspans(rows, ["family"]) == [{"family": 1}, {"family": 1}]
+
+
+def test_compute_rowspans_same_row_same_value():
+    rows = [Row(family="Apiaceae", row_=0), Row(family="Apiaceae", row_=0)]
+    assert compute_rowspans(rows, ["family"]) == [{"family": 2}, {"family": 0}]
+
+
+def test_compute_rowspans_same_row_different_values_per_column():
+    rows = [
+        Row(family="Apiaceae", species="Ammi majus", row_=0),
+        Row(family="Apiaceae", species="Carum carvi", row_=0),
+    ]
+    assert compute_rowspans(rows, ["family", "species"]) == [
+        {"family": 2, "species": 1},
+        {"family": 0, "species": 1},
+    ]
+
+
+def test_compute_rowspans_three_rows_same_row_number():
+    rows = [
+        Row(family="Apiaceae", row_=0),
+        Row(family="Apiaceae", row_=0),
+        Row(family="Apiaceae", row_=0),
+    ]
+    assert compute_rowspans(rows, ["family"]) == [
+        {"family": 3},
+        {"family": 0},
+        {"family": 0},
+    ]
+
+
+def test_build_fragment_html_merges_shared_column_value():
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(family="Apiaceae", species="Ammi majus", row_=0),
+            Row(family="Apiaceae", species="Carum carvi", row_=0),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    assert "rowspan='2'" in out
+    assert "<td>Apiaceae</td>" not in out
+    assert "<td rowspan='2'>Apiaceae</td>" in out
+    assert "<td>Ammi majus</td>" in out
+    assert "<td>Carum carvi</td>" in out
+
+
+def test_compute_rowspans_never_merges_agreement_level_column():
+    rows = [Row(family="Apiaceae", agreement_level_=2, row_=0), Row(family="Apiaceae", agreement_level_=2, row_=0)]
+    assert compute_rowspans(rows, ["agreement_level_", "family"]) == [
+        {"agreement_level_": 1, "family": 2},
+        {"agreement_level_": 1, "family": 0},
+    ]
+
+
+def test_build_fragment_html_no_merge_without_row_numbers():
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(family="Apiaceae", species="Ammi majus"),
+            Row(family="Apiaceae", species="Carum carvi"),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    assert "rowspan" not in out

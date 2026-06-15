@@ -128,6 +128,63 @@ def build_metadata_html(metadata: dict) -> list[str]:
 _ROW_PALETTE_SIZE = 5
 
 
+def cell_display_value(
+    row: Row,
+    col: str,
+    uuid_to_reader: dict[str, str] | None = None,
+) -> str:
+    if col == "row_":
+        return str(row.row_) if row.row_ is not None else ""
+    if col == "agreement_level_":
+        return str(row.agreement_level_) if row.agreement_level_ is not None else ""
+    if col == "readers_":
+        source_ids = row.sources_ or []
+        mapping = uuid_to_reader or {}
+        readers = list(dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping))
+        return ", ".join(readers)
+    if col == "sources_":
+        return ", ".join(row.sources_ or [])
+    col_values = row.get_columns()
+    cell = col_values.get(col, "")
+    if isinstance(cell, list):
+        return ", ".join(v.value for v in cell)
+    return cell or ""
+
+
+def compute_rowspans(
+    rows: list[Row],
+    columns: list[str],
+    uuid_to_reader: dict[str, str] | None = None,
+) -> list[dict[str, int]]:
+    n = len(rows)
+    rowspans: list[dict[str, int]] = [{col: 1 for col in columns} for _ in range(n)]
+    for col in columns:
+        if col == "agreement_level_":
+            continue
+        i = 0
+        while i < n:
+            if rows[i].row_ is None:
+                i += 1
+                continue
+            row_num = rows[i].row_
+            val = cell_display_value(rows[i], col, uuid_to_reader)
+            span = 1
+            j = i + 1
+            while (
+                j < n
+                and rows[j].row_ == row_num
+                and cell_display_value(rows[j], col, uuid_to_reader) == val
+            ):
+                span += 1
+                j += 1
+            if span > 1:
+                rowspans[i][col] = span
+                for k in range(i + 1, i + span):
+                    rowspans[k][col] = 0
+            i += span
+    return rowspans
+
+
 def agreement_css_class(level: int) -> str:
     if level <= 1:
         return "low"
@@ -140,34 +197,40 @@ def build_data_row(
     row: Row,
     columns: list[str],
     uuid_to_reader: dict[str, str] | None = None,
+    row_rowspans: dict[str, int] | None = None,
 ) -> list[str]:
     html = ["<tr>"]
     col_values = row.get_columns()
+    rowspans = row_rowspans or {}
     for col in columns:
+        span = rowspans.get(col, 1)
+        if span == 0:
+            continue
+        rowspan_attr = f" rowspan='{span}'" if span > 1 else ""
         if col == "row_":
             val = str(row.row_) if row.row_ is not None else ""
             row_class = f" class='row-{row.row_ % _ROW_PALETTE_SIZE}'" if row.row_ is not None else ""
-            html.append(f"<td{row_class}>{val}</td>")
+            html.append(f"<td{row_class}{rowspan_attr}>{val}</td>")
         elif col == "agreement_level_":
             val = str(row.agreement_level_) if row.agreement_level_ is not None else ""
             css_class = agreement_css_class(row.agreement_level_ or 0)
-            html.append(f"<td class='{css_class}'>{val}</td>")
+            html.append(f"<td class='{css_class}'{rowspan_attr}>{val}</td>")
         elif col == "readers_":
             source_ids = row.sources_ or []
             mapping = uuid_to_reader or {}
             readers = list(
                 dict.fromkeys(mapping[sid] for sid in source_ids if sid in mapping)
             )
-            html.append(f"<td>{', '.join(readers)}</td>")
+            html.append(f"<td{rowspan_attr}>{', '.join(readers)}</td>")
         elif col == "sources_":
-            html.append(f"<td>{', '.join(row.sources_ or [])}</td>")
+            html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
         else:
             cell = col_values.get(col, "")
             if isinstance(cell, list):
                 val = ", ".join(v.value for v in cell)
             else:
                 val = cell or ""
-            html.append(f"<td>{val}</td>")
+            html.append(f"<td{rowspan_attr}>{val}</td>")
     html.append("</tr>")
     return html
 
@@ -239,8 +302,9 @@ def build_fragment_html(
         columns.append("sources_")
     html.append("<div class='table-wrapper'><table class='table'>")
     html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")
-    for row in rows:
-        html.extend(build_data_row(row, columns, uuid_to_reader))
+    all_rowspans = compute_rowspans(rows, columns, uuid_to_reader)
+    for row, row_rowspans in zip(rows, all_rowspans):
+        html.extend(build_data_row(row, columns, uuid_to_reader, row_rowspans))
     html.append("</table></div>")
     if skipped:
         html.append(f"<p><i>({skipped} empty rows not shown)</i></p>")
