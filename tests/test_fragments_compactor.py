@@ -37,7 +37,12 @@ def test_safe_compactor_merges_two_consecutive_tables_with_matching_semantic_col
     tablesfile = make_tablesfile(fragment_page_2, fragment_page_3)
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(table_fragments=[fragment_page_2, fragment_page_3])
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=3,
+            )
+        ])
     ]
 
 
@@ -104,7 +109,12 @@ def test_unsafe_compactor_merges_tables_with_numeric_columns_of_same_count():
     tablesfile = make_tablesfile(fragment_page_2, fragment_page_3)
     result = UnsafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(table_fragments=[fragment_page_2, fragment_page_3])
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(**{"0": "Mus Musculus", "1": "Mouse"}), Row(**{"0": "Rattus Rattus", "1": "Rat"})],
+                page=3,
+            )
+        ])
     ]
 
 
@@ -141,9 +151,16 @@ def test_safe_compactor_merges_three_consecutive_matching_tables_into_one():
     tablesfile = make_tablesfile(fragment_page_2, fragment_page_3, fragment_page_4)
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(
-            table_fragments=[fragment_page_2, fragment_page_3, fragment_page_4]
-        )
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[
+                    Row(scientific_name="Mus Musculus", common_name="Mouse"),
+                    Row(scientific_name="Rattus Rattus", common_name="Rat"),
+                    Row(scientific_name="Canis Lupus", common_name="Wolf"),
+                ],
+                page=4,
+            )
+        ])
     ]
 
 
@@ -163,7 +180,12 @@ def test_safe_compactor_merges_matching_pair_and_keeps_non_matching_table_separa
     tablesfile = make_tablesfile(fragment_page_2, fragment_page_3, fragment_page_4)
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(table_fragments=[fragment_page_2, fragment_page_3]),
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=3,
+            )
+        ]),
         TableWithFragments(table_fragments=[fragment_page_4]),
     ]
 
@@ -188,7 +210,12 @@ def test_safe_compactor_does_not_crash_on_empty_fragment_list():
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
         TableWithFragments(table_fragments=[]),
-        TableWithFragments(table_fragments=[fragment_page_2, fragment_page_3]),
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=3,
+            )
+        ]),
     ]
 
 
@@ -205,9 +232,12 @@ def test_safe_compactor_merges_tables_around_empty_row_table():
     tablesfile = make_tablesfile(fragment_page_2, empty_fragment_page_3, fragment_page_4)
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(
-            table_fragments=[fragment_page_2, empty_fragment_page_3, fragment_page_4]
-        )
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=4,
+            )
+        ])
     ]
 
 
@@ -223,7 +253,12 @@ def test_safe_compactor_merges_two_tables_on_the_same_page_with_matching_columns
     tablesfile = make_tablesfile(fragment_a, fragment_b)
     result = SafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(table_fragments=[fragment_a, fragment_b])
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=2,
+            )
+        ])
     ]
 
 
@@ -256,7 +291,12 @@ def test_unsafe_compactor_merges_semantic_tables_on_non_consecutive_pages():
     tablesfile = make_tablesfile(fragment_page_2, fragment_page_5)
     result = UnsafeConsecutiveFragmentsCompactor().compact(tablesfile)
     assert result.tables == [
-        TableWithFragments(table_fragments=[fragment_page_2, fragment_page_5])
+        TableWithFragments(table_fragments=[
+            TableFragment(
+                rows=[Row(scientific_name="Mus Musculus", common_name="Mouse"), Row(scientific_name="Rattus Rattus", common_name="Rat")],
+                page=5,
+            )
+        ])
     ]
 
 

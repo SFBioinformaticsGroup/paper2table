@@ -2,7 +2,7 @@
 import pytest
 
 from tablemerge.fragment_transformer import (
-    NullFragmentTransformer,
+    FilterTitleRowsTransformer,
     FragmentValuesReverser,
 )
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
@@ -90,14 +90,35 @@ def test_fragment_values_reverser_reverses_list_values():
     )
 
 
-def test_null_fragment_transformer_keeps_fragment_unchanged():
-    transformer = NullFragmentTransformer()
-    fragment = make_fragment(Row(full_name="htims nhoj", country="acirema htuos"))
-    assert transformer.transform_fragment(fragment) == fragment
+def test_filter_title_rows_transformer_removes_title_in_first_three_rows():
+    fragment = make_fragment(
+        Row(**{"0": "Figure 1. Species"}),
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+    )
+    assert FilterTitleRowsTransformer().transform_fragment(fragment) == make_fragment(
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+    )
 
 
-def test_null_fragment_transformer_settings_is_empty():
-    assert NullFragmentTransformer().settings == {}
+def test_filter_title_rows_transformer_keeps_title_after_first_three_rows():
+    fragment = make_fragment(
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
+        Row(**{"0": "Figure 2. Continued"}),
+    )
+    assert FilterTitleRowsTransformer().transform_fragment(fragment) == make_fragment(
+        Row(**{"0": "species", "1": "family"}),
+        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
+        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
+        Row(**{"0": "Figure 2. Continued"}),
+    )
+
+
+def test_filter_title_rows_transformer_settings_is_empty():
+    assert FilterTitleRowsTransformer().settings == {}
 
 
 def test_fragment_values_reverser_settings_contains_language():

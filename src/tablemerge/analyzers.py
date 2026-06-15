@@ -18,7 +18,18 @@ def column_value_to_strings(value: ColumnValue) -> list[str]:
     return [entry.value for entry in value]
 
 
-class Analyzer(Protocol):
+class LoadTimeAnalyzer(Protocol):
+    @property
+    def settings(self) -> dict: ...
+
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]: ...
+
+
+class MergeTimeAnalyzer(Protocol):
     @property
     def settings(self) -> dict: ...
 
@@ -32,44 +43,49 @@ class Analyzer(Protocol):
 
 
 class HintsAnalyzer:
-    """Enabled by --hints-column-alignment.
+    """Enabled by --hints-column-alignment safe|unsafe. Runs at load time via LoadTimeColumnAligner.
 
-    Inspects the first non-empty row of the left fragment. If at least one
-    non-semantic column's value normalizes to a known hint, treats the row as a
-    header row and renames ALL non-semantic columns to their normalized first-row
-    values (including columns whose value is not in the hints list).
-    Runs before all other analyzers.
+    Inspects the first non-empty row of a fragment. If at least one candidate
+    column's value normalizes to a known hint, treats the row as a header row and
+    renames ALL candidate columns to their normalized first-row values (including
+    columns whose value is not in the hints list). Runs before AliasAnalyzer and
+    SemanticAnalyzer.
+
+    safe=True (default): only considers non-semantic columns.
+    safe=False: considers all columns, including semantic ones.
     """
 
-    def __init__(self, hints: list[str]):
+    def __init__(self, hints: list[str], safe: bool = True):
         self.hints = hints
+        self.safe = safe
 
     @property
     def settings(self) -> dict:
-        return {"hints": self.hints}
+        return {"hints": self.hints, "safe": self.safe}
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
-        non_semantic = [c for c in left_column_names if not Row.is_semantic_column(c)]
-        if not non_semantic:
+        if self.safe:
+            candidates = [c for c in column_names if not Row.is_semantic_column(c)]
+        else:
+            candidates = list(column_names)
+        if not candidates:
             return {}
-        first_row = next((r for r in left_rows if not r.is_empty()), None)
+        first_row = next((r for r in rows if not r.is_empty()), None)
         if first_row is None:
             return {}
-        row_values = self._non_semantic_normalized_values(first_row, non_semantic)
+        row_values = self._normalized_values(first_row, candidates)
         hints_set = set(self.hints)
         if not any(val in hints_set for val in row_values.values()):
             return {}
         return row_values
 
-    def _non_semantic_normalized_values(self, row: Row, non_semantic: list[str]) -> dict[str, str]:
+    def _normalized_values(self, row: Row, columns: list[str]) -> dict[str, str]:
         result: dict[str, str] = {}
-        for col in non_semantic:
+        for col in columns:
             val = row.get_columns().get(col)
             if val is None:
                 continue
@@ -80,14 +96,13 @@ class HintsAnalyzer:
 
 
 class JaccardAnalyzer:
-    """Enabled by --jaccard-column-alignment.
+    """Enabled by --jaccard-column-alignment. Runs at merge time via MergeTimeColumnAligner.
 
     Renames numeric columns ("0", "1", ...) to semantic ones ("family", "scientific_name", ...)
-    by comparing the set of cell values in each column using Jaccard similarity
-    (intersection over union). Works when both tables share overlapping data, e.g. column "0"
-    and column "family" both contain "Apiaceae", "Rosaceae".
-
-    Requires one side to be all-numeric and the other all-semantic; otherwise does nothing.
+    by comparing cell values across two fragments using Jaccard similarity (intersection over
+    union). Works when fragments share overlapping data, e.g. column "0" and column "family"
+    both contain "Apiaceae", "Rosaceae". Requires one side to be all-numeric and the other
+    all-semantic; otherwise does nothing.
     """
 
     def __init__(self, threshold: float = 0.5):
@@ -161,12 +176,12 @@ class JaccardAnalyzer:
 
 
 class AliasAnalyzer:
-    """Enabled by --column-aliases / --column-aliases-path.
+    """Enabled by --column-aliases / --column-aliases-path. Runs at load time via LoadTimeColumnAligner.
 
-    Applies an explicit user-provided rename dictionary. No heuristics, no data inspection.
-    Makes sense when both sides have semantic column names that differ across sources
-    (e.g. "familia" to "family"). Works on any column regardless of numeric/semantic
-    classification.
+    Applies an explicit user-provided rename dictionary to each fragment independently.
+    No heuristics, no data inspection. Makes sense when sources use different column names
+    for the same concept (e.g. "familia" → "family"). Works on any column regardless of
+    numeric/semantic classification.
     """
 
     def __init__(self, aliases: dict[str, str]):
@@ -178,22 +193,19 @@ class AliasAnalyzer:
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
-        all_cols = list(dict.fromkeys(left_column_names + right_column_names))
+        all_cols = list(dict.fromkeys(column_names))
         return {col: self.aliases[col] for col in all_cols if col in self.aliases}
 
 
 class SemanticAnalyzer:
-    """Enabled by --semantic-column-alignment.
+    """Enabled by --semantic-column-alignment. Runs at load time via LoadTimeColumnAligner.
 
-    Renames numeric columns ("0", "1", ...) in the left fragment to schema column names by
-    computing spaCy word-vector similarity between the cell values of each numeric column and
-    each schema column name. Only operates on left columns, so it fires even when there is no
-    right fragment to merge with. Does nothing without a schema.
+    Renames numeric columns ("0", "1", ...) in a fragment to schema column names by computing
+    spaCy word-vector similarity between each numeric column's cell values and each schema
+    column name. Does nothing without a schema or when no numeric columns are present.
     """
 
     def __init__(self, threshold: float = 0.5, language: str = "en", schema: Schema = {}):
@@ -208,25 +220,23 @@ class SemanticAnalyzer:
 
     def build_mapping(
         self,
-        left_column_names: list[str],
-        right_column_names: list[str],
-        left_rows: list[Row],
-        right_rows: list[Row],
+        column_names: list[str],
+        rows: list[Row],
     ) -> dict[str, str]:
         if not self.schema:
             return {}
 
-        left_numeric = [c for c in left_column_names if not Row.is_semantic_column(c)]
+        numeric = [c for c in column_names if not Row.is_semantic_column(c)]
 
-        if not left_numeric:
+        if not numeric:
             return {}
 
         schema_cols = list(self.schema.keys())
         nlp = self.load_model()
         scores = []
 
-        for numeric_col in left_numeric:
-            values = self.sample_values(left_rows, numeric_col)
+        for numeric_col in numeric:
+            values = self.sample_values(rows, numeric_col)
             if not values:
                 continue
             for schema_col in schema_cols:

@@ -1,6 +1,8 @@
+import re
 from typing import Protocol
 
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
+from tablemerge.merge import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 
 
@@ -11,13 +13,68 @@ class FragmentTransformer(Protocol):
     def transform_fragment(self, fragment: TableFragment) -> TableFragment: ...
 
 
-class NullFragmentTransformer:
+_TITLE_ROW_RE = re.compile(
+    r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE
+)
+
+
+class FilterTitleRowsTransformer:
     @property
     def settings(self) -> dict:
         return {}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
-        return fragment
+        head = [row for row in fragment.rows[:3] if not self.is_title_row(row)]
+        return TableFragment(rows=head + fragment.rows[3:], page=fragment.page)
+
+    def is_title_row(self, row: Row) -> bool:
+        non_empty = {
+            col: val
+            for col, val in row.get_columns().items()
+            if not Row.is_empty_value(val)
+        }
+        if len(non_empty) == 0:
+            return False
+        if len(non_empty) == 1:
+            text = self.extract_text(next(iter(non_empty.values())))
+        else:
+            text = "".join(self.extract_text(v) for v in non_empty.values())
+        return bool(_TITLE_ROW_RE.match(text.strip()))
+
+    def extract_text(self, val: ColumnValue) -> str:
+        if isinstance(val, str):
+            return val.strip()
+        if isinstance(val, list):
+            texts = [v.value.strip() for v in val if v.value.strip()]
+            return texts[0] if texts else ""
+        return ""
+
+
+class FilterEmptyRowsTransformer:
+    @property
+    def settings(self) -> dict:
+        return {}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        return TableFragment(
+            rows=[row for row in fragment.rows if not row.is_empty()],
+            page=fragment.page,
+        )
+
+
+class FilterHeaderRowsTransformer:
+    def __init__(self, hints: list[str] = []):
+        self.hints = hints
+
+    @property
+    def settings(self) -> dict:
+        return {"hints": self.hints}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        return TableFragment(
+            rows=[row for row in fragment.rows if not is_header_row(row, self.hints)],
+            page=fragment.page,
+        )
 
 
 class FragmentValuesReverser:

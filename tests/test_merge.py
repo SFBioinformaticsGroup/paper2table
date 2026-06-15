@@ -3,24 +3,22 @@
 import pytest
 from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
 from tablemerge.analyzers import JaccardAnalyzer, AliasAnalyzer
+from tablemerge.fragment_transformer import FilterTitleRowsTransformer
+from tablemerge.tablesfile_loader import TablesFileLoader
 from tablemerge.merge import (
-    merge_tablesfiles,
-    merge_rows,
-    SimpleCountAgreement,
-    DistinctReadersAgreement,
     filter_semantic_columns,
     filter_header_rows,
-    filter_title_rows,
     drop_empty_non_semantic_columns,
     drop_empty_tables,
-    is_title_row,
     is_header_row,
     has_semantic_header_value,
     has_hints_header_value,
     value_matches_header,
     value_matches_hints,
-    to_values_with_agreement,
 )
+from tablemerge.agreement import SimpleCountAgreement, DistinctReadersAgreement
+from tablemerge.fragments_builder import merge_rows, to_values_with_agreement
+from tablemerge.tablesfile_merger import merge_tablesfiles
 from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
@@ -154,6 +152,24 @@ def test_two_tablesfiles_with_different_pages():
     assert result.tables[0].get_table_fragments()[1].page == 2
     assert result.tables[0].get_table_fragments()[1].rows == [
         Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
+    ]
+
+
+def test_fragments_are_ordered_by_page_when_tablesfiles_cover_different_pages():
+    row_on_page_5 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    row_on_page_3 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
+
+    result = merge_tablesfiles([wrap(row_on_page_5, page=5), wrap(row_on_page_3, page=3)])
+    assert len(result.tables) == 1
+
+    assert result.tables[0].get_table_fragments()[0].page == 3
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
+    ]
+
+    assert result.tables[0].get_table_fragments()[1].page == 5
+    assert result.tables[0].get_table_fragments()[1].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
     ]
 
 
@@ -629,66 +645,48 @@ def test_drop_empty_non_semantic_columns_does_not_touch_semantic_columns():
 
 
 def test_is_title_row_detects_figure_prefix():
-    assert is_title_row(Row(**{"0": "Figure 1. Species table"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figure 1. Species table"}))
 
 
 def test_is_title_row_detects_fig_dot_prefix():
-    assert is_title_row(Row(**{"0": "Fig.3 caption"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Fig.3 caption"}))
 
 
 def test_is_title_row_detects_fig_dot_with_space():
-    assert is_title_row(Row(**{"0": "fig. 2"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "fig. 2"}))
 
 
 def test_is_title_row_detects_table_prefix():
-    assert is_title_row(Row(**{"0": "TABLE 3"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "TABLE 3"}))
 
 
 def test_is_title_row_detects_figura_prefix():
-    assert is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
 
 
 def test_is_title_row_detects_tabla_prefix():
-    assert is_title_row(Row(**{"0": "tabla 5"}))
+    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "tabla 5"}))
 
 
-def test_is_title_row_false_when_multiple_non_empty_columns():
-    assert not is_title_row(Row(**{"0": "Figure 1", "1": "something"}))
+def test_is_title_row_false_when_multiple_non_empty_columns_dont_form_title():
+    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"family": "Apiaceae", "scientific_name": "Rosa canina"}))
+
+
+def test_is_title_row_detects_split_title_across_columns():
+    assert FilterTitleRowsTransformer().is_title_row(
+        Row(**{
+            "family": "Table 1: List of med",
+            "scientific_name": "icinal s",
+            "common_name": "pecies and us",
+            "notes": "es with their",
+        })
+    )
 
 
 def test_is_title_row_false_when_value_does_not_match():
-    assert not is_title_row(Row(**{"0": "Apiaceae"}))
+    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Apiaceae"}))
 
 
-def test_filter_title_rows_removes_title_in_first_three_rows():
-    table = [
-        Row(**{"0": "Figure 1. Species"}),
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-    ]
-    result = filter_title_rows(wrap(table))
-    rows = result.tables[0].get_table_fragments()[0].rows
-    assert rows == [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-    ]
-
-
-def test_filter_title_rows_does_not_remove_title_after_first_three_rows():
-    table = [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
-        Row(**{"0": "Figure 2. Continued"}),
-    ]
-    result = filter_title_rows(wrap(table))
-    rows = result.tables[0].get_table_fragments()[0].rows
-    assert rows == [
-        Row(**{"0": "species", "1": "family"}),
-        Row(**{"0": "Ammi majus", "1": "Apiaceae"}),
-        Row(**{"0": "Rosa canina", "1": "Rosaceae"}),
-        Row(**{"0": "Figure 2. Continued"}),
-    ]
 
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():
@@ -1039,10 +1037,9 @@ def test_merge_tablesfiles_normalizes_citation_dashes():
 
 
 def test_alias_applies_with_single_tablesfile():
-    table = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles(
-        [wrap(table)], analyzers=[AliasAnalyzer({"familia": "family"})]
-    )
+    loader = TablesFileLoader(analyzers=[AliasAnalyzer({"familia": "family"})])
+    tablesfile = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")]))
+    result = merge_tablesfiles([tablesfile])
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
@@ -1052,12 +1049,10 @@ def test_alias_applies_with_single_tablesfile():
 def test_alias_applies_to_left_only_page_in_multi_file_merge():
     # File A has page 1; file B has page 2 only. Page 1 has no right counterpart.
     # The alias should still be applied to the left-only page 1 fragment.
-    table_a = [Row(familia="Apiaceae", scientific_name="Ammi majus L.")]
-    table_b = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
-    result = merge_tablesfiles(
-        [wrap(table_a, page=1), wrap(table_b, page=2)],
-        analyzers=[AliasAnalyzer({"familia": "family"})],
-    )
+    loader = TablesFileLoader(analyzers=[AliasAnalyzer({"familia": "family"})])
+    table_a = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")], page=1))
+    table_b = loader.align_tablesfile(wrap([Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2))
+    result = merge_tablesfiles([table_a, table_b])
     page1_rows = result.tables[0].get_table_fragments()[0].rows
     assert page1_rows == [
         Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
@@ -1232,8 +1227,8 @@ def test_has_hints_header_value_false_when_no_value_in_hints():
     )
 
 
-def test_has_hints_header_value_ignores_semantic_columns():
-    assert not has_hints_header_value(Row(family="family"), {"family"})
+def test_has_hints_header_value_includes_semantic_columns():
+    assert has_hints_header_value(Row(family="family"), {"family"})
 
 
 def test_has_hints_header_value_with_value_with_agreement():

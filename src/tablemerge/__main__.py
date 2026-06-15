@@ -12,26 +12,24 @@ from utils.columns_schema import parse_schema, serialize_schema, tokenize_schema
 from utils.column_names import normalize_column_name
 
 from .analyzers import (
-    Analyzer,
+    LoadTimeAnalyzer,
+    MergeTimeAnalyzer,
     HintsAnalyzer,
     JaccardAnalyzer,
     AliasAnalyzer,
     SemanticAnalyzer,
 )
-from .merge import (
-    merge_tablesfiles,
-    filter_semantic_columns,
-    filter_header_rows,
-    filter_title_rows,
-    MergeError,
-    SimpleCountAgreement,
-    DistinctReadersAgreement,
-)
-from .schema import PostProcessor, Schema
-from .postprocessors import build_postprocessors
+from .agreement import SimpleCountAgreement, DistinctReadersAgreement
+from .errors import MergeError
+from .tablesfile_loader import TablesFileLoader
+from .tablesfile_merger import TablesFileMerger
+from .schema import Schema
+from .postprocessor import PostProcessor, build_postprocessors
 from .fragment_transformer import (
-    NullFragmentTransformer,
     FragmentTransformer,
+    FilterEmptyRowsTransformer,
+    FilterHeaderRowsTransformer,
+    FilterTitleRowsTransformer,
     FragmentValuesReverser,
 )
 from .fragments_compactor import (
@@ -40,6 +38,11 @@ from .fragments_compactor import (
     SafeConsecutiveFragmentsCompactor,
     UnsafeConsecutiveFragmentsCompactor,
 )
+
+COMPACTOR_MAP = {
+    "safe": SafeConsecutiveFragmentsCompactor(),
+    "unsafe": UnsafeConsecutiveFragmentsCompactor(),
+}
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -113,18 +116,19 @@ def build_analyzers(
     aliases: dict[str, str],
     schema: Schema = {},
     hints: list[str] = [],
-    use_hints: bool = False,
-) -> list[Analyzer]:
-    result: list[Analyzer] = []
-    if use_hints and hints:
-        result.append(HintsAnalyzer(hints))
-    if use_jaccard:
-        result.append(JaccardAnalyzer(threshold))
+    hints_mode: str | None = None,
+) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
+    load_time: list[LoadTimeAnalyzer] = []
+    merge_time: list[MergeTimeAnalyzer] = []
+    if hints_mode and hints:
+        load_time.append(HintsAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
-        result.append(AliasAnalyzer(aliases))
+        load_time.append(AliasAnalyzer(aliases))
     if use_semantic:
-        result.append(SemanticAnalyzer(threshold, language, schema))
-    return result
+        load_time.append(SemanticAnalyzer(threshold, language, schema))
+    if use_jaccard:
+        merge_time.append(JaccardAnalyzer(threshold))
+    return load_time, merge_time
 
 
 TablesFileSource = tuple[str, str]  # (resultset_dir, actual_basename)
@@ -158,23 +162,27 @@ def merge_tablesfiles_paths(
     output_path,
     metadata_map: dict[str, dict],
     agreement,
-    only_semantic_columns: bool = False,
-    remove_header_rows: bool = False,
-    hints: list[str] = [],
     pretty: bool = False,
-    analyzers: list[Analyzer] = [],
-    post_processors: list[PostProcessor] = [],
-    transformer: FragmentTransformer = NullFragmentTransformer(),
+    pretransformers: list[FragmentTransformer] = [],
+    posttransformers: list[FragmentTransformer] = [],
+    load_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_analyzers: list[MergeTimeAnalyzer] = [],
+    postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
 ):
+    loader = TablesFileLoader(
+        pretransformers=pretransformers,
+        compactor=compactor,
+        analyzers=load_analyzers,
+        posttransformers=posttransformers,
+    )
     tablesfiles: list[TablesFile] = []
     for resultset_dir, actual_basename in sources:
         tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
-            with open(tables_path, "r", encoding="utf-8") as f:
-                tablesfile = TablesFile.model_validate(json.load(f))
-                tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
-                tablesfiles.append(filter_title_rows(tablesfile))
+            tablesfile = loader.load(tables_path)
+            tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
+            tablesfiles.append(tablesfile)
 
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
@@ -183,19 +191,12 @@ def merge_tablesfiles_paths(
         return
 
     try:
-        merged_tablesfile: TablesFile = merge_tablesfiles(
-            tablesfiles,
+        merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
-            analyzers=analyzers,
-            transformer=transformer,
-            compactor=compactor,
-        )
-        if only_semantic_columns:
-            merged_tablesfile = filter_semantic_columns(merged_tablesfile)
-        if remove_header_rows:
-            merged_tablesfile = filter_header_rows(merged_tablesfile, hints)
-        for post_processor in post_processors:
-            merged_tablesfile = post_processor.postprocess(merged_tablesfile)
+            analyzers=merge_analyzers,
+        ).merge(tablesfiles)
+        for postprocessor in postprocessors:
+            merged_tablesfile = postprocessor.postprocess(merged_tablesfile)
         print(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
@@ -216,14 +217,17 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
+    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_tables: bool = True,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
-    analyzers: list[Analyzer] = [],
+    pretransformers: list[FragmentTransformer] = [],
+    load_analyzers: list[LoadTimeAnalyzer] = [],
+    merge_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Schema = {},
-    post_processors: list[PostProcessor] = [],
-    transformer: FragmentTransformer = NullFragmentTransformer(),
+    postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
     paper_aliases: dict[str, str] = {},
@@ -232,16 +236,25 @@ def merge_resultsets(
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
 
+    posttransformers: list[FragmentTransformer] = []
+    if remove_header_rows:
+        posttransformers.append(FilterHeaderRowsTransformer(hints))
+
     settings = {
         "agreement_method": agreement_method,
+        "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
+        "compactor": compactor.settings,
+        "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
+        "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
         "column_names_hints": hints,
         "schema": serialize_schema(schema),
-        "analyzers": {type(a).__name__: a.settings for a in analyzers},
-        "post_processors": {type(p).__name__: p.settings for p in post_processors},
-        "fragment_transformer": transformer.settings,
-        "compactor": compactor.settings,
+        "analyzers": {
+            **{type(a).__name__: a.settings for a in load_analyzers},
+            **{type(a).__name__: a.settings for a in merge_analyzers},
+        },
+        "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
         "paper_aliases": paper_aliases,
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
@@ -275,13 +288,12 @@ def merge_resultsets(
         output_path=output_path,
         metadata_map=resultset_metadata,
         agreement=agreement,
-        only_semantic_columns=only_semantic_columns,
-        remove_header_rows=remove_header_rows,
-        hints=hints,
+        pretransformers=pretransformers,
+        posttransformers=posttransformers,
         pretty=pretty,
-        analyzers=analyzers,
-        post_processors=post_processors,
-        transformer=transformer,
+        load_analyzers=load_analyzers,
+        merge_analyzers=merge_analyzers,
+        postprocessors=postprocessors,
         compactor=compactor,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -312,6 +324,27 @@ def parse_args():
         choices=["simple-count", "distinct-readers"],
         default="simple-count",
         help="How to compute agreement level (default: simple-count)",
+    )
+    parser.add_argument(
+        "--no-filter-title-rows",
+        action="store_false",
+        dest="filter_title_rows",
+        default=True,
+        help="Skip removing rows whose values match their column names (title rows)",
+    )
+    parser.add_argument(
+        "--no-drop-empty-non-semantic-columns",
+        action="store_false",
+        dest="drop_empty_non_semantic_columns",
+        default=True,
+        help="Skip dropping non-semantic columns that are entirely empty after merging",
+    )
+    parser.add_argument(
+        "--no-drop-empty-tables",
+        action="store_false",
+        dest="drop_empty_tables",
+        default=True,
+        help="Skip dropping tables that are entirely empty after merging",
     )
     parser.add_argument(
         "--only-semantic-columns",
@@ -374,9 +407,11 @@ def parse_args():
     )
     parser.add_argument(
         "--hints-column-alignment",
-        action="store_true",
+        choices=["safe", "unsafe"],
+        default=None,
         help=(
-            "Rename non-semantic columns by matching the first row's values against hints. "
+            "Rename columns by matching the first row's values against hints. "
+            "'safe' renames only non-semantic columns; 'unsafe' also renames semantic columns. "
             "Requires --column-names-hints or --column-names-hints-path."
         ),
     )
@@ -472,11 +507,14 @@ def main():
         )
         sys.exit(1)
     schema = load_schema(args.schema_path) if args.schema_path else {}
-    post_processors = build_postprocessors(
+    postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
+        only_semantic_columns=args.only_semantic_columns,
+        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_tables=args.drop_empty_tables,
     )
 
     aliases: dict[str, str] = {}
@@ -495,7 +533,7 @@ def main():
             normalize_column_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
-    if args.hints_column_alignment and not hints:
+    if args.hints_column_alignment is not None and not hints:
         print(
             "Error: --hints-column-alignment requires --column-names-hints or "
             "--column-names-hints-path.",
@@ -509,10 +547,10 @@ def main():
     if args.paper_aliases_path:
         paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
 
-    analyzers = build_analyzers(
+    load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
         use_semantic=args.semantic_column_alignment,
-        use_hints=args.hints_column_alignment,
+        hints_mode=args.hints_column_alignment,
         threshold=args.column_alignment_threshold,
         language=args.semantic_language,
         aliases=aliases,
@@ -520,17 +558,14 @@ def main():
         hints=hints,
     )
 
-    transformer = (
-        FragmentValuesReverser(args.semantic_language)
-        if args.fix_reversed_column_values
-        else NullFragmentTransformer()
-    )
+    pretransformers: list[FragmentTransformer] = []
+    if args.fix_reversed_column_values:
+        pretransformers.append(FragmentValuesReverser(args.semantic_language))
+    if args.filter_title_rows:
+        pretransformers.append(FilterTitleRowsTransformer())
+    pretransformers.append(FilterEmptyRowsTransformer())
 
-    compactor_map = {
-        "safe": SafeConsecutiveFragmentsCompactor(),
-        "unsafe": UnsafeConsecutiveFragmentsCompactor(),
-    }
-    compactor = compactor_map.get(
+    compactor = COMPACTOR_MAP.get(
         args.compact_consecutive_fragments, NullFragmentsCompactor()
     )
 
@@ -539,14 +574,17 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
+        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_tables=args.drop_empty_tables,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,
         hints=hints,
         pretty=args.pretty,
-        analyzers=analyzers,
+        pretransformers=pretransformers,
+        load_analyzers=load_analyzers,
+        merge_analyzers=merge_analyzers,
         schema=schema,
-        post_processors=post_processors,
-        transformer=transformer,
+        postprocessors=postprocessors,
         compactor=compactor,
         workers=args.workers,
         paper_aliases=paper_aliases,
