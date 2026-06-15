@@ -37,6 +37,7 @@ from .fragment_transformer import (
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
     LeadingRowNumberTransformer,
+    SplitColumnTransformer,
 )
 from .fragments_compactor import (
     FragmentsCompactor,
@@ -504,6 +505,15 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--split-conjunction-columns",
+        action="store_true",
+        help=(
+            "Split semantic columns whose names contain a conjunction (e.g. 'city_and_country') "
+            "into two columns by finding the best split point in each cell using spaCy similarity. "
+            "Uses --semantic-language for the model."
+        ),
+    )
+    parser.add_argument(
         "--compact-consecutive-fragments",
         choices=["no", "safe", "unsafe"],
         default="no",
@@ -600,6 +610,8 @@ def main():
         pretransformers.append(FilterTitleRowsTransformer())
     if args.strip_leading_row_numbers:
         pretransformers.append(LeadingRowNumberTransformer())
+    if args.split_conjunction_columns:
+        pretransformers.append(SplitColumnTransformer(args.semantic_language))
     pretransformers.append(FilterEmptyRowsTransformer())
 
     compactor = COMPACTOR_MAP.get(
