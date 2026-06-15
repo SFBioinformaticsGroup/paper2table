@@ -228,7 +228,7 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
-    drop_empty_non_semantic_columns: bool = True,
+    drop_empty_columns: bool = True,
     drop_empty_tables: bool = True,
     only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
@@ -255,7 +255,7 @@ def merge_resultsets(
         "agreement_method": agreement_method,
         "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
         "compactor": compactor.settings,
-        "drop_empty_non_semantic_columns": drop_empty_non_semantic_columns,
+        "drop_empty_columns": drop_empty_columns,
         "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
         "remove_header_rows": remove_header_rows,
@@ -344,11 +344,11 @@ def parse_args():
         help="Skip removing rows whose values match their column names (title rows)",
     )
     parser.add_argument(
-        "--no-drop-empty-non-semantic-columns",
+        "--no-drop-empty-columns",
         action="store_false",
-        dest="drop_empty_non_semantic_columns",
+        dest="drop_empty_columns",
         default=True,
-        help="Skip dropping non-semantic columns that are entirely empty after merging",
+        help="Skip dropping columns that are entirely empty after merging",
     )
     parser.add_argument(
         "--no-drop-empty-tables",
@@ -536,7 +536,7 @@ def main():
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
         only_semantic_columns=args.only_semantic_columns,
-        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
     )
 
@@ -598,7 +598,7 @@ def main():
         args.output_directory,
         metadata_only=args.metadata_only,
         agreement_method=args.agreement_method,
-        drop_empty_non_semantic_columns=args.drop_empty_non_semantic_columns,
+        drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
         only_semantic_columns=args.only_semantic_columns,
         remove_header_rows=args.remove_header_rows,
