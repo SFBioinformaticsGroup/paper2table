@@ -103,7 +103,7 @@ def test_infer_type_with_agreement_list():
 
 
 def test_format_stats_with_columns():
-    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, papers_stats={})
     output = format_stats(stats, {"species": "str", "count": "int"})
     assert "Unique Columns:" in output
     assert "species:str" in output
@@ -111,8 +111,64 @@ def test_format_stats_with_columns():
 
 
 def test_format_stats_without_columns():
-    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, papers_stats={})
     assert "Unique Columns:" not in format_stats(stats)
+
+
+def test_unique_rows_no_row_attribute():
+    stats = compute_paper_stats(make_paper([
+        {"page": 1, "rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]},
+    ]))
+    assert stats.unique_rows == 0
+
+
+def test_unique_rows_single_table():
+    stats = compute_paper_stats(make_paper([{
+        "page": 1,
+        "rows": [
+            {"family": "Apiaceae", "row_": 1},
+            {"family": "Rosaceae", "row_": 1},
+            {"family": "Lamiaceae", "row_": 2},
+            {"family": "Asteraceae", "row_": 2},
+            {"family": "Fabaceae", "row_": 2},
+        ],
+    }]))
+    assert stats.unique_rows == 2
+
+
+def test_unique_rows_multiple_tables():
+    stats = compute_paper_stats(make_paper([
+        {
+            "page": 1,
+            "rows": [
+                {"family": "Apiaceae", "row_": 1},
+                {"family": "Rosaceae", "row_": 1},
+                {"family": "Lamiaceae", "row_": 2},
+                {"family": "Asteraceae", "row_": 2},
+                {"family": "Fabaceae", "row_": 2},
+            ],
+        },
+        {
+            "page": 2,
+            "rows": [
+                {"family": "Poaceae", "row_": 1},
+                {"family": "Cyperaceae", "row_": 2},
+                {"family": "Orchidaceae", "row_": 3},
+                {"family": "Bromeliaceae", "row_": 4},
+            ],
+        },
+    ]))
+    assert stats.unique_rows == 6
+
+
+def test_unique_rows_across_fragments():
+    stats = compute_paper_stats(make_paper([{
+        "table_fragments": [
+            {"page": 1, "rows": [{"family": "Apiaceae", "row_": 1}, {"family": "Rosaceae", "row_": 2}]},
+            {"page": 2, "rows": [{"family": "Lamiaceae", "row_": 2}, {"family": "Asteraceae", "row_": 3}]},
+        ]
+    }]))
+    assert stats.unique_rows == 3
 
 
 def test_collect_unique_columns(tmp_path):

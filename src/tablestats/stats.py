@@ -9,6 +9,7 @@ class PaperStats:
     tables: int
     fragments: int
     rows: int
+    unique_rows: int
     columns: int
     rows_with_agreement: int
     agreement_percentage: Optional[float] = None
@@ -19,6 +20,7 @@ class PaperStats:
             "tables": self.tables,
             "fragments": self.fragments,
             "rows": self.rows,
+            "unique_rows": self.unique_rows,
             "columns": self.columns,
             "rows_with_agreement": self.rows_with_agreement,
             "agreement_percentage": self.agreement_percentage,
@@ -32,6 +34,7 @@ class GlobalStats:
     tables: int
     fragments: int
     rows: int
+    unique_rows: int
     papers_stats: Dict[str, PaperStats]
 
     def to_dict(self):
@@ -40,6 +43,7 @@ class GlobalStats:
             "tables": self.tables,
             "fragments": self.fragments,
             "rows": self.rows,
+            "unique_rows": self.unique_rows,
             "papers_stats": [
                 {key: value.to_dict()} for key, value in self.papers_stats.items()
             ],
@@ -55,6 +59,7 @@ def update_papers_stats(
     stats.tables += paper_stats.tables
     stats.fragments += paper_stats.fragments
     stats.rows += paper_stats.rows
+    stats.unique_rows += paper_stats.unique_rows
 
     stats.papers_stats[paper_filename] = paper_stats
 
@@ -67,6 +72,17 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
     tables_count = len(tables)
     fragments_count = len(all_fragments)
     rows_count = sum(len(fragment.rows) for fragment in all_fragments)
+    unique_rows_count = sum(
+        len(
+            {
+                row.row_
+                for fragment in table.get_table_fragments()
+                for row in fragment.rows
+                if row.row_ is not None
+            }
+        )
+        for table in tables
+    )
     rows_with_agreement = sum(
         sum(1 for row in fragment.rows if (row.agreement_level_ or 0) > 1)
         for fragment in all_fragments
@@ -92,6 +108,7 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         tables=tables_count,
         fragments=fragments_count,
         rows=rows_count,
+        unique_rows=unique_rows_count,
         columns=len(unique_columns),
         rows_with_agreement=rows_with_agreement,
         agreement_percentage=agreement_percentage,
