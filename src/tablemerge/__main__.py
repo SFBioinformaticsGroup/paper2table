@@ -2,7 +2,6 @@ import argparse
 import functools
 import json
 import sys
-from dataclasses import dataclass
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
@@ -17,6 +16,7 @@ from utils.column_schema import ColumnSchema
 
 handle_sigint()
 
+from .aliases import PaperAlias, parse_column_aliases, parse_paper_aliases
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
@@ -107,31 +107,6 @@ def load_schema(value: str) -> ColumnSchema:
     return ColumnSchema.parse(load_text_or_file(value))
 
 
-@dataclass
-class PaperAlias:
-    canonical: str
-    offset: int = 0
-
-
-def parse_aliases(text: str) -> dict[str, PaperAlias]:
-    aliases = {}
-    for part in tokenize_schema(text):
-        parts = part.split(":", 2)
-        if len(parts) >= 2:
-            alias, canonical = parts[0], parts[1]
-            if len(parts) == 3:
-                try:
-                    offset = int(parts[2])
-                except ValueError:
-                    raise ValueError(
-                        f"Invalid page offset in alias '{part}': '{parts[2]}' is not an integer"
-                    )
-            else:
-                offset = 0
-            aliases[alias] = PaperAlias(canonical=canonical, offset=offset)
-    return aliases
-
-
 def build_analyzers(
     use_jaccard: bool,
     threshold: float,
@@ -151,12 +126,16 @@ def build_analyzers(
     if aliases:
         load_time.append(AliasLoadTimeAnalyzer(aliases))
     if use_column_name_semantic:
-        load_time.append(ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema))
+        load_time.append(
+            ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema)
+        )
 
     if use_jaccard:
         merge_time.append(JaccardMergeTimeAnalyzer(threshold, schema))
     if use_column_value_semantic:
-        merge_time.append(ColumnValueSemanticMergeTimeAnalyzer(threshold, language, schema))
+        merge_time.append(
+            ColumnValueSemanticMergeTimeAnalyzer(threshold, language, schema)
+        )
 
     return load_time, merge_time
 
@@ -289,7 +268,10 @@ def merge_resultsets(
             **{type(a).__name__: a.settings for a in merge_analyzers},
         },
         "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
-        "paper_aliases": {k: {"canonical": v.canonical, "offset": v.offset} for k, v in paper_aliases.items()},
+        "paper_aliases": {
+            k: {"canonical": v.canonical, "offset": v.offset}
+            for k, v in paper_aliases.items()
+        },
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -468,7 +450,7 @@ def parse_args():
         type=str,
         help=(
             'Inline basename alias mappings, e.g. "paper_v1:paper". '
-            "Optional third part sets a page offset: \"x:y:3\" means page N in x "
+            'Optional third part sets a page offset: "x:y:3" means page N in x '
             "corresponds to page N+3 in y."
         ),
     )
@@ -575,7 +557,9 @@ def main():
         if flag and not args.schema_path:
             print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
             sys.exit(1)
-    schema: Optional[ColumnSchema] = load_schema(args.schema_path) if args.schema_path else None
+    schema: Optional[ColumnSchema] = (
+        load_schema(args.schema_path) if args.schema_path else None
+    )
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -588,9 +572,11 @@ def main():
 
     aliases: dict[str, str] = {}
     if args.column_aliases:
-        aliases.update(parse_aliases(args.column_aliases))
+        aliases.update(parse_column_aliases(args.column_aliases))
     if args.column_aliases_path:
-        aliases.update(parse_aliases(load_text_or_file(args.column_aliases_path)))
+        aliases.update(
+            parse_column_aliases(load_text_or_file(args.column_aliases_path))
+        )
 
     hints: list[str] = []
     if args.column_names_hints:
@@ -612,9 +598,11 @@ def main():
 
     paper_aliases: dict[str, PaperAlias] = {}
     if args.paper_aliases:
-        paper_aliases.update(parse_aliases(args.paper_aliases))
+        paper_aliases.update(parse_paper_aliases(args.paper_aliases))
     if args.paper_aliases_path:
-        paper_aliases.update(parse_aliases(load_text_or_file(args.paper_aliases_path)))
+        paper_aliases.update(
+            parse_paper_aliases(load_text_or_file(args.paper_aliases_path))
+        )
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,

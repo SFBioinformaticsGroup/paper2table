@@ -1,6 +1,6 @@
 from utils.tokenize_schema import tokenize_schema
 from utils.column_schema import ColumnSchema
-from tablemerge.__main__ import parse_aliases, PaperAlias
+from tablemerge.aliases import parse_column_aliases
 
 
 def test_tokenize_schema_basic():
@@ -39,9 +39,6 @@ def test_parse_schema_ignores_comments():
     assert schema.column_type("species") is int
 
 
-def test_parse_aliases_ignores_comments():
+def test_parse_column_aliases_ignores_comments():
     text = "# rename columns\nfamilia:family # Spanish\nespecie:species"
-    assert parse_aliases(text) == {
-        "familia": PaperAlias(canonical="family", offset=0),
-        "especie": PaperAlias(canonical="species", offset=0),
-    }
+    assert parse_column_aliases(text) == {"familia": "family", "especie": "species"}

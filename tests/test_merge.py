@@ -1,7 +1,8 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
-from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper, parse_aliases, PaperAlias
+from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
+from tablemerge.aliases import parse_paper_aliases, PaperAlias
 from tablemerge.analyzers import JaccardMergeTimeAnalyzer, AliasLoadTimeAnalyzer
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
 from tablemerge.tablesfile_loader import TablesFileLoader
@@ -49,7 +50,12 @@ def test_single_table_returns_normalized():
     result = merge_tablesfiles([wrap(table)])
     assert len(result.tables) == 1
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        )
     ]
 
 
@@ -59,7 +65,12 @@ def test_single_table_with_row_agreement():
     result = merge_tablesfiles([wrap(table)], agreement=SimpleCountAgreement())
     assert len(result.tables) == 1
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        )
     ]
 
 
@@ -69,7 +80,12 @@ def test_two_identical_tables():
     result = merge_tablesfiles([wrap(table), wrap(table)])
     assert len(result.tables) == 1
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        )
     ]
 
 
@@ -81,7 +97,12 @@ def test_two_identical_tables_with_row_agreement():
     )
     assert len(result.tables) == 1
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        )
     ]
 
 
@@ -91,7 +112,12 @@ def test_two_tables_with_non_normalized_columns():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        )
     ]
 
 
@@ -103,7 +129,12 @@ def test_two_tables_with_different_column_names_and_alignment():
         [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
     ]
 
 
@@ -115,9 +146,17 @@ def test_two_tables_with_different_column_names_and_no_alignment():
         [wrap(table_1), wrap(table_2)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
         Row(
-            agreement_level_=1, sources_=None, row_=0, **{"0": "apiaceae", "1": "ammi majus l."}
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            agreement_level_=1,
+            sources_=None,
+            row_=0,
+            **{"0": "apiaceae", "1": "ammi majus l."},
         ),
     ]
 
@@ -130,8 +169,18 @@ def test_two_tables_with_different_values():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
 
@@ -146,12 +195,22 @@ def test_two_tablesfiles_with_different_pages():
 
     assert result.tables[0].get_table_fragments()[0].page == 1
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
     assert result.tables[0].get_table_fragments()[1].page == 2
     assert result.tables[0].get_table_fragments()[1].rows == [
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
 
@@ -159,17 +218,29 @@ def test_fragments_are_ordered_by_page_when_tablesfiles_cover_different_pages():
     row_on_page_5 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     row_on_page_3 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
 
-    result = merge_tablesfiles([wrap(row_on_page_5, page=5), wrap(row_on_page_3, page=3)])
+    result = merge_tablesfiles(
+        [wrap(row_on_page_5, page=5), wrap(row_on_page_3, page=3)]
+    )
     assert len(result.tables) == 1
 
     assert result.tables[0].get_table_fragments()[0].page == 3
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
     assert result.tables[0].get_table_fragments()[1].page == 5
     assert result.tables[0].get_table_fragments()[1].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
 
@@ -182,8 +253,18 @@ def test_two_tables_with_mixed_values():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=1),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=1,
+        ),
     ]
 
 
@@ -194,9 +275,24 @@ def test_three_tables_with_different_values():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2), wrap(table_3)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=0,
+        ),
     ]
 
 
@@ -215,10 +311,30 @@ def test_three_tables_with_overlapped_mixed_values():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2), wrap(table_3)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=1),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=1,
+        ),
     ]
 
 
@@ -238,10 +354,25 @@ def test_three_tables_with_conflicting_values_without_row_agreement_level():
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2), wrap(table_3)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -258,9 +389,24 @@ def test_two_tables_with_conflicting_values_and_wrong_first_without_row_agreemen
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1, row_=0),
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -281,9 +427,24 @@ def test_three_tables_with_conflicting_values_and_wrong_first_without_row_agreem
     result = merge_tablesfiles([wrap(table_1), wrap(table_2), wrap(table_3)])
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1, row_=0),
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -303,10 +464,25 @@ def test_three_tables_with_conflicting_values_and_wrong_in_the_middle_without_ro
 
     result = merge_tablesfiles([wrap(table_1), wrap(table_2), wrap(table_3)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -328,10 +504,25 @@ def test_three_tables_with_conflicting_values_with_row_agreement_level():
         [wrap(table_1), wrap(table_2), wrap(table_3)], agreement=SimpleCountAgreement()
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
         Row(family="apiaceae", scientific_name="ammi", agreement_level_=1, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -454,9 +645,27 @@ def test_sources_right_uuid_on_skipped_row():
     # With position-aware merge: left Apiaceae is at row_=0, right Rosaceae is at row_=0 (no match),
     # right Apiaceae is at row_=1 (different position from left row_=0, so no merge either).
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, sources_=["uuid-a"], row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, sources_=["uuid-b"], row_=0),
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, sources_=["uuid-b"], row_=1),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            sources_=["uuid-a"],
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            sources_=["uuid-b"],
+            row_=0,
+        ),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            sources_=["uuid-b"],
+            row_=1,
+        ),
     ]
 
 
@@ -645,7 +854,9 @@ def test_drop_empty_columns_drops_empty_semantic_columns():
 
 
 def test_is_title_row_detects_figure_prefix():
-    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figure 1. Species table"}))
+    assert FilterTitleRowsTransformer().is_title_row(
+        Row(**{"0": "Figure 1. Species table"})
+    )
 
 
 def test_is_title_row_detects_fig_dot_prefix():
@@ -661,7 +872,9 @@ def test_is_title_row_detects_table_prefix():
 
 
 def test_is_title_row_detects_figura_prefix():
-    assert FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Figura 2. Tabla de especies"}))
+    assert FilterTitleRowsTransformer().is_title_row(
+        Row(**{"0": "Figura 2. Tabla de especies"})
+    )
 
 
 def test_is_title_row_detects_tabla_prefix():
@@ -669,24 +882,26 @@ def test_is_title_row_detects_tabla_prefix():
 
 
 def test_is_title_row_false_when_multiple_non_empty_columns_dont_form_title():
-    assert not FilterTitleRowsTransformer().is_title_row(Row(**{"family": "Apiaceae", "scientific_name": "Rosa canina"}))
+    assert not FilterTitleRowsTransformer().is_title_row(
+        Row(**{"family": "Apiaceae", "scientific_name": "Rosa canina"})
+    )
 
 
 def test_is_title_row_detects_split_title_across_columns():
     assert FilterTitleRowsTransformer().is_title_row(
-        Row(**{
-            "family": "Table 1: List of med",
-            "scientific_name": "icinal s",
-            "common_name": "pecies and us",
-            "notes": "es with their",
-        })
+        Row(
+            **{
+                "family": "Table 1: List of med",
+                "scientific_name": "icinal s",
+                "common_name": "pecies and us",
+                "notes": "es with their",
+            }
+        )
     )
 
 
 def test_is_title_row_false_when_value_does_not_match():
     assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Apiaceae"}))
-
-
 
 
 def test_distinct_readers_agreement_two_different_non_agent_readers():
@@ -804,10 +1019,30 @@ def test_merge_aligns_right_numeric_columns_multiple_rows():
         [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
-        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1, row_=2),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
+        Row(
+            family="betulaceae",
+            scientific_name="betula pendula l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -828,10 +1063,30 @@ def test_merge_aligns_right_numeric_columns_with_agreement_multiple_rows():
         analyzers=[JaccardMergeTimeAnalyzer()],
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
-        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1, row_=2),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
+        Row(
+            family="betulaceae",
+            scientific_name="betula pendula l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -850,10 +1105,30 @@ def test_merge_aligns_left_numeric_columns_multiple_rows():
         [wrap(table_1), wrap(table_2)], analyzers=[JaccardMergeTimeAnalyzer()]
     )
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=2, row_=1),
-        Row(family="betulaceae", scientific_name="betula pendula l.", agreement_level_=1, row_=2),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=2),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+        Row(
+            family="betulaceae",
+            scientific_name="betula pendula l.",
+            agreement_level_=1,
+            row_=2,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=2,
+        ),
     ]
 
 
@@ -868,9 +1143,24 @@ def test_merge_no_alignment_both_semantic_multiple_rows():
     ]
     result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
-        Row(family="rosaceae", scientific_name="rosa canina l.", agreement_level_=1, row_=1),
-        Row(family="lamiaceae", scientific_name="mentha spicata l.", agreement_level_=1, row_=1),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=1,
+        ),
+        Row(
+            family="lamiaceae",
+            scientific_name="mentha spicata l.",
+            agreement_level_=1,
+            row_=1,
+        ),
     ]
 
 
@@ -937,7 +1227,12 @@ def test_filter_header_rows_removes_header_row():
     filtered = filter_header_rows(result)
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=1)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=1,
+        )
     ]
 
 
@@ -947,7 +1242,12 @@ def test_filter_header_rows_keeps_data_rows():
     filtered = filter_header_rows(result)
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        )
     ]
 
 
@@ -960,7 +1260,12 @@ def test_filter_header_rows_with_partial_empty_cells():
     filtered = filter_header_rows(result)
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=1)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=1,
+        )
     ]
 
 
@@ -1038,11 +1343,18 @@ def test_merge_tablesfiles_normalizes_citation_dashes():
 
 def test_alias_applies_with_single_tablesfile():
     loader = TablesFileLoader(analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
-    tablesfile = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")]))
+    tablesfile = loader.align_tablesfile(
+        wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")])
+    )
     result = merge_tablesfiles([tablesfile])
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        )
     ]
 
 
@@ -1050,12 +1362,21 @@ def test_alias_applies_to_left_only_page_in_multi_file_merge():
     # File A has page 1; file B has page 2 only. Page 1 has no right counterpart.
     # The alias should still be applied to the left-only page 1 fragment.
     loader = TablesFileLoader(analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
-    table_a = loader.align_tablesfile(wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")], page=1))
-    table_b = loader.align_tablesfile(wrap([Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2))
+    table_a = loader.align_tablesfile(
+        wrap([Row(familia="Apiaceae", scientific_name="Ammi majus L.")], page=1)
+    )
+    table_b = loader.align_tablesfile(
+        wrap([Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2)
+    )
     result = merge_tablesfiles([table_a, table_b])
     page1_rows = result.tables[0].get_table_fragments()[0].rows
     assert page1_rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=0)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=0,
+        )
     ]
 
 
@@ -1116,7 +1437,9 @@ def test_group_tablesfiles_alias_maps_to_canonical(tmp_path):
     dir_a.mkdir()
     (dir_a / "paper_v1.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a)], {"paper_v1": PaperAlias(canonical="paper")}) == {
+    assert group_tablesfiles(
+        [str(dir_a)], {"paper_v1": PaperAlias(canonical="paper")}
+    ) == {
         "paper.tables.json": [(str(dir_a), "paper_v1.tables.json", 0)],
     }
 
@@ -1129,7 +1452,9 @@ def test_group_tablesfiles_merges_alias_and_canonical_across_dirs(tmp_path):
     (dir_a / "paper_v1.tables.json").write_text("{}")
     (dir_b / "paper.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}) == {
+    assert group_tablesfiles(
+        [str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}
+    ) == {
         "paper.tables.json": [
             (str(dir_a), "paper_v1.tables.json", 0),
             (str(dir_b), "paper.tables.json", 0),
@@ -1146,7 +1471,9 @@ def test_group_tablesfiles_mixed_aliased_and_plain(tmp_path):
     (dir_b / "paper.tables.json").write_text("{}")
     (dir_b / "report.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}) == {
+    assert group_tablesfiles(
+        [str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}
+    ) == {
         "paper.tables.json": [
             (str(dir_a), "paper_v1.tables.json", 0),
             (str(dir_b), "paper.tables.json", 0),
@@ -1169,16 +1496,18 @@ def test_group_tablesfiles_ignores_non_tablesfile(tmp_path):
     }
 
 
-def test_parse_aliases_without_offset():
-    assert parse_aliases("paper_v1:paper") == {"paper_v1": PaperAlias(canonical="paper", offset=0)}
+def test_parse_paper_aliases_without_offset():
+    assert parse_paper_aliases("paper_v1:paper") == {
+        "paper_v1": PaperAlias(canonical="paper", offset=0)
+    }
 
 
-def test_parse_aliases_with_offset():
-    assert parse_aliases("x:y:3") == {"x": PaperAlias(canonical="y", offset=3)}
+def test_parse_paper_aliases_with_offset():
+    assert parse_paper_aliases("x:y:3") == {"x": PaperAlias(canonical="y", offset=3)}
 
 
-def test_parse_aliases_multiple_with_mixed_offsets():
-    assert parse_aliases("x:y:3 a:b") == {
+def test_parse_paper_aliases_multiple_with_mixed_offsets():
+    assert parse_paper_aliases("x:y:3 a:b") == {
         "x": PaperAlias(canonical="y", offset=3),
         "a": PaperAlias(canonical="b", offset=0),
     }
@@ -1215,7 +1544,12 @@ def test_merge_tablesfiles_with_page_offset():
     assert len(result.tables[0].get_table_fragments()) == 1
     assert result.tables[0].get_table_fragments()[0].page == 10
     assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
     ]
 
 
@@ -1252,7 +1586,9 @@ def test_has_semantic_header_value_true_when_value_matches_column():
 
 
 def test_has_semantic_header_value_matches_accented_value_against_normalized_column():
-    assert has_semantic_header_value(Row(categoria_de_uso="categoría de uso", chorote_total="chorote total"))
+    assert has_semantic_header_value(
+        Row(categoria_de_uso="categoría de uso", chorote_total="chorote total")
+    )
 
 
 def test_has_semantic_header_value_false_when_no_match():
@@ -1312,7 +1648,9 @@ def test_filter_header_rows_with_hints_removes_numeric_header_row():
     result = merge_tablesfiles([wrap(table)])
     filtered = filter_header_rows(result, hints=["species", "family"])
     rows = filtered.tables[0].get_table_fragments()[0].rows
-    assert rows == [Row(**{"0": "ammi majus", "1": "apiaceae"}, agreement_level_=1, row_=1)]
+    assert rows == [
+        Row(**{"0": "ammi majus", "1": "apiaceae"}, agreement_level_=1, row_=1)
+    ]
 
 
 def test_filter_header_rows_without_hints_still_removes_semantic_header_rows():
@@ -1324,7 +1662,12 @@ def test_filter_header_rows_without_hints_still_removes_semantic_header_rows():
     filtered = filter_header_rows(result)
     rows = filtered.tables[0].get_table_fragments()[0].rows
     assert rows == [
-        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=1, row_=1)
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=1,
+            row_=1,
+        )
     ]
 
 
@@ -1356,18 +1699,22 @@ def test_table_fragment_is_empty_true_when_no_rows():
 
 
 def test_table_with_fragments_is_empty_all_fragments_empty():
-    table = TableWithFragments(table_fragments=[
-        TableFragment(rows=[Row(family="")], page=1),
-        TableFragment(rows=[Row(family="")], page=2),
-    ])
+    table = TableWithFragments(
+        table_fragments=[
+            TableFragment(rows=[Row(family="")], page=1),
+            TableFragment(rows=[Row(family="")], page=2),
+        ]
+    )
     assert table.is_empty()
 
 
 def test_table_with_fragments_is_empty_false_when_any_fragment_has_data():
-    table = TableWithFragments(table_fragments=[
-        TableFragment(rows=[Row(family="")], page=1),
-        TableFragment(rows=[Row(family="Apiaceae")], page=2),
-    ])
+    table = TableWithFragments(
+        table_fragments=[
+            TableFragment(rows=[Row(family="")], page=1),
+            TableFragment(rows=[Row(family="Apiaceae")], page=2),
+        ]
+    )
     assert not table.is_empty()
 
 
