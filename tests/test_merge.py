@@ -1,7 +1,7 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
-from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
+from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper, parse_aliases, PaperAlias
 from tablemerge.analyzers import JaccardMergeTimeAnalyzer, AliasLoadTimeAnalyzer
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
 from tablemerge.tablesfile_loader import TablesFileLoader
@@ -1106,8 +1106,8 @@ def test_group_tablesfiles_no_aliases(tmp_path):
     (dir_a / "other.tables.json").write_text("{}")
 
     assert group_tablesfiles([str(dir_a)], {}) == {
-        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
-        "other.tables.json": [(str(dir_a), "other.tables.json")],
+        "paper.tables.json": [(str(dir_a), "paper.tables.json", 0)],
+        "other.tables.json": [(str(dir_a), "other.tables.json", 0)],
     }
 
 
@@ -1116,8 +1116,8 @@ def test_group_tablesfiles_alias_maps_to_canonical(tmp_path):
     dir_a.mkdir()
     (dir_a / "paper_v1.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a)], {"paper_v1": "paper"}) == {
-        "paper.tables.json": [(str(dir_a), "paper_v1.tables.json")],
+    assert group_tablesfiles([str(dir_a)], {"paper_v1": PaperAlias(canonical="paper")}) == {
+        "paper.tables.json": [(str(dir_a), "paper_v1.tables.json", 0)],
     }
 
 
@@ -1129,10 +1129,10 @@ def test_group_tablesfiles_merges_alias_and_canonical_across_dirs(tmp_path):
     (dir_a / "paper_v1.tables.json").write_text("{}")
     (dir_b / "paper.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}) == {
         "paper.tables.json": [
-            (str(dir_a), "paper_v1.tables.json"),
-            (str(dir_b), "paper.tables.json"),
+            (str(dir_a), "paper_v1.tables.json", 0),
+            (str(dir_b), "paper.tables.json", 0),
         ],
     }
 
@@ -1146,13 +1146,13 @@ def test_group_tablesfiles_mixed_aliased_and_plain(tmp_path):
     (dir_b / "paper.tables.json").write_text("{}")
     (dir_b / "report.tables.json").write_text("{}")
 
-    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": "paper"}) == {
+    assert group_tablesfiles([str(dir_a), str(dir_b)], {"paper_v1": PaperAlias(canonical="paper")}) == {
         "paper.tables.json": [
-            (str(dir_a), "paper_v1.tables.json"),
-            (str(dir_b), "paper.tables.json"),
+            (str(dir_a), "paper_v1.tables.json", 0),
+            (str(dir_b), "paper.tables.json", 0),
         ],
         "report.tables.json": [
-            (str(dir_b), "report.tables.json"),
+            (str(dir_b), "report.tables.json", 0),
         ],
     }
 
@@ -1165,34 +1165,84 @@ def test_group_tablesfiles_ignores_non_tablesfile(tmp_path):
     (dir_a / "notes.txt").write_text("ignored")
 
     assert group_tablesfiles([str(dir_a)], {}) == {
-        "paper.tables.json": [(str(dir_a), "paper.tables.json")],
+        "paper.tables.json": [(str(dir_a), "paper.tables.json", 0)],
     }
+
+
+def test_parse_aliases_without_offset():
+    assert parse_aliases("paper_v1:paper") == {"paper_v1": PaperAlias(canonical="paper", offset=0)}
+
+
+def test_parse_aliases_with_offset():
+    assert parse_aliases("x:y:3") == {"x": PaperAlias(canonical="y", offset=3)}
+
+
+def test_parse_aliases_multiple_with_mixed_offsets():
+    assert parse_aliases("x:y:3 a:b") == {
+        "x": PaperAlias(canonical="y", offset=3),
+        "a": PaperAlias(canonical="b", offset=0),
+    }
+
+
+def test_group_tablesfiles_alias_with_offset(tmp_path):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "paper_v1.tables.json").write_text("{}")
+    (dir_b / "paper.tables.json").write_text("{}")
+
+    assert group_tablesfiles(
+        [str(dir_a), str(dir_b)],
+        {"paper_v1": PaperAlias(canonical="paper", offset=3)},
+    ) == {
+        "paper.tables.json": [
+            (str(dir_a), "paper_v1.tables.json", 3),
+            (str(dir_b), "paper.tables.json", 0),
+        ],
+    }
+
+
+def test_merge_tablesfiles_with_page_offset():
+    rows = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+
+    result = merge_tablesfiles(
+        [wrap(rows, page=10), wrap(rows, page=13)],
+        page_offsets=[3, 0],
+    )
+
+    assert len(result.tables) == 1
+    assert len(result.tables[0].get_table_fragments()) == 1
+    assert result.tables[0].get_table_fragments()[0].page == 10
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="apiaceae", scientific_name="ammi majus l.", agreement_level_=2, row_=0),
+    ]
 
 
 def test_filter_groups_by_paper_stem():
     groups = {
-        "foo.tables.json": [("dir_a", "foo.tables.json")],
-        "bar.tables.json": [("dir_a", "bar.tables.json")],
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
     }
     assert filter_groups_by_paper(groups, "foo") == {
-        "foo.tables.json": [("dir_a", "foo.tables.json")],
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
     }
 
 
 def test_filter_groups_by_paper_full_name():
     groups = {
-        "foo.tables.json": [("dir_a", "foo.tables.json")],
-        "bar.tables.json": [("dir_a", "bar.tables.json")],
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
     }
     assert filter_groups_by_paper(groups, "foo.tables.json") == {
-        "foo.tables.json": [("dir_a", "foo.tables.json")],
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
     }
 
 
 def test_filter_groups_by_paper_no_match():
     groups = {
-        "foo.tables.json": [("dir_a", "foo.tables.json")],
-        "bar.tables.json": [("dir_a", "bar.tables.json")],
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
     }
     assert filter_groups_by_paper(groups, "baz") == {}
 

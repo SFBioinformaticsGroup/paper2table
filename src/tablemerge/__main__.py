@@ -2,6 +2,7 @@ import argparse
 import functools
 import json
 import sys
+from dataclasses import dataclass
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
@@ -106,12 +107,28 @@ def load_schema(value: str) -> ColumnSchema:
     return ColumnSchema.parse(load_text_or_file(value))
 
 
-def parse_aliases(text: str) -> dict[str, str]:
+@dataclass
+class PaperAlias:
+    canonical: str
+    offset: int = 0
+
+
+def parse_aliases(text: str) -> dict[str, PaperAlias]:
     aliases = {}
     for part in tokenize_schema(text):
-        if ":" in part:
-            alias, target = part.split(":", 1)
-            aliases[alias] = target
+        parts = part.split(":", 2)
+        if len(parts) >= 2:
+            alias, canonical = parts[0], parts[1]
+            if len(parts) == 3:
+                try:
+                    offset = int(parts[2])
+                except ValueError:
+                    raise ValueError(
+                        f"Invalid page offset in alias '{part}': '{parts[2]}' is not an integer"
+                    )
+            else:
+                offset = 0
+            aliases[alias] = PaperAlias(canonical=canonical, offset=offset)
     return aliases
 
 
@@ -144,20 +161,22 @@ def build_analyzers(
     return load_time, merge_time
 
 
-TablesFileSource = tuple[str, str]  # (resultset_dir, actual_basename)
+TablesFileSource = tuple[str, str, int]  # (resultset_dir, actual_basename, page_offset)
 
 
 def group_tablesfiles(
     resultset_dirs: list[str],
-    paper_aliases: dict[str, str],
+    paper_aliases: dict[str, PaperAlias],
 ) -> dict[str, list[TablesFileSource]]:
     groups: dict[str, list[TablesFileSource]] = {}
     for resultset_dir in resultset_dirs:
         for tablesfile in Path(resultset_dir).glob("*.tables.json"):
             actual = tablesfile.name
             stem = actual.removesuffix(".tables.json")
-            canonical = paper_aliases.get(stem, stem) + ".tables.json"
-            groups.setdefault(canonical, []).append((resultset_dir, actual))
+            alias = paper_aliases.get(stem)
+            canonical = (alias.canonical if alias else stem) + ".tables.json"
+            offset = alias.offset if alias else 0
+            groups.setdefault(canonical, []).append((resultset_dir, actual, offset))
     return groups
 
 
@@ -190,12 +209,14 @@ def merge_tablesfiles_paths(
         posttransformers=posttransformers,
     )
     tablesfiles: list[TablesFile] = []
-    for resultset_dir, actual_basename in sources:
+    page_offsets: list[int] = []
+    for resultset_dir, actual_basename, page_offset in sources:
         tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
             tablesfile = loader.load(tables_path)
             tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
             tablesfiles.append(tablesfile)
+            page_offsets.append(page_offset)
 
     sizes = [len(tablesfile.tables) for tablesfile in tablesfiles]
 
@@ -207,7 +228,7 @@ def merge_tablesfiles_paths(
         merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
             analyzers=merge_analyzers,
-        ).merge(tablesfiles)
+        ).merge(tablesfiles, page_offsets=page_offsets)
         for postprocessor in postprocessors:
             merged_tablesfile = postprocessor.postprocess(merged_tablesfile)
         print(
@@ -243,7 +264,7 @@ def merge_resultsets(
     postprocessors: list[PostProcessor] = [],
     compactor: FragmentsCompactor = NullFragmentsCompactor(),
     workers: int = 1,
-    paper_aliases: dict[str, str] = {},
+    paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
 ):
     output_path = Path(output_dir)
@@ -268,7 +289,7 @@ def merge_resultsets(
             **{type(a).__name__: a.settings for a in merge_analyzers},
         },
         "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
-        "paper_aliases": paper_aliases,
+        "paper_aliases": {k: {"canonical": v.canonical, "offset": v.offset} for k, v in paper_aliases.items()},
     }
     write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
 
@@ -445,12 +466,16 @@ def parse_args():
     parser.add_argument(
         "--paper-aliases",
         type=str,
-        help='Inline basename alias mappings, e.g. "paper_v1:paper"',
+        help=(
+            'Inline basename alias mappings, e.g. "paper_v1:paper". '
+            "Optional third part sets a page offset: \"x:y:3\" means page N in x "
+            "corresponds to page N+3 in y."
+        ),
     )
     parser.add_argument(
         "--paper-aliases-path",
         type=str,
-        help="Path to a file with alias:target basename mappings (one per line)",
+        help="Path to a file with alias:target[:offset] basename mappings (one per line)",
     )
     parser.add_argument(
         "-p",
@@ -585,7 +610,7 @@ def main():
         )
         sys.exit(1)
 
-    paper_aliases: dict[str, str] = {}
+    paper_aliases: dict[str, PaperAlias] = {}
     if args.paper_aliases:
         paper_aliases.update(parse_aliases(args.paper_aliases))
     if args.paper_aliases_path:

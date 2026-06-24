@@ -22,7 +22,7 @@ from paper2table.readers import (
     hybrid,
     split_pages,
 )
-from paper2table.readers.errors import PartialProcessingError
+from paper2table.readers.errors import ModelUnavailableError, PartialProcessingError
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata
@@ -425,11 +425,16 @@ def main():
             write_tables(result, clean_path)
 
             _logger.debug(f"Paper {clean_path} processed")
+        except ModelUnavailableError:
+            _logger.warning("model is unavailable right now")
         except PartialProcessingError as e:
-            _logger.warning(
-                f"Paper {clean_path} failed on page {e.page_num}."
-                f" Writing partial results. {str(traceback.format_exc())}"
-            )
+            if isinstance(e.__cause__, ModelUnavailableError):
+                _logger.warning("model is unavailable right now")
+            else:
+                _logger.warning(
+                    f"Paper {clean_path} failed on page {e.page_num}."
+                    f" Writing partial results. {str(traceback.format_exc())}"
+                )
             write_tables(e.partial_result, clean_path)
         except Exception:
             _logger.warning(f"Paper {clean_path} failed {str(traceback.format_exc())}")

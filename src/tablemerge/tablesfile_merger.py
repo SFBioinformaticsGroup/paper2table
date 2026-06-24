@@ -45,13 +45,14 @@ def same_row(left: Row, right: Row) -> bool:
 def make_fragments_clusters(
     tables_cluster: Sequence[Table | None],
     tablesfiles: Sequence[TablesFile],
+    page_offsets: Sequence[int],
 ) -> dict[int, list[MergeTarget]]:
     fragments_clusters: dict[int, list[MergeTarget]] = {}
-    for table, tablesfile in zip(tables_cluster, tablesfiles):
+    for table, tablesfile, offset in zip(tables_cluster, tablesfiles, page_offsets):
         if table is None:
             continue
         for fragment in table.get_table_fragments():
-            fragments_clusters.setdefault(fragment.page, []).append(
+            fragments_clusters.setdefault(fragment.page + offset, []).append(
                 (fragment, tablesfile)
             )
     return fragments_clusters
@@ -68,16 +69,19 @@ class TablesFileMerger:
         self.column_agreement = column_agreement
         self.analyzers = analyzers
 
-    def merge(self, tablesfiles: list[TablesFile]) -> TablesFile:
+    def merge(self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None) -> TablesFile:
         if not tablesfiles:
             raise MergeError("Must pass at least TablesFile element")
+
+        if page_offsets is None:
+            page_offsets = [0] * len(tablesfiles)
 
         merged_tables: list[Table] = []
 
         tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
         for tables_cluster in tables_clusters:
             merged_fragments: list[TableFragment] = []
-            fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles)
+            fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles, page_offsets)
 
             for _page, merge_targets in sorted(fragments_clusters.items()):
                 # TODO sort first so longest cluster is the first one
@@ -106,11 +110,6 @@ class TablesFileMerger:
                 for right_fragment, right_tablesfile in merge_targets[1:]:
                     if not right_fragment:
                         break
-
-                    if left_fragment.page != right_fragment.page:
-                        raise MergeError(
-                            f"Pages don't match: {left_fragment.page} != {right_fragment.page}"
-                        )
 
                     right_uuid = right_tablesfile.uuid
                     right_rows = [
@@ -163,9 +162,10 @@ def merge_tablesfiles(
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
     analyzers: list[MergeTimeAnalyzer] = [],
+    page_offsets: list[int] | None = None,
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
         column_agreement=column_agreement,
         analyzers=analyzers,
-    ).merge(tablesfiles)
+    ).merge(tablesfiles, page_offsets=page_offsets)

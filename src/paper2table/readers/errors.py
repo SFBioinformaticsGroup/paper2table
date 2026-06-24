@@ -1,5 +1,10 @@
 from ..tables_reader import TablesReader
 
+
+class ModelUnavailableError(Exception):
+    pass
+
+
 class PartialProcessingError(ValueError):
     def __init__(
         self, page_num: int, partial_result: TablesReader, cause: BaseException
