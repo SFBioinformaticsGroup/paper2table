@@ -134,10 +134,11 @@ class AliasLoadTimeAnalyzer:
         rows: list[Row],
     ) -> dict[str, str]:
         all_columns = list(dict.fromkeys(column_names))
+        normalized_aliases = {normalize_column_name(k): v for k, v in self.aliases.items()}
         return {
-            column: self.aliases[column]
+            column: normalized_aliases[normalize_column_name(column)]
             for column in all_columns
-            if column in self.aliases
+            if normalize_column_name(column) in normalized_aliases
         }
 
 

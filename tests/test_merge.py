@@ -1380,6 +1380,26 @@ def test_alias_applies_to_left_only_page_in_multi_file_merge():
     ]
 
 
+def test_alias_matches_by_normalized_column_name():
+    loader = TablesFileLoader(
+        analyzers=[AliasLoadTimeAnalyzer({"nombre_local": "nombre_vulgar", "part_used": "parte_usada"})]
+    )
+    tablesfile = loader.align_tablesfile(
+        wrap([Row(**{"Nombre local": "Menta", "PART USED": "leaves", "scientific_name": "Mentha x piperita"})])
+    )
+    result = merge_tablesfiles([tablesfile])
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(
+            nombre_vulgar="menta",
+            parte_usada="leaves",
+            scientific_name="mentha x piperita",
+            agreement_level_=1,
+            row_=0,
+        )
+    ]
+
+
 def test_sources_correct_when_middle_tablesfile_is_on_different_page():
     # File A and C share page 1 with matching rows; file B is on page 2.
     # The bug: make_fragments_clusters groups fragments by page and skips files
