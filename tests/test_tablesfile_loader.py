@@ -8,7 +8,7 @@ from tablemerge.fragment_transformer import (
     FilterTitleRowsTransformer,
 )
 from tablemerge.fragments_compactor import SafeConsecutiveFragmentsCompactor
-from tablevalidate.schema import Row, TablesFile
+from tablevalidate.schema import Row, TablesFile, TableWithFragments, TableFragment
 
 
 def write_tablesfile(tmp_path: Path, tablesfile: dict) -> Path:
@@ -75,9 +75,14 @@ def test_load_applies_compactor(tmp_path):
         },
     )
     result = loader.load(path)
-    assert len(result.tables) == 1
-    rows = result.tables[0].get_table_fragments()[0].rows
-    assert rows == [Row(species="Ammi majus"), Row(species="Rosa canina")]
+    assert result.tables == [
+        TableWithFragments(
+            table_fragments=[
+                TableFragment(rows=[Row(species="Ammi majus")], page=1),
+                TableFragment(rows=[Row(species="Rosa canina")], page=2),
+            ]
+        )
+    ]
 
 
 def test_load_applies_filter_empty_rows(tmp_path):

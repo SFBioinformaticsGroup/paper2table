@@ -66,10 +66,8 @@ class ConsecutiveFragmentsCompactor:
                 and self.can_merge_with_table(compacted[-1], fragments[0])
             ):
                 prev_fragments = compacted[-1].get_table_fragments()
-                last = prev_fragments[-1]
-                merged = TableFragment(rows=last.rows + fragments[0].rows, page=fragments[0].page)
                 compacted[-1] = TableWithFragments(
-                    table_fragments=prev_fragments[:-1] + [merged]
+                    table_fragments=prev_fragments + fragments
                 )
             else:
                 compacted.append(table)
