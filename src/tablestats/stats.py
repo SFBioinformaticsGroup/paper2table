@@ -35,7 +35,9 @@ class GlobalStats:
     fragments: int
     rows: int
     unique_rows: int
+    rows_with_agreement: int
     papers_stats: Dict[str, PaperStats]
+    global_agreement_percentage: Optional[float] = None
 
     def to_dict(self):
         return {
@@ -44,6 +46,8 @@ class GlobalStats:
             "fragments": self.fragments,
             "rows": self.rows,
             "unique_rows": self.unique_rows,
+            "rows_with_agreement": self.rows_with_agreement,
+            "global_agreement_percentage": self.global_agreement_percentage,
             "papers_stats": [
                 {key: value.to_dict()} for key, value in self.papers_stats.items()
             ],
@@ -60,6 +64,10 @@ def update_papers_stats(
     stats.fragments += paper_stats.fragments
     stats.rows += paper_stats.rows
     stats.unique_rows += paper_stats.unique_rows
+    stats.rows_with_agreement += paper_stats.rows_with_agreement
+
+    if stats.rows > 0:
+        stats.global_agreement_percentage = stats.rows_with_agreement / stats.rows * 100
 
     stats.papers_stats[paper_filename] = paper_stats
 

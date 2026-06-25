@@ -2,9 +2,8 @@ import json
 
 import pytest
 from tablevalidate.schema import TablesFile, ValueWithAgreement
-from tablestats.stats import compute_paper_stats
+from tablestats.stats import compute_paper_stats, update_papers_stats, GlobalStats
 from tablestats.__main__ import infer_type, collect_unique_columns, format_stats
-from tablestats.stats import GlobalStats
 
 
 def make_paper(tables):
@@ -103,7 +102,7 @@ def test_infer_type_with_agreement_list():
 
 
 def test_format_stats_with_columns():
-    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, rows_with_agreement=0, papers_stats={})
     output = format_stats(stats, {"species": "str", "count": "int"})
     assert "Unique Columns:" in output
     assert "species:str" in output
@@ -111,8 +110,50 @@ def test_format_stats_with_columns():
 
 
 def test_format_stats_without_columns():
-    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, papers_stats={})
+    stats = GlobalStats(papers=1, tables=1, fragments=2, rows=2, unique_rows=0, rows_with_agreement=0, papers_stats={})
     assert "Unique Columns:" not in format_stats(stats)
+
+
+def test_global_agreement_percentage_no_rows():
+    stats = GlobalStats(papers=0, tables=0, fragments=0, rows=0, unique_rows=0, rows_with_agreement=0, papers_stats={})
+    assert stats.global_agreement_percentage is None
+
+
+def test_global_agreement_percentage_accumulates_across_papers():
+    stats = GlobalStats(papers=0, tables=0, fragments=0, rows=0, unique_rows=0, rows_with_agreement=0, papers_stats={})
+    paper_a = make_paper([{
+        "page": 1,
+        "rows": [
+            {"family": "Apiaceae", "agreement_level_": 2},
+            {"family": "Rosaceae", "agreement_level_": 0},
+        ],
+    }])
+    paper_b = make_paper([{
+        "page": 1,
+        "rows": [
+            {"family": "Lamiaceae", "agreement_level_": 3},
+            {"family": "Asteraceae", "agreement_level_": 1},
+        ],
+    }])
+    update_papers_stats(stats, "a.tables.json", paper_a)
+    update_papers_stats(stats, "b.tables.json", paper_b)
+    assert stats.rows == 4
+    assert stats.rows_with_agreement == 2
+    assert stats.global_agreement_percentage == pytest.approx(50.0)
+
+
+def test_format_stats_shows_global_agreement_percentage():
+    stats = GlobalStats(
+        papers=1, tables=1, fragments=1, rows=4, unique_rows=0,
+        rows_with_agreement=2, papers_stats={}, global_agreement_percentage=50.0
+    )
+    output = format_stats(stats)
+    assert "Global agreement percentage: 50.00%" in output
+
+
+def test_format_stats_omits_global_agreement_percentage_when_none():
+    stats = GlobalStats(papers=0, tables=0, fragments=0, rows=0, unique_rows=0, rows_with_agreement=0, papers_stats={})
+    assert "Global agreement percentage" not in format_stats(stats)
 
 
 def test_unique_rows_no_row_attribute():
