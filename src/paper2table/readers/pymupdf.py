@@ -36,7 +36,7 @@ class PyMuPDFPage(PDFPage):
         return self.extract_tables_with_strategy("lines")
 
     def extract_tables_with_strategy(self, strategy):
-        result = self.page.find_tables(strategy=strategy)
+        result = self.page.find_tables(strategy=strategy) # pyright: ignore[reportAttributeAccessIssue]
         return [PyMuPDFTable(table) for table in (result.tables if result else [])]
 
     @property
