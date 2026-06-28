@@ -8,7 +8,6 @@ def _replace_cid(match: re.Match) -> str:
     n = int(match.group(1))
     return chr(n) if 160 <= n <= 255 else ""
 
-
 def normalize_str(value: str) -> str:
     value = NONPRINTABLE_RE.sub("", value)
     value = CID_RE.sub(_replace_cid, value)

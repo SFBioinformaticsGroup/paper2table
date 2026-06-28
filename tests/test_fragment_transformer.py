@@ -7,6 +7,7 @@ from tablemerge.fragment_transformer import (
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
     LeadingRowNumberTransformer,
+    NormalizePunctuationTransformer,
     SplitColumnTransformer,
 )
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
@@ -306,3 +307,109 @@ def test_split_column_transformer_preserves_parentheses_within_part(en_spacy_mod
     assert transformer.transform_fragment(fragment) == make_fragment(
         Row(city="(Ciudad de) La Paz", country="Bolivia")
     )
+
+
+def test_normalize_punctuation_converts_dash_variants():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(period="2010–2020", range="5—7"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(period="2010-2020", range="5-7")
+    )
+
+
+def test_normalize_punctuation_removes_guillemets():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(species="«Homo sapiens»", note="‹present›"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(species="Homo sapiens", note="present")
+    )
+
+
+def test_normalize_punctuation_converts_typographic_double_quotes_to_single():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(value="“positive”"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(value="'positive'")
+    )
+
+
+def test_normalize_punctuation_converts_straight_double_quotes_to_single():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(value='"yes"'))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(value="'yes'")
+    )
+
+
+def test_normalize_punctuation_normalizes_typographic_apostrophe():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="don’t", opening="L‘Hopital"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="don't", opening="L'Hopital")
+    )
+
+
+def test_normalize_punctuation_converts_ellipsis():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="see below…"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="see below...")
+    )
+
+
+def test_normalize_punctuation_removes_trailing_dot_after_long_word():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(
+        Row(species="Homo sapiens.", location="North America.")
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(species="Homo sapiens", location="North America")
+    )
+
+
+def test_normalize_punctuation_keeps_trailing_dot_after_short_word():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(
+        Row(citation="et al.", figure="Fig.", taxon="spp.", rank="sp.")
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(citation="et al.", figure="Fig.", taxon="spp.", rank="sp.")
+    )
+
+
+def test_normalize_punctuation_handles_none_value():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(species="Homo sapiens.", note=None))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(species="Homo sapiens", note=None)
+    )
+
+
+def test_normalize_punctuation_transforms_list_values():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(
+        Row(species=[
+            ValueWithAgreement(value="Homo sapiens.", agreement_level=2),
+            ValueWithAgreement(value="“positive”", agreement_level=1),
+        ])
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(species=[
+            ValueWithAgreement(value="Homo sapiens", agreement_level=2),
+            ValueWithAgreement(value="'positive'", agreement_level=1),
+        ])
+    )
+
+
+def test_normalize_punctuation_preserves_row_special_fields():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(
+        Row(species="Homo sapiens.", agreement_level_=3, sources_=["s1"], row_=5)
+    )
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(species="Homo sapiens", agreement_level_=3, sources_=["s1"], row_=5)
+    )
+
+
+def test_normalize_punctuation_settings():
+    assert NormalizePunctuationTransformer().settings == {"enabled": True}

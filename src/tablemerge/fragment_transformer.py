@@ -18,6 +18,14 @@ _TITLE_ROW_RE = re.compile(
 )
 
 _LEADING_NUMBER_RE = re.compile(r"^(\d+)\.\s+")
+# normalize_str also does this, so this is a bit redundant
+# but keeping it here for consistency
+_DASH_VARIANTS_RE = re.compile(r"[‐‑‒–—―−]")
+_GUILLEMETS_RE = re.compile(r"[«»‹›]")
+_TYPOGRAPHIC_DOUBLE_QUOTES_RE = re.compile(r"[“”]")
+_TYPOGRAPHIC_SINGLE_QUOTES_RE = re.compile(r"[‘’]")
+_ELLIPSIS_RE = re.compile("…")
+_TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
 
 class FilterTitleRowsTransformer:
@@ -134,6 +142,48 @@ class FilterEmptyRowsTransformer:
             rows=[row for row in fragment.rows if not row.is_empty()],
             page=fragment.page,
         )
+
+
+class NormalizePunctuationTransformer:
+    @property
+    def settings(self) -> dict:
+        return {"enabled": True}
+
+    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
+        return TableFragment(
+            rows=[self.transform_row(row) for row in fragment.rows],
+            page=fragment.page,
+        )
+
+    def transform_row(self, row: Row) -> Row:
+        return Row(
+            **{col: self.transform_value(val) for col, val in row.get_columns().items()},
+            agreement_level_=row.agreement_level_,
+            sources_=row.sources_,
+            row_=row.row_,
+        )
+
+    def transform_value(self, val: ColumnValue) -> ColumnValue:
+        if isinstance(val, str):
+            return self.normalize(val)
+        if isinstance(val, list):
+            return [
+                ValueWithAgreement(value=self.normalize(v.value), agreement_level=v.agreement_level)
+                for v in val
+            ]
+        return val
+
+    def normalize(self, text: str) -> str:
+        text = _DASH_VARIANTS_RE.sub("-", text)
+        text = _GUILLEMETS_RE.sub("", text)
+        text = _TYPOGRAPHIC_DOUBLE_QUOTES_RE.sub('"', text)
+        text = text.replace('"', "'")
+        text = _TYPOGRAPHIC_SINGLE_QUOTES_RE.sub("'", text)
+        match = _TRAILING_DOT_RE.match(text)
+        if match:
+            text = match.group(1)
+        text = _ELLIPSIS_RE.sub("...", text)
+        return text
 
 
 class FilterHeaderRowsTransformer:

@@ -38,6 +38,7 @@ from .fragment_transformer import (
     FilterTitleRowsTransformer,
     FragmentValuesReverser,
     LeadingRowNumberTransformer,
+    NormalizePunctuationTransformer,
     SplitColumnTransformer,
 )
 from .fragments_compactor import (
@@ -512,6 +513,16 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--normalize-punctuation",
+        action="store_true",
+        help=(
+            "Normalize punctuation in cell values: converts dash variants (en-dash, em-dash) "
+            "to hyphens, removes guillemets (« »), converts typographic and double quotes to "
+            "single quotes, normalizes apostrophes, converts ellipsis (…) to three dots, "
+            "and removes trailing sentence dots when the last word is long."
+        ),
+    )
+    parser.add_argument(
         "--split-conjunction-columns",
         action="store_true",
         help=(
@@ -623,6 +634,8 @@ def main():
         pretransformers.append(FilterTitleRowsTransformer())
     if args.strip_leading_row_numbers:
         pretransformers.append(LeadingRowNumberTransformer())
+    if args.normalize_punctuation:
+        pretransformers.append(NormalizePunctuationTransformer())
     if args.split_conjunction_columns:
         pretransformers.append(SplitColumnTransformer(args.semantic_language))
     pretransformers.append(FilterEmptyRowsTransformer())
