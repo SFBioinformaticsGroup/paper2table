@@ -68,12 +68,7 @@ def filter_header_rows(tablesfile: TablesFile, hints: list[str] = []) -> TablesF
                 TableFragment(rows=filtered_rows, page=fragment.page)
             )
         filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
-    return TablesFile(
-        tables=filtered_tables,
-        citation=tablesfile.citation,
-        metadata=tablesfile.metadata,
-        uuid=tablesfile.uuid,
-    )
+    return tablesfile.clone(tables=filtered_tables)
 
 
 def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
@@ -105,12 +100,7 @@ def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
             ]
             filtered_fragments.append(TableFragment(rows=new_rows, page=fragment.page))
         filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
-    return TablesFile(
-        tables=filtered_tables,
-        citation=tablesfile.citation,
-        metadata=tablesfile.metadata,
-        uuid=tablesfile.uuid,
-    )
+    return tablesfile.clone(tables=filtered_tables)
 
 
 def drop_empty_tables(tablesfile: TablesFile) -> TablesFile:
@@ -119,12 +109,7 @@ def drop_empty_tables(tablesfile: TablesFile) -> TablesFile:
         fragments = [f for f in table.get_table_fragments() if not f.is_empty()]
         if fragments:
             filtered_tables.append(TableWithFragments(table_fragments=fragments))
-    return TablesFile(
-        tables=filtered_tables,
-        citation=tablesfile.citation,
-        metadata=tablesfile.metadata,
-        uuid=tablesfile.uuid,
-    )
+    return tablesfile.clone(tables=filtered_tables)
 
 
 def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
@@ -145,9 +130,4 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
                 TableFragment(rows=filtered_rows, page=fragment.page)
             )
         filtered_tables.append(TableWithFragments(table_fragments=filtered_fragments))
-    return TablesFile(
-        tables=filtered_tables,
-        citation=tablesfile.citation,
-        metadata=tablesfile.metadata,
-        uuid=tablesfile.uuid,
-    )
+    return tablesfile.clone(tables=filtered_tables)

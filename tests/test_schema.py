@@ -7,8 +7,10 @@ from tablemerge.postprocessor import (
 from utils.column_schema import ColumnSchema
 from tablevalidate.schema import (
     TablesFile,
+    Table,
     TableWithFragments,
     TableFragment,
+    Metadata,
     Row,
     ValueWithAgreement,
 )
@@ -240,6 +242,48 @@ def test_drop_empty_columns_postprocessor_removes_all_null_column():
         Row(family="Apiaceae"),
         Row(family="Fabaceae"),
     ]
+
+
+def test_tablesfile_clone_overrides_tables_and_preserves_other_fields():
+    original_tables: list[Table] = [
+        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+    ]
+    new_tables: list[Table] = [
+        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Canis lupus")], page=2)])
+    ]
+    original = TablesFile(
+        tables=original_tables,
+        citation="some citation",
+        metadata=Metadata(filename="paper.pdf"),
+        uuid="abc-123",
+    )
+    result = original.clone(tables=new_tables)
+    assert result.tables == new_tables
+    assert result.citation == "some citation"
+    assert result.metadata == Metadata(filename="paper.pdf")
+    assert result.uuid == "abc-123"
+
+
+def test_tablesfile_clone_overrides_citation_and_preserves_other_fields():
+    tables: list[Table] = [
+        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+    ]
+    original = TablesFile(tables=tables, citation="original citation", uuid="xyz-456")
+    result = original.clone(citation="updated citation")
+    assert result.tables == tables
+    assert result.citation == "updated citation"
+    assert result.uuid == "xyz-456"
+
+
+def test_tablesfile_clone_with_no_overrides_returns_equal_instance():
+    tables: list[Table] = [
+        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+    ]
+    original = TablesFile(tables=tables, citation="citation", uuid="abc")
+    result = original.clone()
+    assert result.tables == original.tables
+    assert result.citation == original.citation
+    assert result.uuid == original.uuid
 
 
 def test_drop_empty_tables_postprocessor_removes_empty_table():

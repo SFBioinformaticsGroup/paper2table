@@ -47,7 +47,7 @@ class TablesFileLoader:
     ) -> TablesFile:
         if not transformers:
             return tablesfile
-        return TablesFile(
+        return tablesfile.clone(
             tables=[
                 TableWithFragments(
                     table_fragments=[
@@ -56,10 +56,7 @@ class TablesFileLoader:
                     ]
                 )
                 for table in tablesfile.tables
-            ],
-            citation=tablesfile.citation,
-            metadata=tablesfile.metadata,
-            uuid=tablesfile.uuid,
+            ]
         )
 
     def transform_fragment(
@@ -70,7 +67,7 @@ class TablesFileLoader:
         return fragment
 
     def align_tablesfile(self, tablesfile: TablesFile) -> TablesFile:
-        return TablesFile(
+        return tablesfile.clone(
             tables=[
                 TableWithFragments(
                     table_fragments=[
@@ -79,10 +76,7 @@ class TablesFileLoader:
                     ]
                 )
                 for table in tablesfile.tables
-            ],
-            citation=tablesfile.citation,
-            metadata=tablesfile.metadata,
-            uuid=tablesfile.uuid,
+            ]
         )
 
     def align_fragment(self, fragment: TableFragment) -> TableFragment:

@@ -157,6 +157,20 @@ class TablesFile(BaseModel):
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
 
+    def clone(
+        self,
+        tables: Optional[List[Table]] = None,
+        citation: Optional[Citation] = None,
+        metadata: Optional[Metadata] = None,
+        uuid: Optional[str] = None,
+    ) -> "TablesFile":
+        return TablesFile(
+            tables=tables if tables is not None else self.tables,
+            citation=citation if citation is not None else self.citation,
+            metadata=metadata if metadata is not None else self.metadata,
+            uuid=uuid if uuid is not None else self.uuid,
+        )
+
     @staticmethod
     def normalize_citation(citation: Citation) -> Citation:
         if citation is None:
