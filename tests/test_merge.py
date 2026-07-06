@@ -244,6 +244,47 @@ def test_fragments_are_ordered_by_page_when_tablesfiles_cover_different_pages():
     ]
 
 
+def test_fragment_with_no_counterpart_page_stays_solo():
+    # Paper A has two fragments on pages 1 and 2; paper B has only a page-1 fragment.
+    # Expected: page-1 fragments merge (agreement 2); page-2 fragment from A has no
+    # counterpart and is output as-is (agreement 1).
+    paper_a = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1),
+                    TableFragment(rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2),
+                ]
+            )
+        ],
+        citation="",
+    )
+    paper_b = wrap([Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1)
+
+    result = merge_tablesfiles([paper_a, paper_b])
+    assert len(result.tables) == 1
+
+    assert result.tables[0].get_table_fragments()[0].page == 1
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        )
+    ]
+
+    assert result.tables[0].get_table_fragments()[1].page == 2
+    assert result.tables[0].get_table_fragments()[1].rows == [
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        )
+    ]
+
+
 def test_two_tables_with_mixed_values():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [

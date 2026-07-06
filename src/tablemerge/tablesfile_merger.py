@@ -70,6 +70,13 @@ class TablesFileMerger:
         self.analyzers = analyzers
 
     def merge(self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None) -> TablesFile:
+        """Merge multiple TablesFiles into one.
+
+        Two-level pairing: tables by index (zip_longest pairs table N across all papers),
+        then fragments by adjusted page number within each table pair. Fragments sharing a
+        page are merged together; fragments whose page has no counterpart in any other paper
+        are output as-is with agreement level 1.
+        """
         if not tablesfiles:
             raise MergeError("Must pass at least TablesFile element")
 
