@@ -4,25 +4,43 @@ from tablevalidate.schema import (
     Table,
     TableFragment,
     TableWithFragments,
+    TableWithRows,
     TablesFile,
     Row,
 )
 
 
-class FragmentsCompactor(Protocol):
+class TablesfileTransformer(Protocol):
     @property
     def settings(self) -> dict: ...
 
-    def compact(self, tablesfile: TablesFile) -> TablesFile: ...
+    def transform(self, tablesfile: TablesFile) -> TablesFile: ...
 
 
-class NullFragmentsCompactor:
+class NullTablesfileTransformer:
     @property
     def settings(self) -> dict:
         return {}
 
-    def compact(self, tablesfile: TablesFile) -> TablesFile:
+    def transform(self, tablesfile: TablesFile) -> TablesFile:
         return tablesfile
+
+
+class FragmentsExploder:
+    @property
+    def settings(self) -> dict:
+        return {"type": "exploder"}
+
+    def transform(self, tablesfile: TablesFile) -> TablesFile:
+        expanded_tables: list[Table] = [
+            TableWithRows(rows=fragment.rows, page=fragment.page)
+            for table in tablesfile.tables
+            for fragment in table.get_table_fragments()
+        ]
+
+        return tablesfile.clone(
+            tables=expanded_tables,
+        )
 
 
 class ConsecutiveFragmentsCompactor:
@@ -56,7 +74,7 @@ class ConsecutiveFragmentsCompactor:
         previous_fragment = previous_fragments[-1]
         return self.columns_match(previous_fragment, other)
 
-    def compact(self, tablesfile: TablesFile) -> TablesFile:
+    def transform(self, tablesfile: TablesFile) -> TablesFile:
         compacted: list[Table] = []
         for table in tablesfile.tables:
             fragments = table.get_table_fragments()
@@ -82,7 +100,7 @@ class ConsecutiveFragmentsCompactor:
 class SafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
     @property
     def settings(self) -> dict:
-        return {"mode": "safe"}
+        return {"type": "compact-safe"}
 
     def non_semantic_columns_match(
         self, one: TableFragment, other: TableFragment
@@ -98,7 +116,7 @@ class SafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
 class UnsafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
     @property
     def settings(self) -> dict:
-        return {"mode": "unsafe"}
+        return {"type": "compact-unsafe"}
 
     def semantic_fragments_are_close(
         self, one: TableFragment, other: TableFragment

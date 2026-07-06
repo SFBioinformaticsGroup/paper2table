@@ -41,16 +41,18 @@ from .fragment_transformer import (
     NormalizePunctuationTransformer,
     SplitColumnTransformer,
 )
-from .fragments_compactor import (
-    FragmentsCompactor,
-    NullFragmentsCompactor,
+from .tablesfile_transformer import (
+    TablesfileTransformer,
+    NullTablesfileTransformer,
+    FragmentsExploder,
     SafeConsecutiveFragmentsCompactor,
     UnsafeConsecutiveFragmentsCompactor,
 )
 
-COMPACTOR_MAP = {
-    "safe": SafeConsecutiveFragmentsCompactor(),
-    "unsafe": UnsafeConsecutiveFragmentsCompactor(),
+TRANSFORMER_MAP = {
+    "explode": FragmentsExploder(),
+    "safe-compact": SafeConsecutiveFragmentsCompactor(),
+    "unsafe-compact": UnsafeConsecutiveFragmentsCompactor(),
 }
 
 
@@ -180,11 +182,11 @@ def merge_tablesfiles_paths(
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     postprocessors: list[PostProcessor] = [],
-    compactor: FragmentsCompactor = NullFragmentsCompactor(),
+    tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
 ):
     loader = TablesFileLoader(
         pretransformers=pretransformers,
-        compactor=compactor,
+        tablesfile_transformer=tablesfile_transformer,
         analyzers=load_analyzers,
         posttransformers=posttransformers,
     )
@@ -242,7 +244,7 @@ def merge_resultsets(
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     schema: Optional[ColumnSchema] = None,
     postprocessors: list[PostProcessor] = [],
-    compactor: FragmentsCompactor = NullFragmentsCompactor(),
+    tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
     workers: int = 1,
     paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
@@ -257,7 +259,7 @@ def merge_resultsets(
     settings = {
         "agreement_method": agreement_method,
         "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
-        "compactor": compactor.settings,
+        "tablesfile_transformer": tablesfile_transformer.settings,
         "drop_empty_columns": drop_empty_columns,
         "drop_empty_tables": drop_empty_tables,
         "only_semantic_columns": only_semantic_columns,
@@ -311,7 +313,7 @@ def merge_resultsets(
         load_analyzers=load_analyzers,
         merge_analyzers=merge_analyzers,
         postprocessors=postprocessors,
-        compactor=compactor,
+        tablesfile_transformer=tablesfile_transformer,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
         list(executor.map(worker_fn, canonical_basenames, sources_list))
@@ -532,13 +534,15 @@ def parse_args():
         ),
     )
     parser.add_argument(
-        "--compact-consecutive-fragments",
-        choices=["no", "safe", "unsafe"],
-        default="no",
+        "--transform-tablesfile",
+        choices=["explode", "safe-compact", "unsafe-compact"],
+        default=None,
         help=(
-            "Merge consecutive single-fragment tables that share column structure into one. "
-            "'safe' requires semantic column names to match exactly; "
-            "'unsafe' also merges when column count matches regardless of name type."
+            "Apply a structural transformation to each loaded tablesfile before merging. "
+            "'explode' splits multi-fragment tables into separate single-fragment tables; "
+            "'safe-compact' merges consecutive single-fragment tables that share semantic column "
+            "names and appear on the same or adjacent pages; "
+            "'unsafe-compact' also merges when column count matches regardless of name type or page."
         ),
     )
     parser.add_argument(
@@ -640,8 +644,8 @@ def main():
         pretransformers.append(SplitColumnTransformer(args.semantic_language))
     pretransformers.append(FilterEmptyRowsTransformer())
 
-    compactor = COMPACTOR_MAP.get(
-        args.compact_consecutive_fragments, NullFragmentsCompactor()
+    tablesfile_transformer = TRANSFORMER_MAP.get(
+        args.transform_tablesfile, NullTablesfileTransformer()
     )
 
     merge_resultsets(
@@ -660,7 +664,7 @@ def main():
         merge_analyzers=merge_analyzers,
         schema=schema,
         postprocessors=postprocessors,
-        compactor=compactor,
+        tablesfile_transformer=tablesfile_transformer,
         workers=args.workers,
         paper_aliases=paper_aliases,
         paper_filter=args.paper,

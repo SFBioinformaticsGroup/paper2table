@@ -7,7 +7,7 @@ from tablemerge.fragment_transformer import (
     FilterEmptyRowsTransformer,
     FilterTitleRowsTransformer,
 )
-from tablemerge.fragments_compactor import SafeConsecutiveFragmentsCompactor
+from tablemerge.tablesfile_transformer import SafeConsecutiveFragmentsCompactor
 from tablevalidate.schema import Row, TablesFile, TableWithFragments, TableFragment
 
 
@@ -59,7 +59,7 @@ def test_load_applies_filter_title_rows(tmp_path):
 
 
 def test_load_applies_compactor(tmp_path):
-    loader = TablesFileLoader(compactor=SafeConsecutiveFragmentsCompactor())
+    loader = TablesFileLoader(tablesfile_transformer=SafeConsecutiveFragmentsCompactor())
     path = write_tablesfile(
         tmp_path,
         {

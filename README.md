@@ -255,25 +255,25 @@ tablemerge --compact-consecutive-fragments unsafe tests/data/demo_resultsets/*
 
 **Phase 1 — Load time** (`TablesFileLoader`, once per input file):
 
-| Step | Operation | Classes | Condition |
-|------|-----------|---------|-----------|
-| 1 | `pretransformers` per fragment | `FragmentValuesReverser`, `FilterTitleRowsTransformer`, `FilterEmptyRowsTransformer` | per flag |
-| 2 | `compactor.compact` | `SafeConsecutiveFragmentsCompactor`, `UnsafeConsecutiveFragmentsCompactor` | `--compact-consecutive-fragments` |
-| 3 | `analyzers` per fragment via `LoadTimeColumnAligner` | `HintsAnalyzer`, `AliasAnalyzer`, `ColumnNameSemanticAnalyzer` | per flag |
-| 4 | `posttransformers` per fragment | `FilterHeaderRowsTransformer` | `--remove-header-rows` |
+| Step | Operation                                            | Classes                                                                              | Condition                         |
+|------|------------------------------------------------------|--------------------------------------------------------------------------------------|-----------------------------------|
+| 1    | `pretransformers` per fragment                       | `FragmentValuesReverser`, `FilterTitleRowsTransformer`, `FilterEmptyRowsTransformer` | per flag                          |
+| 2    | `tablesfile_transformer.transformer`                 | `SafeConsecutiveFragmentsCompactor`, `UnsafeConsecutiveFragmentsCompactor`           | `--compact-consecutive-fragments` |
+| 3    | `analyzers` per fragment via `LoadTimeColumnAligner` | `HintsAnalyzer`, `AliasAnalyzer`, `ColumnNameSemanticAnalyzer`                       | per flag                          |
+| 4    | `posttransformers` per fragment                      | `FilterHeaderRowsTransformer`                                                        | `--remove-header-rows`            |
 
 **Phase 2 — Merge time** (`TablesFileMerger`, once per fragment pair):
 
-| Step | Operation | Classes | Condition |
-|------|-----------|---------|-----------|
-| 1 | column alignment via `MergeTimeColumnAligner` | `JaccardAnalyzer`, `ColumnValueSemanticAnalyzer` | per flag |
-| 2 | row merging | `TableFragmentBuilder` | always |
+| Step | Operation                                     | Classes                                          | Condition |
+|------|-----------------------------------------------|--------------------------------------------------|-----------|
+| 1    | column alignment via `MergeTimeColumnAligner` | `JaccardAnalyzer`, `ColumnValueSemanticAnalyzer` | per flag  |
+| 2    | row merging                                   | `TableFragmentBuilder`                           | always    |
 
 **Phase 3 — Post-merge** (applied once to the merged output):
 
-| Step | Operation | Classes | Condition |
-|------|-----------|---------|-----------|
-| 1 | post-processors | `FilterSemanticColumnsPostProcessor`, `DropEmptyNonSemanticColumnsPostProcessor`, `DropEmptyTablesPostProcessor`, `SchemaPostProcessor` | per flag |
+| Step | Operation       | Classes                                                                                                                                 | Condition |
+|------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| 1    | post-processors | `FilterSemanticColumnsPostProcessor`, `DropEmptyNonSemanticColumnsPostProcessor`, `DropEmptyTablesPostProcessor`, `SchemaPostProcessor` | per flag  |
 
 ### Class diagram
 
@@ -294,10 +294,10 @@ classDiagram
         +settings dict
         +transform_fragment(fragment) TableFragment
     }
-    class FragmentsCompactor {
+    class TablesfileTransformer {
         <<protocol>>
         +settings dict
-        +compact(tablesfile) TablesFile
+        +transform(tablesfile) TablesFile
     }
     class PostProcessor {
         <<protocol>>
@@ -307,7 +307,7 @@ classDiagram
 
     class TablesFileLoader {
         -pretransformers list~FragmentTransformer~
-        -compactor FragmentsCompactor
+        -tablesfile_transformer TablesfileTransformer
         -analyzers list~LoadTimeAnalyzer~
         -posttransformers list~FragmentTransformer~
         +load(path) TablesFile
@@ -337,15 +337,15 @@ classDiagram
     FragmentTransformer <|.. FilterTitleRowsTransformer
     FragmentTransformer <|.. FilterEmptyRowsTransformer
     FragmentTransformer <|.. FilterHeaderRowsTransformer
-    FragmentsCompactor <|.. SafeConsecutiveFragmentsCompactor
-    FragmentsCompactor <|.. UnsafeConsecutiveFragmentsCompactor
+    TablesfileTransformer <|.. SafeConsecutiveFragmentsCompactor
+    TablesfileTransformer <|.. UnsafeConsecutiveFragmentsCompactor
     PostProcessor <|.. FilterSemanticColumnsPostProcessor
     PostProcessor <|.. DropEmptyNonSemanticColumnsPostProcessor
     PostProcessor <|.. DropEmptyTablesPostProcessor
     PostProcessor <|.. SchemaPostProcessor
 
     TablesFileLoader o-- FragmentTransformer
-    TablesFileLoader o-- FragmentsCompactor
+    TablesFileLoader o-- TablesfileTransformer
     TablesFileLoader o-- LoadTimeAnalyzer
     TablesFileLoader --> LoadTimeColumnAligner
     TablesFileMerger o-- MergeTimeAnalyzer

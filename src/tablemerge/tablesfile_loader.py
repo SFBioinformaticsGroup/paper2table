@@ -3,7 +3,10 @@ from pathlib import Path
 
 from tablevalidate.schema import TablesFile, TableFragment, TableWithFragments
 from tablemerge.fragment_transformer import FragmentTransformer
-from tablemerge.fragments_compactor import FragmentsCompactor, NullFragmentsCompactor
+from tablemerge.tablesfile_transformer import (
+    TablesfileTransformer,
+    NullTablesfileTransformer,
+)
 from tablemerge.columns_aligner import LoadTimeColumnAligner
 from tablemerge.analyzers import LoadTimeAnalyzer
 
@@ -12,12 +15,12 @@ class TablesFileLoader:
     def __init__(
         self,
         pretransformers: list[FragmentTransformer] = [],
-        compactor: FragmentsCompactor = NullFragmentsCompactor(),
+        tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
         analyzers: list[LoadTimeAnalyzer] = [],
         posttransformers: list[FragmentTransformer] = [],
     ):
         self.pretransformers = pretransformers
-        self.compactor = compactor
+        self.tablesfile_transformer = tablesfile_transformer
         self.analyzers = analyzers
         self.posttransformers = posttransformers
 
@@ -27,7 +30,7 @@ class TablesFileLoader:
             "pretransformers": {
                 type(t).__name__: t.settings for t in self.pretransformers
             },
-            "compactor": self.compactor.settings,
+            "tablesfile_transformer": self.tablesfile_transformer.settings,
             "analyzers": {type(a).__name__: a.settings for a in self.analyzers},
             "posttransformers": {
                 type(t).__name__: t.settings for t in self.posttransformers
@@ -38,7 +41,7 @@ class TablesFileLoader:
         with open(path, "r", encoding="utf-8") as f:
             tablesfile = TablesFile.model_validate(json.load(f))
         tablesfile = self.transform_tablesfile(tablesfile, self.pretransformers)
-        tablesfile = self.compactor.compact(tablesfile)
+        tablesfile = self.tablesfile_transformer.transform(tablesfile)
         tablesfile = self.align_tablesfile(tablesfile)
         return self.transform_tablesfile(tablesfile, self.posttransformers)
 

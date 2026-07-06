@@ -13,6 +13,7 @@ class FragmentTransformer(Protocol):
     def transform_fragment(self, fragment: TableFragment) -> TableFragment: ...
 
 
+
 _TITLE_ROW_RE = re.compile(
     r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE
 )
