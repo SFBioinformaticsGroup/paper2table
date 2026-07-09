@@ -1,7 +1,7 @@
+# paper2table
+
 [![ReadTheDocs](https://readthedocs.org/projects/paper2table/badge/?version=latest)](https://paper2table.readthedocs.io/en/stable/)
 [![PyPI-Server](https://img.shields.io/pypi/v/paper2table.svg)](https://pypi.org/project/paper2table/)
-
-# paper2table
 
 > Extract tables from papers
 
@@ -16,7 +16,40 @@
 - `tablevalidate`: a command for validating tables files
 
 
-## Installing
+<!-- vscode-markdown-toc -->
+* 1. [Usage](#Usage)
+	* 1.1. [Installing](#Installing)
+	* 1.2. [Preparing files](#Preparingfiles)
+	* 1.3. [Running](#Running)
+		* 1.3.1. [Hybrid mode](#Hybridmode)
+		* 1.3.2. [Split-pages mode](#Split-pagesmode)
+	* 1.4. [Merging](#Merging)
+		* 1.4.1. [Column alignment](#Columnalignment)
+		* 1.4.2. [Column aliases](#Columnaliases)
+		* 1.4.3. [Column name hints](#Columnnamehints)
+		* 1.4.4. [Schema](#Schema)
+		* 1.4.5. [Compacting consecutive fragments](#Compactingconsecutivefragments)
+	* 1.5. [Querying stats](#Queryingstats)
+	* 1.6. [Visualizing data](#Visualizingdata)
+* 2. [Development](#Development)
+	* 2.1. [Running tests](#Runningtests)
+	* 2.2. [Type checking](#Typechecking)
+* 3. [Architecture](#Architecture)
+	* 3.1. [TablesFile format](#TablesFileformat)
+	* 3.2. [Metadata files](#Metadatafiles)
+	* 3.3. [Processing pipeline](#Processingpipeline)
+	* 3.4. [Class diagram](#Classdiagram)
+
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
+
+
+##  1. <a name='Usage'></a>Usage
+
+###  1.1. <a name='Installing'></a>Installing
 
 ```bash
 # install base dependencies
@@ -29,7 +62,7 @@ pip install -e .[testing]
 pip install tox
 ```
 
-## File preparation
+###  1.2. <a name='Preparingfiles'></a>Preparing files
 
 Before running `paper2table`, it is recommended that you normalize your input papers files first, so that you avoid duplicate work. In order to do so, a small program `filenorm` is provided that will remove duplicate files and normalize filenames.
 
@@ -42,7 +75,7 @@ filenorm -q PATH [PATH ...]
 filenorm -y PATH [PATH ...]
 ```
 
-## Running
+###  1.3. <a name='Running'></a>Running
 
 `paper2table` can read paper's table using three different backends:
 
@@ -72,7 +105,7 @@ paper2table -o . tests/data/demo_table.pdf
 GEMINI_API_KEY=... paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
 ```
 
-## Hybrid mode
+####  1.3.1. <a name='Hybridmode'></a>Hybrid mode
 
 Hybrid mode combines an LLM agent with a traditional reader backend. The agent analyses the PDF once to detect which tables are relevant and how their columns map to your schema. That mapping is then passed to the reader (`pdfplumber`, `camelot`, `pymupdf`) which performs the actual row extraction. This is usually more accurate and stable than running either approach alone.
 
@@ -105,7 +138,7 @@ GEMINI_API_KEY=... paper2table -H -F -m google-gla:gemini-2.5-flash \
     tests/data/demo_table.pdf
 ```
 
-## Split-pages mode
+####  1.3.2. <a name='Split-pagesmode'></a>Split-pages mode
 
 When using the agent reader (`-r agent`), the `--split-pages` flag sends the PDF to the agent one page at a time instead of all at once. This is useful when a paper is long and the agent model has input token limitations.
 
@@ -129,7 +162,7 @@ Each mapping file records which model produced it and when, under a `metadata` f
 }
 ```
 
-## Merging
+###  1.4. <a name='Merging'></a>Merging
 
 `paper2table` also provides a table merging program called `tablemerge`. In order to be able to use it, you'll need to first generate some metadata. You can produce it using the same `paper2table` command:
 
@@ -155,7 +188,7 @@ After doing this, you can merge tables like this:
 tablemerge -o tests/data/merges tests/data/demo_resultsets/*
 ```
 
-### Column alignment
+####  1.4.1. <a name='Columnalignment'></a>Column alignment
 
 When different `paper2table` runs produce numeric column names (`0`, `1`, `2`) instead of semantic ones, `tablemerge` can align them automatically.
 
@@ -191,7 +224,7 @@ python -m spacy download es_core_news_md
 tablemerge --jaccard-column-alignment --column-value-semantic-alignment --semantic-language es tests/data/demo_resultsets/*
 ```
 
-### Column aliases
+####  1.4.2. <a name='Columnaliases'></a>Column aliases
 
 `--column-aliases` and `--column-aliases-path` let you define explicit renames applied during merging. The format is `alias:target` (same as the schema format):
 
@@ -203,7 +236,7 @@ tablemerge --column-aliases-path aliases.txt tests/data/demo_resultsets/*
 
 Both flags can be used together; the file takes precedence on conflicts.
 
-### Column name hints
+####  1.4.3. <a name='Columnnamehints'></a>Column name hints
 
 `--column-names-hints` and `--column-names-hints-path` supply the expected column names for runs that produced only numeric column names (`0`, `1`, …). Hints use the same format as the `-c` flag in `paper2table` (whitespace- or comma-separated, `#` comments allowed):
 
@@ -227,7 +260,7 @@ When `--remove-header-rows` is combined with hints, any row containing at least 
 tablemerge --column-names-hints "species family color" --remove-header-rows tests/data/demo_resultsets/*
 ```
 
-### Schema
+####  1.4.4. <a name='Schema'></a>Schema
 
 `-p` accepts either a file path or an inline schema string:
 
@@ -247,7 +280,7 @@ A schema is a whitespace- or comma-separated list of `column:type` pairs. Suppor
 | `bool`            | Boolean                                             |
 | `scientific_name` | Taxonomic name in binomial nomenclature (see below) |
 
-#### `scientific_name` type
+##### `scientific_name` type
 
 When a column is declared as `scientific_name`, `--coerce-schema-column-types` normalizes each cell value by parsing it through [gnparser](https://github.com/gnames/gnparser). The parser returns the **canonical form** of the name (genus + epithet, without authorship), which makes names comparable across papers that may include or omit authorship information.
 
@@ -264,7 +297,7 @@ go install github.com/gnames/gnparser/gnparser@latest
 # and place it on $PATH
 ```
 
-### Compacting consecutive fragments
+####  1.4.5. <a name='Compactingconsecutivefragments'></a>Compacting consecutive fragments
 
 When a table spans multiple pages, some readers split it into multiple separate tables. `--compact-consecutive-fragments` detects consecutive single-fragment tables and merges them into one before the cross-run merge:
 
@@ -276,7 +309,112 @@ tablemerge --compact-consecutive-fragments safe tests/data/demo_resultsets/*
 tablemerge --compact-consecutive-fragments unsafe tests/data/demo_resultsets/*
 ```
 
-### Processing pipeline
+###  1.5. <a name='Queryingstats'></a>Querying stats
+
+A tool `tablestats` is provided for getting some stats about the extracted tables. It can be used to query both the direct output of a `paper2table` run or the results of a `tablemerge` output.
+
+```bash
+# generate a json file with stats
+tablestats -o tests/data/stats.json tests/data/demo_resultsets/08ba0033-8b20-4dbb-bf4a-e2be1f194bc7/
+
+# pretty print stats to stdout
+# you can optionally sort results by number of extracted tables
+tablestats --sort desc tests/data/merges
+
+# if you only need to output empty files, use --empty
+# this is useful for debugging your results
+tablestats --empty tests/data/merges
+```
+
+###  1.6. <a name='Visualizingdata'></a>Visualizing data
+
+A tool `table2html` is provided for displaying a resultset:
+
+```bash
+# it can be used both with the raw resultset of a paper2table run
+# or with the output of tablemerge
+table2html tests/data/merges
+```
+
+
+##  2. <a name='Development'></a>Development
+
+###  2.1. <a name='Runningtests'></a>Running tests
+
+```bash
+tox
+```
+
+###  2.2. <a name='Typechecking'></a>Type checking
+
+```bash
+tox -e lint
+```
+
+
+##  3. <a name='Architecture'></a>Architecture
+
+###  3.1. <a name='TablesFileformat'></a>TablesFile format
+
+`paper2table` and `tablemerge` output the extracted tables data in a `TablesFile` file format (with extension `.tables.json`). You can validate that those files follow the exact format using `tablevalidate`:
+
+```bash
+tablevalidate tests/data/demo_resultsets/*/*
+```
+
+The format is informally specified this way:
+
+```json
+{
+  "tables": [
+    {
+      "rows": [
+        {
+          "COLUMN_NAME_1": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
+          "COLUMN_NAME_2": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
+          "agreement_level_": "integer (optional)"
+        }
+      ],
+      "page": "integer"
+    },
+    {
+      "table_fragments": [
+        {
+          "rows": "...",
+          "page": "integer"
+        }
+      ]
+    }
+  ],
+  "citation": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
+  "metadata": {
+    "filename": "string (optional)"
+  }
+}
+```
+
+You can also find a proper JSON schema definition in [tablesfile.schema.json](./tablesfile.schema.json).
+
+###  3.2. <a name='Metadatafiles'></a>Metadata files
+
+Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file alongside the extracted tables. The file has the same structure in both cases:
+
+```json
+{
+  "reader": "pdfplumber | camelot | agent | hybrid-pdfplumber-gemini-2.5-flash | tablemerge",
+  "uuid": "UUID identifying this run",
+  "datetime": "ISO 8601 timestamp of the run",
+  "sources": [
+    {
+      "path": "path to the source resultset directory",
+      "uuid": "UUID of the source extraction run (if available)",
+      "reader": "reader used for the source run (if available)"
+    }
+  ]
+}
+```
+
+###  3.3. <a name='Processingpipeline'></a>Processing pipeline
 
 `tablemerge` processes each input file through three phases before writing the merged output.
 
@@ -302,7 +440,7 @@ tablemerge --compact-consecutive-fragments unsafe tests/data/demo_resultsets/*
 |------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------|
 | 1    | post-processors | `FilterSemanticColumnsPostProcessor`, `DropEmptyNonSemanticColumnsPostProcessor`, `DropEmptyTablesPostProcessor`, `SchemaPostProcessor` | per flag  |
 
-### Class diagram
+###  3.4. <a name='Classdiagram'></a>Class diagram
 
 ```mermaid
 classDiagram
@@ -377,103 +515,4 @@ classDiagram
     TablesFileLoader --> LoadTimeColumnAligner
     TablesFileMerger o-- MergeTimeAnalyzer
     TablesFileMerger --> MergeTimeColumnAligner
-```
-
-## Generating stats
-
-A tool `tablestats` is provided for getting some stats about the extracted tables. It can be used to query both the direct output of a `paper2table` run or the results of a `tablemerge` output.
-
-```bash
-# generate a json file with stats
-tablestats -o tests/data/stats.json tests/data/demo_resultsets/08ba0033-8b20-4dbb-bf4a-e2be1f194bc7/
-
-# pretty print stats to stdout
-# you can optionally sort results by number of extracted tables
-tablestats --sort desc tests/data/merges
-
-# if you only need to output empty files, use --empty
-# this is useful for debugging your results
-tablestats --empty tests/data/merges
-```
-
-## Visualizing data
-
-A tool `table2html` is provided for displaying a resultset:
-
-```bash
-# it can be used both with the raw resultset of a paper2table run
-# or with the output of tablemerge
-table2html tests/data/merges
-```
-
-## Running tests
-
-```bash
-tox
-```
-
-## Running type checks
-
-```bash
-tox -e lint
-```
-
-## `TablesFile` format
-
-`paper2table` and `tablemerge` output the extracted tables data in a `TablesFile` file format (with extension `.tables.json`). You can validate that those files follow the exact format using `tablevalidate`:
-
-```bash
-tablevalidate tests/data/demo_resultsets/*/*
-```
-
-The format is informally specified this way:
-
-```json
-{
-  "tables": [
-    {
-      "rows": [
-        {
-          "COLUMN_NAME_1": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
-          "COLUMN_NAME_2": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
-          "agreement_level_": "integer (optional)"
-        }
-      ],
-      "page": "integer"
-    },
-    {
-      "table_fragments": [
-        {
-          "rows": "...",
-          "page": "integer"
-        }
-      ]
-    }
-  ],
-  "citation": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
-  "metadata": {
-    "filename": "string (optional)"
-  }
-}
-```
-
-You can also find a proper JSON schema definition in [tablesfile.schema.json](./tablesfile.schema.json).
-
-## Metadata files
-
-Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file alongside the extracted tables. The file has the same structure in both cases:
-
-```json
-{
-  "reader": "pdfplumber | camelot | agent | hybrid-pdfplumber-gemini-2.5-flash | tablemerge",
-  "uuid": "UUID identifying this run",
-  "datetime": "ISO 8601 timestamp of the run",
-  "sources": [
-    {
-      "path": "path to the source resultset directory",
-      "uuid": "UUID of the source extraction run (if available)",
-      "reader": "reader used for the source run (if available)"
-    }
-  ]
-}
 ```
