@@ -1,6 +1,7 @@
 import argparse
 import functools
 import json
+import re
 import sys
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -166,8 +167,8 @@ def filter_groups_by_paper(
     groups: dict[str, list[TablesFileSource]],
     paper_filter: str,
 ) -> dict[str, list[TablesFileSource]]:
-    canonical = paper_filter.removesuffix(".tables.json") + ".tables.json"
-    return {k: v for k, v in groups.items() if k == canonical}
+    pattern = paper_filter.removesuffix(".tables.json")
+    return {k: v for k, v in groups.items() if re.fullmatch(pattern, k.removesuffix(".tables.json"))}
 
 
 def merge_tablesfiles_paths(
@@ -548,7 +549,7 @@ def parse_args():
     parser.add_argument(
         "--paper",
         type=str,
-        help="Only merge files for this paper basename (e.g. foo merges foo.tables.json)",
+        help="Only merge files matching this paper basename or regexp (e.g. foo, foo.*, bar|baz)",
     )
     parser.add_argument(
         "-j",

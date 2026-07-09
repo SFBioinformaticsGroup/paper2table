@@ -1683,6 +1683,52 @@ def test_filter_groups_by_paper_no_match():
     assert filter_groups_by_paper(groups, "baz") == {}
 
 
+def test_filter_groups_by_paper_exact_does_not_match_longer_name():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "foobar.tables.json": [("dir_a", "foobar.tables.json", 0)],
+    }
+    assert filter_groups_by_paper(groups, "foo") == {
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+    }
+
+
+def test_filter_groups_by_paper_wildcard_matches_exact_and_longer_name():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "foobar.tables.json": [("dir_a", "foobar.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
+    }
+    assert filter_groups_by_paper(groups, "foo.*") == {
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "foobar.tables.json": [("dir_a", "foobar.tables.json", 0)],
+    }
+
+
+def test_filter_groups_by_paper_regexp_wildcard():
+    groups = {
+        "foo_v1.tables.json": [("dir_a", "foo_v1.tables.json", 0)],
+        "foo_v2.tables.json": [("dir_a", "foo_v2.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
+    }
+    assert filter_groups_by_paper(groups, "foo.*") == {
+        "foo_v1.tables.json": [("dir_a", "foo_v1.tables.json", 0)],
+        "foo_v2.tables.json": [("dir_a", "foo_v2.tables.json", 0)],
+    }
+
+
+def test_filter_groups_by_paper_regexp_alternation():
+    groups = {
+        "foo.tables.json": [("dir_a", "foo.tables.json", 0)],
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
+        "baz.tables.json": [("dir_a", "baz.tables.json", 0)],
+    }
+    assert filter_groups_by_paper(groups, "bar|baz") == {
+        "bar.tables.json": [("dir_a", "bar.tables.json", 0)],
+        "baz.tables.json": [("dir_a", "baz.tables.json", 0)],
+    }
+
+
 def test_has_semantic_header_value_true_when_value_matches_column():
     assert has_semantic_header_value(Row(family="family", scientific_name="Ammi majus"))
 
