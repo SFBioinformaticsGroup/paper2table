@@ -1,3 +1,6 @@
+import pytest
+
+from utils.scientific_name import scientific_name
 from utils.coerce import coerce_str
 
 
@@ -41,3 +44,8 @@ def test_bool_falsy_words():
 
 def test_bool_unrecognised_leaves_unchanged():
     assert coerce_str("maybe", bool) == "maybe"
+
+
+@pytest.mark.integration
+def test_coerce_str_scientific_name_normalizes():
+    assert coerce_str("maytenus ilicifolia mart.", scientific_name) == "Maytenus ilicifolia"

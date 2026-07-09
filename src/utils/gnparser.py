@@ -5,7 +5,7 @@ import subprocess
 def parse_scientific_name(name: str) -> str:
     try:
         result = subprocess.run(
-            ["gnparser", "-f", "compact", name],
+            ["gnparser", "-f", "compact", "--capitalize", name],
             capture_output=True,
             text=True,
             check=True,
@@ -17,7 +17,9 @@ def parse_scientific_name(name: str) -> str:
             "  go install github.com/gnames/gnparser/gnparser@latest\n"
             "or download a binary from https://github.com/gnames/gnparser/releases"
         )
-    records = json.loads(result.stdout)
-    record = records[0] if isinstance(records, list) else records
+    record = json.loads(result.stdout)
+    # using canonical form in order to
+    # remove author, if possible
+    canonical = record.get("canonical", {}).get("full")
     normalized = record.get("normalized")
-    return normalized if normalized else name
+    return canonical or normalized or name
