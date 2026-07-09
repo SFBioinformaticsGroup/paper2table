@@ -1,13 +1,8 @@
 from typing import Any
 
 from pydantic import Field
+from utils.scientific_name import scientific_name
 from utils.tokenize_schema import tokenize_schema
-
-
-class scientific_name(str):
-    pydantic_field_description = (
-        "A taxonomical name in binomial nomenclature (e.g. Homo sapiens)"
-    )
 
 
 def pydantic_field_description(typ: type) -> str | None:
