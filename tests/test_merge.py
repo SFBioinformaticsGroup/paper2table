@@ -284,6 +284,47 @@ def test_fragment_with_no_counterpart_page_stays_solo():
         )
     ]
 
+def test_two_fragments_on_same_page_stay_separate():
+    # Paper A has two fragments both on page 1; paper B has one fragment on page 1.
+    # Same-paper fragments on the same page are never merged together: fragment 0 of
+    # paper A pairs with paper B's fragment (agreement 2), fragment 1 of paper A has
+    # no counterpart and stays solo (agreement 1). Output has two fragments on page 1.
+    paper_a = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1),
+                    TableFragment(rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=1),
+                ]
+            )
+        ],
+        citation="",
+    )
+    paper_b = wrap([Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1)
+
+    result = merge_tablesfiles([paper_a, paper_b])
+    assert len(result.tables) == 1
+
+    assert result.tables[0].get_table_fragments()[0].page == 1
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        )
+    ]
+
+    assert result.tables[0].get_table_fragments()[1].page == 1
+    assert result.tables[0].get_table_fragments()[1].rows == [
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            row_=0,
+        )
+    ]
+
 
 def test_two_tables_with_mixed_values():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]

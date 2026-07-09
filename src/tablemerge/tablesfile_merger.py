@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from itertools import zip_longest
 from unidecode import unidecode
 
@@ -18,6 +19,18 @@ from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
 
 MergeTarget = tuple[TableFragment, TablesFile]
+
+
+@dataclass(frozen=True, order=True)
+class FragmentClusterKey:
+    """Key for grouping fragments to merge.
+
+    Two fragments from the same paper on the same page get different positions,
+    so they land in separate clusters and are never merged with each other.
+    """
+
+    page: int
+    position: int
 
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
@@ -46,13 +59,17 @@ def make_fragments_clusters(
     tables_cluster: Sequence[Table | None],
     tablesfiles: Sequence[TablesFile],
     page_offsets: Sequence[int],
-) -> dict[int, list[MergeTarget]]:
-    fragments_clusters: dict[int, list[MergeTarget]] = {}
+) -> dict[FragmentClusterKey, list[MergeTarget]]:
+    fragments_clusters: dict[FragmentClusterKey, list[MergeTarget]] = {}
     for table, tablesfile, offset in zip(tables_cluster, tablesfiles, page_offsets):
         if table is None:
             continue
+        page_counts: dict[int, int] = {}
         for fragment in table.get_table_fragments():
-            fragments_clusters.setdefault(fragment.page + offset, []).append(
+            adjusted_page = fragment.page + offset
+            position = page_counts.get(adjusted_page, 0)
+            page_counts[adjusted_page] = position + 1
+            fragments_clusters.setdefault(FragmentClusterKey(adjusted_page, position), []).append(
                 (fragment, tablesfile)
             )
     return fragments_clusters
