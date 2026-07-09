@@ -42,3 +42,10 @@ def test_parse_schema_ignores_comments():
 def test_parse_column_aliases_ignores_comments():
     text = "# rename columns\nfamilia:family # Spanish\nespecie:species"
     assert parse_column_aliases(text) == {"familia": "family", "especie": "species"}
+
+
+def test_build_instructions_includes_scientific_name_description():
+    from paper2table.readers.hybrid import build_instructions
+    instructions = "\n".join(build_instructions("species:scientific_name family:str"))
+    assert "species (A taxonomical name in binomial nomenclature" in instructions
+    assert "family" in instructions

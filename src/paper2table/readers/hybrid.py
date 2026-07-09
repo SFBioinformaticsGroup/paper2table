@@ -14,6 +14,11 @@ _logger = logging.getLogger("pape2table")
 
 
 def build_instructions(schema):
+    parsed_schema = ColumnSchema.parse(schema)
+    column_listing = ", ".join(
+        f"{name} ({desc})" if (desc := parsed_schema.pydantic_field_description(name)) else name
+        for name in parsed_schema.column_names()
+    )
     return (
         "CONTEXT",
         "=======",
@@ -29,7 +34,7 @@ def build_instructions(schema):
         "==================",
         "You must look for tables that approximately match the following columns:",
         "",
-        ", ".join(ColumnSchema.parse(schema).column_names()),
+        column_listing,
         "",
         "EXPECTED OUTPUT",
         "===============",

@@ -1,4 +1,5 @@
 from utils.coerce import coerce_str
+from utils.column_schema import scientific_name
 
 
 def test_str_is_noop():
@@ -41,3 +42,7 @@ def test_bool_falsy_words():
 
 def test_bool_unrecognised_leaves_unchanged():
     assert coerce_str("maybe", bool) == "maybe"
+
+
+def test_scientific_name_is_noop():
+    assert coerce_str("Homo sapiens", scientific_name) == "Homo sapiens"

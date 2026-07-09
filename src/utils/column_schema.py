@@ -1,12 +1,25 @@
 from typing import Any
 
+from pydantic import Field
 from utils.tokenize_schema import tokenize_schema
+
+
+class scientific_name(str):
+    pydantic_field_description = (
+        "A taxonomical name in binomial nomenclature (e.g. Homo sapiens)"
+    )
+
+
+def pydantic_field_description(typ: type) -> str | None:
+    return getattr(typ, "pydantic_field_description", None)
+
 
 _types_map: dict[str, type] = {
     "str": str,
     "int": int,
     "float": float,
     "bool": bool,
+    "scientific_name": scientific_name,
 }
 _reverse_types_map: dict[type, str] = {v: k for k, v in _types_map.items()}
 
@@ -45,9 +58,13 @@ class ColumnSchema:
             columns[name] = _types_map[type_str]
         return ColumnSchema(columns)
 
+    def pydantic_field_description(self, name: str) -> str | None:
+        return pydantic_field_description(self._columns[name])
+
     @staticmethod
     def parse_pydantic(schema_str: str) -> dict[str, tuple[Any, ...]]:
-        return {
-            name: (typ, ...)
-            for name, typ in ColumnSchema.parse(schema_str).definitions()
-        }
+        result = {}
+        for name, typ in ColumnSchema.parse(schema_str).definitions():
+            desc = pydantic_field_description(typ)
+            result[name] = (typ, Field(..., description=desc) if desc else ...)
+        return result

@@ -10,7 +10,7 @@ def coerce_str(value: str, target_type: type) -> str:
     bool coercion uses explicit truthy/falsy word sets rather than Python's bool(str),
     which would always return True for non-empty strings.
     """
-    if target_type is str:
+    if issubclass(target_type, str):
         return value
     try:
         if target_type is bool:
