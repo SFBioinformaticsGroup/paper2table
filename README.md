@@ -237,6 +237,33 @@ tablemerge -p "family:str species:str" --filter-schema-columns tests/data/demo_r
 tablemerge -p tests/data/demo_schema.txt --filter-schema-columns tests/data/demo_resultsets/*
 ```
 
+A schema is a whitespace- or comma-separated list of `column:type` pairs. Supported types:
+
+| Type              | Description                                         |
+|-------------------|-----------------------------------------------------|
+| `str`             | Plain string (no normalization)                     |
+| `int`             | Integer                                             |
+| `float`           | Floating-point number                               |
+| `bool`            | Boolean                                             |
+| `scientific_name` | Taxonomic name in binomial nomenclature (see below) |
+
+#### `scientific_name` type
+
+When a column is declared as `scientific_name`, `--coerce-schema-column-types` normalizes each cell value by parsing it through [gnparser](https://github.com/gnames/gnparser). The parser returns the **canonical form** of the name (genus + epithet, without authorship), which makes names comparable across papers that may include or omit authorship information.
+
+Example: `"Ammi majus L."` and `"ammi majus l."` both normalize to `"Ammi majus"`.
+
+**Dependency — gnparser**: required only when `scientific_name` columns are present in the schema and `--coerce-schema-column-types` is used. Installing `paper2table` does not require it; the dependency is only needed at runtime when coercion is triggered.
+
+```bash
+# install via Go
+go install github.com/gnames/gnparser/gnparser@latest
+
+# or download a pre-built binary from:
+# https://github.com/gnames/gnparser/releases
+# and place it on $PATH
+```
+
 ### Compacting consecutive fragments
 
 When a table spans multiple pages, some readers split it into multiple separate tables. `--compact-consecutive-fragments` detects consecutive single-fragment tables and merges them into one before the cross-run merge:
