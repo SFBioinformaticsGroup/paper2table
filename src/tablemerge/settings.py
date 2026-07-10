@@ -45,46 +45,38 @@ class MergeSettings:
         defaults["remove_header_rows"] = self.remove_header_rows
 
         if self.pretransformers:
-            defaults["filter_title_rows"] = (
-                "FilterTitleRowsTransformer" in self.pretransformers
-            )
-            defaults["fix_reversed_column_values"] = (
-                "FragmentValuesReverser" in self.pretransformers
-            )
-            defaults["strip_leading_row_numbers"] = (
-                "LeadingRowNumberTransformer" in self.pretransformers
-            )
-            defaults["normalize_punctuation"] = (
-                "NormalizePunctuationTransformer" in self.pretransformers
-            )
-            defaults["split_conjunction_columns"] = (
-                "SplitColumnTransformer" in self.pretransformers
-            )
+            for setting, klass in {
+                "filter_title_rows": "FilterTitleRowsTransformer",
+                "fix_reversed_column_values": "FragmentValuesReverser",
+                "strip_leading_row_numbers": "LeadingRowNumberTransformer",
+                "normalize_punctuation": "NormalizePunctuationTransformer",
+                "split_conjunction_columns": "SplitColumnTransformer",
+            }.items():
+                defaults[setting] = klass in self.pretransformers
             reverser = self.pretransformers.get("FragmentValuesReverser", {})
             splitter = self.pretransformers.get("SplitColumnTransformer", {})
-            pt_lang = reverser.get("language") or splitter.get("language")
-            if pt_lang:
-                defaults["semantic_language"] = pt_lang
+            language = reverser.get("language") or splitter.get("language")
+            if language:
+                defaults["semantic_language"] = language
 
-        tf_type_map = {
+        tablesfiles_transformers = {
             "exploder": "explode",
             "compact-safe": "safe-compact",
             "compact-unsafe": "unsafe-compact",
         }
-        tf_type = tf_type_map.get(self.tablesfile_transformer.get("type", ""))
+        tf_type = tablesfiles_transformers.get(
+            self.tablesfile_transformer.get("type", "")
+        )
         if tf_type:
             defaults["transform_tablesfile"] = tf_type
 
         if self.analyzers:
-            defaults["jaccard_column_alignment"] = (
-                "JaccardMergeTimeAnalyzer" in self.analyzers
-            )
-            defaults["column_name_semantic_alignment"] = (
-                "ColumnNameSemanticLoadTimeAnalyzer" in self.analyzers
-            )
-            defaults["column_value_semantic_alignment"] = (
-                "ColumnValueSemanticMergeTimeAnalyzer" in self.analyzers
-            )
+            for setting, klass in {
+                "jaccard_column_alignment": "JaccardMergeTimeAnalyzer",
+                "column_name_semantic_alignment": "ColumnNameSemanticLoadTimeAnalyzer",
+                "column_value_semantic_alignment": "ColumnValueSemanticMergeTimeAnalyzer",
+            }.items():
+                defaults[setting] = klass in self.analyzers
 
             if "HintsLoadTimeAnalyzer" in self.analyzers:
                 safe = self.analyzers["HintsLoadTimeAnalyzer"].get("safe", True)
@@ -105,18 +97,13 @@ class MergeSettings:
 
         schema_postprocessor = self.postprocessors.get("SchemaPostProcessor", {})
         if schema_postprocessor:
-            if "filter_schema_columns" in schema_postprocessor:
-                defaults["filter_schema_columns"] = schema_postprocessor[
-                    "filter_schema_columns"
-                ]
-            if "order_schema_columns" in schema_postprocessor:
-                defaults["order_schema_columns"] = schema_postprocessor[
-                    "order_schema_columns"
-                ]
-            if "coerce_schema_column_types" in schema_postprocessor:
-                defaults["coerce_schema_column_types"] = schema_postprocessor[
-                    "coerce_schema_column_types"
-                ]
+            for setting in [
+                "filter_schema_columns",
+                "order_schema_columns",
+                "coerce_schema_column_types",
+            ]:
+                if setting in schema_postprocessor:
+                    defaults[setting] = schema_postprocessor[setting]
 
         if self.schema:
             defaults["schema"] = ",".join(f"{k}:{v}" for k, v in self.schema.items())
