@@ -18,7 +18,12 @@ from utils.column_schema import ColumnSchema
 handle_sigint()
 
 from .aliases import PaperAlias, parse_column_aliases, parse_paper_aliases
-from .settings import MergeSettings, write_settings_file
+from .settings import (
+    MergeSettings,
+    read_settings_file,
+    write_settings_file,
+    build_export_settings,
+)
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
@@ -72,8 +77,6 @@ def write_merge_metadata(
     resultset_dirs: list[str],
     output_path: Path,
     resultset_metadata: dict[str, dict],
-    settings: dict,
-    export_settings: bool = False,
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -89,7 +92,6 @@ def write_merge_metadata(
         "reader": "tablemerge",
         "uuid": str(uuid4()),
         "datetime": dt.now().isoformat(),
-        "settings": settings,
         "sources": sources,
     }
 
@@ -99,8 +101,6 @@ def write_merge_metadata(
         json.dump(merge_metadata, f, ensure_ascii=False, indent=2)
 
     print(f"Metadata written to {metadata_out}")
-    if export_settings:
-        write_settings_file(settings, output_path)
     return merge_metadata
 
 
@@ -109,7 +109,6 @@ def load_text_or_file(value: str) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8")
     return value
-
 
 
 def build_analyzers(
@@ -254,7 +253,6 @@ def merge_resultsets(
     workers: int = 1,
     paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
-    export_settings: bool = False,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -263,33 +261,7 @@ def merge_resultsets(
     if remove_header_rows:
         posttransformers.append(FilterHeaderRowsTransformer(hints))
 
-    settings = {
-        "agreement_method": agreement_method,
-        "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
-        "tablesfile_transformer": tablesfile_transformer.settings,
-        "drop_empty_columns": drop_empty_columns,
-        "drop_empty_tables": drop_empty_tables,
-        "only_semantic_columns": only_semantic_columns,
-        "remove_header_rows": remove_header_rows,
-        "column_names_hints": hints,
-        "schema": schema.serialize() if schema else {},
-        "analyzers": {
-            **{type(a).__name__: a.settings for a in load_analyzers},
-            **{type(a).__name__: a.settings for a in merge_analyzers},
-        },
-        "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
-        "paper_aliases": {
-            k: {"canonical": v.canonical, "offset": v.offset}
-            for k, v in paper_aliases.items()
-        },
-    }
-    write_merge_metadata(
-        resultset_dirs,
-        output_path,
-        resultset_metadata,
-        settings,
-        export_settings=export_settings,
-    )
+    write_merge_metadata(resultset_dirs, output_path, resultset_metadata)
 
     if metadata_only:
         return
@@ -589,23 +561,22 @@ def parse_args():
         help="Write settings.tablemerge.json to the output directory",
     )
 
-    settings_dict = parse_settings()
-    if settings_dict:
-        parser.set_defaults(**MergeSettings.from_dict(settings_dict).to_argparse_defaults())
+    settings = parse_settings()
+    if settings:
+        parser.set_defaults(**settings.to_argparse_defaults())
 
     return parser.parse_args()
 
 
-def parse_settings():
+def parse_settings() -> Optional[MergeSettings]:
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("--settings", action="store_true")
     pre_parser.add_argument("-o", "--output-directory", default=".")
     pre_args, _ = pre_parser.parse_known_args()
+
     if pre_args.settings:
-        settings_path = Path(pre_args.output_directory) / "settings.tablemerge.json"
-        with open(settings_path, encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+        return read_settings_file(Path(pre_args.output_directory))
+    return None
 
 
 def main():
@@ -719,8 +690,14 @@ def main():
         workers=args.workers,
         paper_aliases=paper_aliases,
         paper_filter=args.paper,
-        export_settings=args.export_settings,
     )
+
+    if args.export_settings:
+        settings_path_file = write_settings_file(
+            build_export_settings(args, schema, hints, aliases, paper_aliases),
+            Path(args.output_directory),
+        )
+        print(f"Settings exported to {settings_path_file}")
 
 
 if __name__ == "__main__":

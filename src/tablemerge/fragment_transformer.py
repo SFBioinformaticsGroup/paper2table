@@ -7,9 +7,6 @@ from tablemerge.spacy_utils import load_spacy_model
 
 
 class FragmentTransformer(Protocol):
-    @property
-    def settings(self) -> dict: ...
-
     def transform_fragment(self, fragment: TableFragment) -> TableFragment: ...
 
 
@@ -30,9 +27,6 @@ _TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
 
 class FilterTitleRowsTransformer:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         head = [row for row in fragment.rows[:3] if not self.is_title_row(row)]
@@ -62,9 +56,6 @@ class FilterTitleRowsTransformer:
 
 
 class LeadingRowNumberTransformer:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         column_names = Row.column_names(fragment.rows)
@@ -134,9 +125,6 @@ class LeadingRowNumberTransformer:
 
 
 class FilterEmptyRowsTransformer:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
@@ -146,9 +134,6 @@ class FilterEmptyRowsTransformer:
 
 
 class NormalizePunctuationTransformer:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
@@ -191,10 +176,6 @@ class FilterHeaderRowsTransformer:
     def __init__(self, hints: list[str] = []):
         self.hints = hints
 
-    @property
-    def settings(self) -> dict:
-        return {"hints": self.hints}
-
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
             rows=[row for row in fragment.rows if not is_header_row(row, self.hints)],
@@ -212,9 +193,6 @@ class SplitColumnTransformer:
         self.language = language
         self._nlp = None
 
-    @property
-    def settings(self) -> dict:
-        return {"language": self.language}
 
     def load_model(self):
         if self._nlp is None:
@@ -339,9 +317,6 @@ class FragmentValuesReverser:
         self.language = language
         self._nlp = load_spacy_model(language)
 
-    @property
-    def settings(self) -> dict:
-        return {"language": self.language}
 
     def _count_known_words(self, text: str) -> int:
         return sum(

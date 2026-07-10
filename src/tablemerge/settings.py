@@ -1,6 +1,9 @@
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
+
+from utils.column_schema import ColumnSchema
 
 
 @dataclass
@@ -132,8 +135,88 @@ class MergeSettings:
         return defaults
 
 
-def write_settings_file(settings: dict, output_path: Path) -> None:
-    settings_out = output_path / "settings.tablemerge.json"
-    with open(settings_out, "w", encoding="utf-8") as f:
+def build_export_settings(args, schema: Optional[ColumnSchema], hints: list[str], aliases: dict[str, str], paper_aliases: dict) -> dict:
+    pretransformers = {}
+    if args.fix_reversed_column_values:
+        pretransformers["FragmentValuesReverser"] = {"language": args.semantic_language}
+    if args.filter_title_rows:
+        pretransformers["FilterTitleRowsTransformer"] = {}
+    if args.strip_leading_row_numbers:
+        pretransformers["LeadingRowNumberTransformer"] = {}
+    if args.normalize_punctuation:
+        pretransformers["NormalizePunctuationTransformer"] = {}
+    if args.split_conjunction_columns:
+        pretransformers["SplitColumnTransformer"] = {"language": args.semantic_language}
+    pretransformers["FilterEmptyRowsTransformer"] = {}
+
+    tf_reverse_map = {
+        "explode": "exploder",
+        "safe-compact": "compact-safe",
+        "unsafe-compact": "compact-unsafe",
+    }
+    tablesfile_transformer: dict = {}
+    if args.transform_tablesfile in tf_reverse_map:
+        tablesfile_transformer = {"type": tf_reverse_map[args.transform_tablesfile]}
+
+    analyzers: dict = {}
+    if args.hints_column_alignment and hints:
+        analyzers["HintsLoadTimeAnalyzer"] = {"safe": args.hints_column_alignment == "safe"}
+    if aliases:
+        analyzers["AliasLoadTimeAnalyzer"] = {"aliases": aliases}
+    if args.column_name_semantic_alignment:
+        analyzers["ColumnNameSemanticLoadTimeAnalyzer"] = {
+            "threshold": args.column_alignment_threshold,
+            "language": args.semantic_language,
+        }
+    if args.jaccard_column_alignment:
+        analyzers["JaccardMergeTimeAnalyzer"] = {
+            "threshold": args.column_alignment_threshold,
+            "schema": bool(schema),
+        }
+    if args.column_value_semantic_alignment:
+        analyzers["ColumnValueSemanticMergeTimeAnalyzer"] = {
+            "threshold": args.column_alignment_threshold,
+            "language": args.semantic_language,
+            "schema": bool(schema),
+        }
+
+    postprocessors: dict = {}
+    if any([args.filter_schema_columns, args.order_schema_columns, args.coerce_schema_column_types]):
+        postprocessors["SchemaPostProcessor"] = {
+            "filter_schema_columns": args.filter_schema_columns,
+            "order_schema_columns": args.order_schema_columns,
+            "coerce_schema_column_types": args.coerce_schema_column_types,
+        }
+
+    return {
+        "agreement_method": args.agreement_method,
+        "pretransformers": pretransformers,
+        "tablesfile_transformer": tablesfile_transformer,
+        "drop_empty_columns": args.drop_empty_columns,
+        "drop_empty_tables": args.drop_empty_tables,
+        "only_semantic_columns": args.only_semantic_columns,
+        "remove_header_rows": args.remove_header_rows,
+        "column_names_hints": hints,
+        "schema": schema.serialize() if schema else {},
+        "analyzers": analyzers,
+        "postprocessors": postprocessors,
+        "paper_aliases": {
+            k: {"canonical": v.canonical, "offset": v.offset}
+            for k, v in paper_aliases.items()
+        },
+    }
+
+
+def write_settings_file(settings: dict, output_path: Path) -> Path:
+    settings_file_path = output_path / "settings.tablemerge.json"
+    with open(settings_file_path, "w", encoding="utf-8") as f:
         json.dump(settings, f, ensure_ascii=False, indent=2)
-    print(f"Settings exported to {settings_out}")
+
+    return settings_file_path
+
+
+def read_settings_file(output_path: Path) -> MergeSettings:
+    settings_file_path =  output_path / "settings.tablemerge.json"
+    with open(settings_file_path, encoding="utf-8") as f:
+        return MergeSettings.from_dict(json.load(f))
+
