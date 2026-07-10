@@ -18,6 +18,7 @@ from utils.column_schema import ColumnSchema
 handle_sigint()
 
 from .aliases import PaperAlias, parse_column_aliases, parse_paper_aliases
+from .settings import MergeSettings, write_settings_file
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
@@ -72,6 +73,7 @@ def write_merge_metadata(
     output_path: Path,
     resultset_metadata: dict[str, dict],
     settings: dict,
+    export_settings: bool = False,
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -97,6 +99,8 @@ def write_merge_metadata(
         json.dump(merge_metadata, f, ensure_ascii=False, indent=2)
 
     print(f"Metadata written to {metadata_out}")
+    if export_settings:
+        write_settings_file(settings, output_path)
     return merge_metadata
 
 
@@ -168,7 +172,11 @@ def filter_groups_by_paper(
     paper_filter: str,
 ) -> dict[str, list[TablesFileSource]]:
     pattern = paper_filter.removesuffix(".tables.json")
-    return {k: v for k, v in groups.items() if re.fullmatch(pattern, k.removesuffix(".tables.json"))}
+    return {
+        k: v
+        for k, v in groups.items()
+        if re.fullmatch(pattern, k.removesuffix(".tables.json"))
+    }
 
 
 def merge_tablesfiles_paths(
@@ -249,6 +257,7 @@ def merge_resultsets(
     workers: int = 1,
     paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
+    export_settings: bool = False,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -277,7 +286,13 @@ def merge_resultsets(
             for k, v in paper_aliases.items()
         },
     }
-    write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
+    write_merge_metadata(
+        resultset_dirs,
+        output_path,
+        resultset_metadata,
+        settings,
+        export_settings=export_settings,
+    )
 
     if metadata_only:
         return
@@ -558,11 +573,56 @@ def parse_args():
         default=1,
         help="Number of parallel worker threads for merging (default: 1)",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--settings",
+        type=str,
+        help=(
+            "Inline settings JSON "
+            "(same format as the 'settings' key in tables.metadata.json). "
+            "Explicit CLI flags take precedence."
+        ),
+    )
+    parser.add_argument(
+        "--settings-path",
+        type=str,
+        help="Path to a settings JSON file (same format as --settings).",
+    )
+    parser.add_argument(
+        "--export-settings",
+        action="store_true",
+        help="Write settings.tablemerge.json alongside the metadata file",
+    )
+
+    settings_dict = parse_settings()
+    merge_settings = None
+    if settings_dict:
+        merge_settings = MergeSettings.from_dict(settings_dict)
+        parser.set_defaults(**merge_settings.to_argparse_defaults())
+
+    return parser.parse_args(), merge_settings
+
+
+def parse_settings():
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--settings", type=str)
+    pre_parser.add_argument("--settings-path", type=str)
+    pre_args, _ = pre_parser.parse_known_args()
+    settings_dict: dict = {}
+    if pre_args.settings_path:
+        settings_dict.update(json.loads(Path(pre_args.settings_path).read_text("utf8")))
+    if pre_args.settings:
+        settings_dict.update(json.loads(pre_args.settings))
+    return settings_dict
 
 
 def main():
-    args = parse_args()
+    args, merge_settings = parse_args()
+    schema: Optional[ColumnSchema] = (
+        load_schema(args.schema_path) if args.schema_path else None
+    )
+    if schema is None and merge_settings and merge_settings.schema:
+        schema = ColumnSchema.from_settings_dict(merge_settings.schema)
+
     schema_required = [
         (args.filter_schema_columns, "--filter-schema-columns"),
         (args.order_schema_columns, "--order-schema-columns"),
@@ -570,12 +630,9 @@ def main():
         (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
     ]
     for flag, name in schema_required:
-        if flag and not args.schema_path:
+        if flag and schema is None:
             print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
             sys.exit(1)
-    schema: Optional[ColumnSchema] = (
-        load_schema(args.schema_path) if args.schema_path else None
-    )
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -593,6 +650,10 @@ def main():
         aliases.update(
             parse_column_aliases(load_text_or_file(args.column_aliases_path))
         )
+    if not aliases and merge_settings:
+        alias_settings = merge_settings.analyzers.get("AliasLoadTimeAnalyzer", {})
+        if alias_settings.get("aliases"):
+            aliases = alias_settings["aliases"]
 
     hints: list[str] = []
     if args.column_names_hints:
@@ -604,6 +665,8 @@ def main():
             normalize_column_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
+    if not hints and merge_settings and merge_settings.column_names_hints:
+        hints = list(merge_settings.column_names_hints)
     if args.hints_column_alignment is not None and not hints:
         print(
             "Error: --hints-column-alignment requires --column-names-hints or "
@@ -619,6 +682,11 @@ def main():
         paper_aliases.update(
             parse_paper_aliases(load_text_or_file(args.paper_aliases_path))
         )
+    if not paper_aliases and merge_settings and merge_settings.paper_aliases:
+        paper_aliases = {
+            k: PaperAlias(canonical=v["canonical"], offset=v.get("offset", 0))
+            for k, v in merge_settings.paper_aliases.items()
+        }
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
@@ -669,6 +737,7 @@ def main():
         workers=args.workers,
         paper_aliases=paper_aliases,
         paper_filter=args.paper,
+        export_settings=args.export_settings,
     )
 
 
