@@ -45,11 +45,21 @@ class MergeSettings:
         defaults["remove_header_rows"] = self.remove_header_rows
 
         if self.pretransformers:
-            defaults["filter_title_rows"] = "FilterTitleRowsTransformer" in self.pretransformers
-            defaults["fix_reversed_column_values"] = "FragmentValuesReverser" in self.pretransformers
-            defaults["strip_leading_row_numbers"] = "LeadingRowNumberTransformer" in self.pretransformers
-            defaults["normalize_punctuation"] = "NormalizePunctuationTransformer" in self.pretransformers
-            defaults["split_conjunction_columns"] = "SplitColumnTransformer" in self.pretransformers
+            defaults["filter_title_rows"] = (
+                "FilterTitleRowsTransformer" in self.pretransformers
+            )
+            defaults["fix_reversed_column_values"] = (
+                "FragmentValuesReverser" in self.pretransformers
+            )
+            defaults["strip_leading_row_numbers"] = (
+                "LeadingRowNumberTransformer" in self.pretransformers
+            )
+            defaults["normalize_punctuation"] = (
+                "NormalizePunctuationTransformer" in self.pretransformers
+            )
+            defaults["split_conjunction_columns"] = (
+                "SplitColumnTransformer" in self.pretransformers
+            )
             reverser = self.pretransformers.get("FragmentValuesReverser", {})
             splitter = self.pretransformers.get("SplitColumnTransformer", {})
             pt_lang = reverser.get("language") or splitter.get("language")
@@ -66,9 +76,15 @@ class MergeSettings:
             defaults["transform_tablesfile"] = tf_type
 
         if self.analyzers:
-            defaults["jaccard_column_alignment"] = "JaccardMergeTimeAnalyzer" in self.analyzers
-            defaults["column_name_semantic_alignment"] = "ColumnNameSemanticLoadTimeAnalyzer" in self.analyzers
-            defaults["column_value_semantic_alignment"] = "ColumnValueSemanticMergeTimeAnalyzer" in self.analyzers
+            defaults["jaccard_column_alignment"] = (
+                "JaccardMergeTimeAnalyzer" in self.analyzers
+            )
+            defaults["column_name_semantic_alignment"] = (
+                "ColumnNameSemanticLoadTimeAnalyzer" in self.analyzers
+            )
+            defaults["column_value_semantic_alignment"] = (
+                "ColumnValueSemanticMergeTimeAnalyzer" in self.analyzers
+            )
 
             if "HintsLoadTimeAnalyzer" in self.analyzers:
                 safe = self.analyzers["HintsLoadTimeAnalyzer"].get("safe", True)
@@ -81,18 +97,50 @@ class MergeSettings:
             ):
                 analyzer = self.analyzers.get(analyzer_name, {})
                 if "threshold" in analyzer:
-                    defaults.setdefault("column_alignment_threshold", analyzer["threshold"])
+                    defaults.setdefault(
+                        "column_alignment_threshold", analyzer["threshold"]
+                    )
                 if "language" in analyzer:
                     defaults.setdefault("semantic_language", analyzer["language"])
 
-        schema_pp = self.postprocessors.get("SchemaPostProcessor", {})
-        if schema_pp:
-            if "filter_schema_columns" in schema_pp:
-                defaults["filter_schema_columns"] = schema_pp["filter_schema_columns"]
-            if "order_schema_columns" in schema_pp:
-                defaults["order_schema_columns"] = schema_pp["order_schema_columns"]
-            if "coerce_schema_column_types" in schema_pp:
-                defaults["coerce_schema_column_types"] = schema_pp["coerce_schema_column_types"]
+        schema_postprocessor = self.postprocessors.get("SchemaPostProcessor", {})
+        if schema_postprocessor:
+            if "filter_schema_columns" in schema_postprocessor:
+                defaults["filter_schema_columns"] = schema_postprocessor[
+                    "filter_schema_columns"
+                ]
+            if "order_schema_columns" in schema_postprocessor:
+                defaults["order_schema_columns"] = schema_postprocessor[
+                    "order_schema_columns"
+                ]
+            if "coerce_schema_column_types" in schema_postprocessor:
+                defaults["coerce_schema_column_types"] = schema_postprocessor[
+                    "coerce_schema_column_types"
+                ]
+
+        if self.schema:
+            defaults["schema"] = ",".join(f"{k}:{v}" for k, v in self.schema.items())
+
+        if self.column_names_hints:
+            defaults["column_names_hints"] = " ".join(self.column_names_hints)
+
+        alias_settings = self.analyzers.get("AliasLoadTimeAnalyzer", {})
+        if alias_settings.get("aliases"):
+            defaults["column_aliases"] = " ".join(
+                f"{k}:{v}" for k, v in alias_settings["aliases"].items()
+            )
+
+        if self.paper_aliases:
+            parts = []
+            for alias_name, data in self.paper_aliases.items():
+                canonical = data["canonical"]
+                offset = data.get("offset", 0)
+                parts.append(
+                    f"{alias_name}:{canonical}:{offset}"
+                    if offset
+                    else f"{alias_name}:{canonical}"
+                )
+            defaults["paper_aliases"] = " ".join(parts)
 
         return defaults
 

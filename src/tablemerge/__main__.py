@@ -111,9 +111,6 @@ def load_text_or_file(value: str) -> str:
     return value
 
 
-def load_schema(value: str) -> ColumnSchema:
-    return ColumnSchema.parse(load_text_or_file(value))
-
 
 def build_analyzers(
     use_jaccard: bool,
@@ -414,7 +411,7 @@ def parse_args():
         action="store_true",
         help=(
             "Rename numeric columns by comparing their cell values against schema column names "
-            "using spaCy similarity. Runs at load time. Requires -p/--schema-path."
+            "using spaCy similarity. Runs at load time. Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -479,21 +476,26 @@ def parse_args():
         help="Path to a file with alias:target[:offset] basename mappings (one per line)",
     )
     parser.add_argument(
-        "-p",
-        "--schema-path",
+        "--schema",
         type=str,
         help=(
-            "Schema with column:type pairs (file path or inline string). "
+            "Inline schema with column:type pairs. "
             "Required by --filter-schema-columns, --order-schema-columns, "
             "and --coerce-schema-column-types."
         ),
+    )
+    parser.add_argument(
+        "-p",
+        "--schema-path",
+        type=str,
+        help="Path to a schema file with column:type pairs (same format as --schema).",
     )
     parser.add_argument(
         "--filter-schema-columns",
         action="store_true",
         help=(
             "Drop merged tables whose rows share no column names with the schema. "
-            "Requires -p."
+            "Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -501,7 +503,7 @@ def parse_args():
         action="store_true",
         help=(
             "Reorder output columns so schema columns come first (in schema order), "
-            "followed by any remaining columns. Requires -p."
+            "followed by any remaining columns. Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -509,7 +511,7 @@ def parse_args():
         action="store_true",
         help=(
             "Normalize cell string values in schema columns to the declared type. "
-            "Requires -p."
+            "Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -594,12 +596,10 @@ def parse_args():
     )
 
     settings_dict = parse_settings()
-    merge_settings = None
     if settings_dict:
-        merge_settings = MergeSettings.from_dict(settings_dict)
-        parser.set_defaults(**merge_settings.to_argparse_defaults())
+        parser.set_defaults(**MergeSettings.from_dict(settings_dict).to_argparse_defaults())
 
-    return parser.parse_args(), merge_settings
+    return parser.parse_args()
 
 
 def parse_settings():
@@ -616,13 +616,7 @@ def parse_settings():
 
 
 def main():
-    args, merge_settings = parse_args()
-    schema: Optional[ColumnSchema] = (
-        load_schema(args.schema_path) if args.schema_path else None
-    )
-    if schema is None and merge_settings and merge_settings.schema:
-        schema = ColumnSchema.from_settings_dict(merge_settings.schema)
-
+    args = parse_args()
     schema_required = [
         (args.filter_schema_columns, "--filter-schema-columns"),
         (args.order_schema_columns, "--order-schema-columns"),
@@ -630,9 +624,15 @@ def main():
         (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
     ]
     for flag, name in schema_required:
-        if flag and schema is None:
-            print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
+        if flag and not args.schema_path and not args.schema:
+            print(f"Error: {name} requires -schema/--schema-path/--schema.", file=sys.stderr)
             sys.exit(1)
+    schema: Optional[ColumnSchema] = None
+    if args.schema_path:
+        with open(args.schema_path, encoding="utf-8") as f:
+            schema = ColumnSchema.parse(f.read())
+    if args.schema:
+        schema = ColumnSchema.parse(args.schema)
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -650,10 +650,6 @@ def main():
         aliases.update(
             parse_column_aliases(load_text_or_file(args.column_aliases_path))
         )
-    if not aliases and merge_settings:
-        alias_settings = merge_settings.analyzers.get("AliasLoadTimeAnalyzer", {})
-        if alias_settings.get("aliases"):
-            aliases = alias_settings["aliases"]
 
     hints: list[str] = []
     if args.column_names_hints:
@@ -665,8 +661,6 @@ def main():
             normalize_column_name(h)
             for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
         )
-    if not hints and merge_settings and merge_settings.column_names_hints:
-        hints = list(merge_settings.column_names_hints)
     if args.hints_column_alignment is not None and not hints:
         print(
             "Error: --hints-column-alignment requires --column-names-hints or "
@@ -682,11 +676,6 @@ def main():
         paper_aliases.update(
             parse_paper_aliases(load_text_or_file(args.paper_aliases_path))
         )
-    if not paper_aliases and merge_settings and merge_settings.paper_aliases:
-        paper_aliases = {
-            k: PaperAlias(canonical=v["canonical"], offset=v.get("offset", 0))
-            for k, v in merge_settings.paper_aliases.items()
-        }
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
