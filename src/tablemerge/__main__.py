@@ -577,22 +577,16 @@ def parse_args():
     )
     parser.add_argument(
         "--settings",
-        type=str,
+        action="store_true",
         help=(
-            "Inline settings JSON "
-            "(same format as the 'settings' key in tables.metadata.json). "
+            "Load settings.tablemerge.json from the output directory as defaults. "
             "Explicit CLI flags take precedence."
         ),
     )
     parser.add_argument(
-        "--settings-path",
-        type=str,
-        help="Path to a settings JSON file (same format as --settings).",
-    )
-    parser.add_argument(
         "--export-settings",
         action="store_true",
-        help="Write settings.tablemerge.json alongside the metadata file",
+        help="Write settings.tablemerge.json to the output directory",
     )
 
     settings_dict = parse_settings()
@@ -604,15 +598,14 @@ def parse_args():
 
 def parse_settings():
     pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("--settings", type=str)
-    pre_parser.add_argument("--settings-path", type=str)
+    pre_parser.add_argument("--settings", action="store_true")
+    pre_parser.add_argument("-o", "--output-directory", default=".")
     pre_args, _ = pre_parser.parse_known_args()
-    settings_dict: dict = {}
-    if pre_args.settings_path:
-        settings_dict.update(json.loads(Path(pre_args.settings_path).read_text("utf8")))
     if pre_args.settings:
-        settings_dict.update(json.loads(pre_args.settings))
-    return settings_dict
+        settings_path = Path(pre_args.output_directory) / "settings.tablemerge.json"
+        with open(settings_path, encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
 def main():
@@ -625,7 +618,7 @@ def main():
     ]
     for flag, name in schema_required:
         if flag and not args.schema_path and not args.schema:
-            print(f"Error: {name} requires -schema/--schema-path/--schema.", file=sys.stderr)
+            print(f"Error: {name} requires -schema/--schema-path.", file=sys.stderr)
             sys.exit(1)
     schema: Optional[ColumnSchema] = None
     if args.schema_path:
