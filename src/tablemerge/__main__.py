@@ -22,7 +22,6 @@ from .settings import (
     MergeSettings,
     read_settings_file,
     write_settings_file,
-    build_export_settings,
 )
 from .analyzers import (
     LoadTimeAnalyzer,
@@ -104,11 +103,8 @@ def write_merge_metadata(
     return merge_metadata
 
 
-def load_text_or_file(value: str) -> str:
-    path = Path(value)
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return value
+def read_path(path: str) -> str:
+    return Path(path).read_text(encoding="utf-8")
 
 
 def build_analyzers(
@@ -561,14 +557,14 @@ def parse_args():
         help="Write settings.tablemerge.json to the output directory",
     )
 
-    settings = parse_settings()
-    if settings:
-        parser.set_defaults(**settings.to_argparse_defaults())
+    default_settings = parse_default_settings()
+    if default_settings:
+        parser.set_defaults(**default_settings.to_argparse_defaults())
 
     return parser.parse_args()
 
 
-def parse_settings() -> Optional[MergeSettings]:
+def parse_default_settings() -> Optional[MergeSettings]:
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("--settings", action="store_true")
     pre_parser.add_argument("-o", "--output-directory", default=".")
@@ -611,9 +607,7 @@ def main():
     if args.column_aliases:
         aliases.update(parse_column_aliases(args.column_aliases))
     if args.column_aliases_path:
-        aliases.update(
-            parse_column_aliases(load_text_or_file(args.column_aliases_path))
-        )
+        aliases.update(parse_column_aliases(read_path(args.column_aliases_path)))
 
     hints: list[str] = []
     if args.column_names_hints:
@@ -623,7 +617,7 @@ def main():
     if args.column_names_hints_path:
         hints.extend(
             normalize_column_name(h)
-            for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
+            for h in tokenize_schema(read_path(args.column_names_hints_path))
         )
     if args.hints_column_alignment is not None and not hints:
         print(
@@ -637,9 +631,7 @@ def main():
     if args.paper_aliases:
         paper_aliases.update(parse_paper_aliases(args.paper_aliases))
     if args.paper_aliases_path:
-        paper_aliases.update(
-            parse_paper_aliases(load_text_or_file(args.paper_aliases_path))
-        )
+        paper_aliases.update(parse_paper_aliases(read_path(args.paper_aliases_path)))
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
@@ -694,7 +686,7 @@ def main():
 
     if args.export_settings:
         settings_path_file = write_settings_file(
-            build_export_settings(args, schema, hints, aliases, paper_aliases),
+            MergeSettings.from_args(args, schema, hints, aliases, paper_aliases),
             Path(args.output_directory),
         )
         print(f"Settings exported to {settings_path_file}")
