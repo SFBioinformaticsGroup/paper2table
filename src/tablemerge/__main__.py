@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
+from utils.read_path import read_path
 from tablevalidate.schema import TablesFile
 from utils.handle_sigint import handle_sigint
 from utils.tokenize_schema import tokenize_schema
@@ -20,8 +21,6 @@ handle_sigint()
 from .aliases import PaperAlias, parse_column_aliases, parse_paper_aliases
 from .settings import (
     MergeSettings,
-    read_settings_file,
-    write_settings_file,
 )
 from .analyzers import (
     LoadTimeAnalyzer,
@@ -101,14 +100,6 @@ def write_merge_metadata(
 
     print(f"Metadata written to {metadata_out}")
     return merge_metadata
-
-
-def read_path(path: Optional[str], inline: Optional[str]) -> Optional[str]:
-    if path:
-        return Path(path).read_text(encoding="utf-8")
-    if inline:
-        return inline
-    return None
 
 
 def build_analyzers(
@@ -559,7 +550,7 @@ def parse_args():
 
     default_settings = parse_default_settings()
     if default_settings:
-        parser.set_defaults(**default_settings.to_args_defaults())
+        parser.set_defaults(**default_settings.to_dict())
 
     return parser.parse_args()
 
@@ -571,7 +562,7 @@ def parse_default_settings() -> Optional[MergeSettings]:
     pre_args, _ = pre_parser.parse_known_args()
 
     if pre_args.settings:
-        return read_settings_file(Path(pre_args.output_directory))
+        return MergeSettings.read_file(Path(pre_args.output_directory))
     return None
 
 
@@ -647,9 +638,8 @@ def main():
     )
 
     if args.export_settings:
-        settings_path_file = write_settings_file(
-            MergeSettings.from_args(args, schema, hints, aliases, paper_aliases),
-            Path(args.output_directory),
+        settings_path_file = MergeSettings.from_args(args).write_file(
+            Path(args.output_directory)
         )
         print(f"Settings exported to {settings_path_file}")
 
