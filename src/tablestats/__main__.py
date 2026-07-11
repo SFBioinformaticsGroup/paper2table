@@ -16,7 +16,17 @@ def read_paper(paper_path: Path) -> TablesFile:
 
 def compute_papers_stats(path: str) -> GlobalStats:
     input_path = Path(path)
-    stats = GlobalStats(papers=0, tables=0, fragments=0, rows=0, unique_rows=0, rows_with_agreement=0, papers_stats={})
+    stats = GlobalStats(
+        papers=0,
+        tables=0,
+        fragments=0,
+        rows=0,
+        unique_rows=0,
+        rows_with_agreement=0,
+        rows_in_shared_groups=0,
+        rows_with_shared_values=0,
+        papers_stats={},
+    )
 
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
@@ -119,7 +129,13 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
     lines.append(f"  Unique rows: {stats.unique_rows}")
     lines.append(f"  Rows with agreement > 1: {stats.rows_with_agreement}")
     if stats.global_agreement_percentage is not None:
-        lines.append(f"  Global agreement percentage: {stats.global_agreement_percentage:.2f}%")
+        lines.append(
+            f"  Global agreement percentage: {stats.global_agreement_percentage:.2f}%"
+        )
+    if stats.global_shared_values_percentage is not None:
+        lines.append(
+            f"  Global shared values percentage: {stats.global_shared_values_percentage:.2f}%"
+        )
     lines.append("")
     lines.append("Per-Paper Stats:")
     for paper, paper_stats in stats.papers_stats.items():
@@ -137,6 +153,10 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
         if paper_stats.empty_rows_percentage is not None:
             lines.append(
                 f"    Empty rows percentage: {paper_stats.empty_rows_percentage:.2f}%"
+            )
+        if paper_stats.shared_values_percentage is not None:
+            lines.append(
+                f"    Shared values percentage: {paper_stats.shared_values_percentage:.2f}%"
             )
     if columns is not None:
         lines.append("")
