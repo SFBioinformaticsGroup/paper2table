@@ -152,7 +152,7 @@ class MergeSettings:
             }
         return {}
 
-    def to_argparse_defaults(self) -> dict:
+    def to_args_defaults(self) -> dict:
         defaults: dict = {}
         self._apply_basic_flags(defaults)
         self._apply_pretransformer_flags(defaults)

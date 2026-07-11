@@ -559,7 +559,7 @@ def parse_args():
 
     default_settings = parse_default_settings()
     if default_settings:
-        parser.set_defaults(**default_settings.to_argparse_defaults())
+        parser.set_defaults(**default_settings.to_args_defaults())
 
     return parser.parse_args()
 
