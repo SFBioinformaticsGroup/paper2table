@@ -11,6 +11,7 @@ from tablevalidate.schema import (
     TableWithFragments,
     TableFragment,
     Metadata,
+    Curation,
     Row,
     ValueWithAgreement,
 )
@@ -284,6 +285,23 @@ def test_tablesfile_clone_with_no_overrides_returns_equal_instance():
     assert result.tables == original.tables
     assert result.citation == original.citation
     assert result.uuid == original.uuid
+
+
+def test_has_curations_false_when_no_metadata():
+    tablesfile = TablesFile(tables=[], citation="")
+    assert tablesfile.has_curations() is False
+
+
+def test_has_curations_true_when_curations_present():
+    tablesfile = TablesFile(
+        tables=[],
+        citation="",
+        metadata=Metadata(
+            filename=None,
+            curations=[Curation(curator="alice", description="reviewed")],
+        ),
+    )
+    assert tablesfile.has_curations() is True
 
 
 def test_drop_empty_tables_postprocessor_removes_empty_table():

@@ -61,6 +61,14 @@ TRANSFORMER_MAP = {
 }
 
 
+def output_file_has_curations(output_file: Path) -> bool:
+    try:
+        with open(output_file, "r", encoding="utf-8") as f:
+            return TablesFile.model_validate(json.load(f)).has_curations()
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+
+
 def read_resultset_metadata(resultset_dir: str) -> dict:
     try:
         with open(
@@ -179,6 +187,7 @@ def merge_tablesfiles_paths(
     merge_analyzers: list[MergeTimeAnalyzer] = [],
     postprocessors: list[PostProcessor] = [],
     tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
+    force_update: bool = False,
 ):
     loader = TablesFileLoader(
         pretransformers=pretransformers,
@@ -202,6 +211,14 @@ def merge_tablesfiles_paths(
         print(f"{canonical_basename}: MERGE SKIPPED: All tables are empty")
         return
 
+    output_file = output_path / canonical_basename
+    if not force_update and output_file_has_curations(output_file):
+        print(
+            f"{canonical_basename}: MERGE SKIPPED:"
+            " File exists with curations (use --force-update to override)"
+        )
+        return
+
     try:
         merged_tablesfile: TablesFile = TablesFileMerger(
             agreement=agreement,
@@ -213,7 +230,7 @@ def merge_tablesfiles_paths(
             f"{canonical_basename}: MERGED: {len(tablesfiles)} files"
             f" into {len(merged_tablesfile.tables)} tables"
         )
-        with open(output_path / canonical_basename, "w", encoding="utf-8") as outfile:
+        with open(output_file, "w", encoding="utf-8") as outfile:
             json.dump(
                 merged_tablesfile.model_dump(),
                 outfile,
@@ -240,6 +257,7 @@ def merge_resultsets(
     workers: int = 1,
     paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
+    force_update: bool = False,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -286,6 +304,7 @@ def merge_resultsets(
         merge_analyzers=merge_analyzers,
         postprocessors=postprocessors,
         tablesfile_transformer=tablesfile_transformer,
+        force_update=force_update,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
         list(executor.map(worker_fn, canonical_basenames, sources_list))
@@ -547,6 +566,14 @@ def parse_args():
         action="store_true",
         help="Write settings.tablemerge.json to the output directory",
     )
+    parser.add_argument(
+        "--force-update",
+        action="store_true",
+        help=(
+            "Overwrite existing output files even if they contain curations. "
+            "By default, files with curations are skipped with a warning."
+        ),
+    )
 
     default_settings = parse_default_settings()
     if default_settings:
@@ -635,6 +662,7 @@ def main():
         workers=args.workers,
         paper_aliases=paper_aliases,
         paper_filter=args.paper,
+        force_update=args.force_update,
     )
 
     if args.export_settings:

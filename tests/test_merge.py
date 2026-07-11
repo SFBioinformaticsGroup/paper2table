@@ -1,7 +1,14 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
+import json
 import pytest
-from tablemerge.__main__ import group_tablesfiles, filter_groups_by_paper
+from pathlib import Path
+from tablemerge.__main__ import (
+    group_tablesfiles,
+    filter_groups_by_paper,
+    merge_tablesfiles_paths,
+    output_file_has_curations,
+)
 from tablemerge.aliases import parse_paper_aliases, PaperAlias
 from tablemerge.analyzers import JaccardMergeTimeAnalyzer, AliasLoadTimeAnalyzer
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
@@ -24,6 +31,8 @@ from tablevalidate.schema import (
     TablesFile,
     TableWithFragments,
     TableFragment,
+    Metadata,
+    Curation,
     Row,
     ValueWithAgreement,
 )
@@ -1928,4 +1937,184 @@ def test_unmatched_right_row_inserted_before_higher_row_number():
         Row(family="x", position="1", agreement_level_=1, row_=0),
         Row(family="b", position="1", agreement_level_=1, row_=1),
         Row(family="c", position="1", agreement_level_=1, row_=2),
+    ]
+
+
+# --- output_file_has_curations ---
+
+
+def write_tablesfile_json(path: Path, tablesfile: TablesFile) -> None:
+    path.write_text(json.dumps(tablesfile.model_dump()))
+
+
+def test_output_file_has_curations_false_when_file_missing(tmp_path):
+    assert output_file_has_curations(tmp_path / "missing.tables.json") is False
+
+
+def test_output_file_has_curations_false_when_no_metadata(tmp_path):
+    output_file = tmp_path / "paper.tables.json"
+    write_tablesfile_json(output_file, TablesFile(tables=[], citation=""))
+    assert output_file_has_curations(output_file) is False
+
+
+def test_output_file_has_curations_false_when_curations_empty(tmp_path):
+    output_file = tmp_path / "paper.tables.json"
+    write_tablesfile_json(
+        output_file,
+        TablesFile(tables=[], citation="", metadata=Metadata(filename=None, curations=[])),
+    )
+    assert output_file_has_curations(output_file) is False
+
+
+def test_output_file_has_curations_true_when_curations_present(tmp_path):
+    output_file = tmp_path / "paper.tables.json"
+    write_tablesfile_json(
+        output_file,
+        TablesFile(
+            tables=[],
+            citation="",
+            metadata=Metadata(
+                filename=None,
+                curations=[Curation(curator="alice")],
+            ),
+        ),
+    )
+    assert output_file_has_curations(output_file) is True
+
+
+# --- merge_tablesfiles_paths guard ---
+
+
+def write_source_tablesfile(source_dir: Path, basename: str, rows: list[Row]) -> None:
+    tablesfile = TablesFile(
+        tables=[TableWithFragments(table_fragments=[TableFragment(rows=rows, page=1)])],
+        citation="",
+    )
+    (source_dir / basename).write_text(json.dumps(tablesfile.model_dump()))
+
+
+def run_merge(
+    source_dir: Path,
+    output_path: Path,
+    basename: str = "paper.tables.json",
+    force_update: bool = False,
+) -> None:
+    output_path.mkdir(parents=True, exist_ok=True)
+    merge_tablesfiles_paths(
+        canonical_basename=basename,
+        sources=[(str(source_dir), basename, 0)],
+        output_path=output_path,
+        metadata_map={},
+        agreement=SimpleCountAgreement(),
+        force_update=force_update,
+    )
+
+
+def test_merge_writes_output_when_file_does_not_exist(tmp_path):
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    write_source_tablesfile(source_dir, "paper.tables.json", [Row(family="Apiaceae")])
+
+    output_path = tmp_path / "output"
+    run_merge(source_dir, output_path)
+
+    output_file = output_path / "paper.tables.json"
+    assert output_file.exists()
+    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="apiaceae", agreement_level_=1, row_=0)
+    ]
+
+
+def test_merge_skips_when_output_exists_with_curations(tmp_path):
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    write_source_tablesfile(source_dir, "paper.tables.json", [Row(family="Apiaceae")])
+
+    output_path = tmp_path / "output"
+    output_path.mkdir()
+    output_file = output_path / "paper.tables.json"
+    sentinel_content = json.dumps(
+        TablesFile(
+            tables=[],
+            citation="sentinel",
+            metadata=Metadata(filename=None, curations=[Curation(curator="alice")]),
+        ).model_dump()
+    )
+    output_file.write_text(sentinel_content)
+
+    run_merge(source_dir, output_path, force_update=False)
+
+    assert output_file.read_text() == sentinel_content
+
+
+def test_merge_overwrites_when_force_update_and_output_has_curations(tmp_path):
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    write_source_tablesfile(source_dir, "paper.tables.json", [Row(family="Apiaceae")])
+
+    output_path = tmp_path / "output"
+    output_path.mkdir()
+    output_file = output_path / "paper.tables.json"
+    output_file.write_text(
+        json.dumps(
+            TablesFile(
+                tables=[],
+                citation="sentinel",
+                metadata=Metadata(filename=None, curations=[Curation(curator="alice")]),
+            ).model_dump()
+        )
+    )
+
+    run_merge(source_dir, output_path, force_update=True)
+
+    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="apiaceae", agreement_level_=1, row_=0)
+    ]
+
+
+def test_merge_overwrites_when_output_exists_with_no_curations(tmp_path):
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    write_source_tablesfile(source_dir, "paper.tables.json", [Row(family="Apiaceae")])
+
+    output_path = tmp_path / "output"
+    output_path.mkdir()
+    output_file = output_path / "paper.tables.json"
+    output_file.write_text(
+        json.dumps(TablesFile(tables=[], citation="old content").model_dump())
+    )
+
+    run_merge(source_dir, output_path, force_update=False)
+
+    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="apiaceae", agreement_level_=1, row_=0)
+    ]
+
+
+def test_merge_overwrites_when_output_exists_with_empty_curations(tmp_path):
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    write_source_tablesfile(source_dir, "paper.tables.json", [Row(family="Apiaceae")])
+
+    output_path = tmp_path / "output"
+    output_path.mkdir()
+    output_file = output_path / "paper.tables.json"
+    output_file.write_text(
+        json.dumps(
+            TablesFile(
+                tables=[],
+                citation="old content",
+                metadata=Metadata(filename=None, curations=[]),
+            ).model_dump()
+        )
+    )
+
+    run_merge(source_dir, output_path, force_update=False)
+
+    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(family="apiaceae", agreement_level_=1, row_=0)
     ]

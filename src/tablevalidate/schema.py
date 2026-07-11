@@ -168,6 +168,9 @@ class TablesFile(BaseModel):
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
 
+    def has_curations(self) -> bool:
+        return bool(self.metadata and self.metadata.curations)
+
     def clone(
         self,
         tables: Optional[List[Table]] = None,
