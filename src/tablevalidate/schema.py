@@ -1,5 +1,5 @@
 from typing import List, Union, Dict, Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from utils.column_values import normalize_column_value
 from utils.str import normalize_str
@@ -22,6 +22,17 @@ class Row(BaseModel):
     row_: Optional[int] = Field(None)
 
     model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def coerce_extra_columns(self) -> "Row":
+        if self.__pydantic_extra__:
+            for key, value in self.__pydantic_extra__.items():
+                if isinstance(value, list):
+                    self.__pydantic_extra__[key] = [
+                        ValueWithAgreement.model_validate(v) if isinstance(v, dict) else v
+                        for v in value
+                    ]
+        return self
 
     def __getitem__(self, item: str) -> ColumnValue:
         return self.__dict__[item]
