@@ -182,20 +182,20 @@ def test_metadata_no_sources_key():
 
 
 def test_build_html_structure():
-    out = build_html({}, {})
+    out = build_html({}, {}, {})
     assert "<!DOCTYPE html>" in out
     assert "<title>Paper2Table Viewer</title>" in out
     assert "</html>" in out
 
 
 def test_build_html_no_metadata_section_when_empty():
-    out = build_html({}, {})
+    out = build_html({}, {}, {})
     assert "<h2>Metadata</h2>" not in out
 
 
 def test_build_html_includes_paper():
     papers = {"mypaper.tables.json": TablesFile(citation="Smith 2020", tables=[])}
-    out = build_html({}, papers)
+    out = build_html({}, {}, papers)
     assert "mypaper.tables.json" in out
     assert "Smith 2020" in out
 
