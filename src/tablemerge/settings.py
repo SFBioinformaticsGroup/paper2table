@@ -14,6 +14,7 @@ class MergeSettings:
     drop_empty_tables: bool = True
     only_semantic_columns: bool = False
     remove_header_rows: bool = False
+    pretty: bool = False
     column_names_hints: list[str] = field(default_factory=list)
     schema: dict[str, str] = field(default_factory=dict)
     pretransformers: dict[str, dict] = field(default_factory=dict)
@@ -30,6 +31,7 @@ class MergeSettings:
             drop_empty_tables=data.get("drop_empty_tables", True),
             only_semantic_columns=data.get("only_semantic_columns", False),
             remove_header_rows=data.get("remove_header_rows", False),
+            pretty=data.get("pretty", False),
             column_names_hints=data.get("column_names_hints", []),
             schema=data.get("schema", {}),
             pretransformers=data.get("pretransformers", {}),
@@ -54,6 +56,7 @@ class MergeSettings:
             drop_empty_tables=args.drop_empty_tables,
             only_semantic_columns=args.only_semantic_columns,
             remove_header_rows=args.remove_header_rows,
+            pretty=args.pretty,
             column_names_hints=hints,
             schema=schema.serialize() if schema else {},
             pretransformers=cls._pretransformers_from_args(args),
@@ -168,6 +171,7 @@ class MergeSettings:
         defaults["drop_empty_tables"] = self.drop_empty_tables
         defaults["only_semantic_columns"] = self.only_semantic_columns
         defaults["remove_header_rows"] = self.remove_header_rows
+        defaults["pretty"] = self.pretty
 
     def _apply_pretransformer_flags(self, defaults: dict) -> None:
         if not self.pretransformers:
