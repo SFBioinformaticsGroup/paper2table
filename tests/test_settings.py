@@ -35,8 +35,8 @@ def test_from_args_maps_fields_and_ignores_extras():
         column_names_hints_path=None,
         schema="family:str",
         schema_path=None,
-        # extra args not in MergeSettings
         paths=["dir1", "dir2"],
+        # extra args not in MergeSettings
         output_directory=".",
         metadata_only=False,
         export_settings=False,
@@ -53,6 +53,7 @@ def test_from_args_maps_fields_and_ignores_extras():
     assert settings.column_aliases == "familia:family"
     assert settings.schema == "family:str"
     assert settings.paper_aliases is None
+    assert settings.paths == ["dir1", "dir2"]
 
 
 def test_from_args_reads_schema_from_path():
@@ -98,9 +99,68 @@ def test_from_args_reads_schema_from_path():
     assert settings.schema == "name:str\nspecies:str"
 
 
+def test_from_args_paths_stored_as_list():
+    args = Namespace(
+        agreement_method="simple-count",
+        drop_empty_columns=True,
+        drop_empty_tables=True,
+        only_semantic_columns=False,
+        remove_header_rows=False,
+        pretty=False,
+        filter_title_rows=True,
+        jaccard_column_alignment=False,
+        column_alignment_threshold=0.5,
+        column_name_semantic_alignment=False,
+        column_value_semantic_alignment=False,
+        semantic_language="en",
+        hints_column_alignment=None,
+        fix_reversed_column_values=False,
+        strip_leading_row_numbers=False,
+        normalize_punctuation=False,
+        split_conjunction_columns=False,
+        transform_tablesfile=None,
+        filter_schema_columns=False,
+        order_schema_columns=False,
+        coerce_schema_column_types=False,
+        column_aliases=None,
+        column_aliases_path=None,
+        paper_aliases=None,
+        paper_aliases_path=None,
+        column_names_hints=None,
+        column_names_hints_path=None,
+        schema=None,
+        schema_path=None,
+        paths=["paper_a/output", "paper_b/output", "paper_c/output"],
+        output_directory=".",
+        metadata_only=False,
+        export_settings=False,
+        workers=1,
+        paper=None,
+        settings=False,
+    )
+    settings = MergeSettings.from_args(args)
+    assert settings.paths == ["paper_a/output", "paper_b/output", "paper_c/output"]
+
+
+def test_from_dict_includes_paths():
+    settings = MergeSettings.from_dict({"paths": ["dir_x", "dir_y"]})
+    assert settings.paths == ["dir_x", "dir_y"]
+
+
+def test_to_dict_includes_paths():
+    settings = MergeSettings.from_dict({"paths": ["dir_x", "dir_y"]})
+    assert settings.to_dict()["paths"] == ["dir_x", "dir_y"]
+
+
+def test_to_dict_paths_defaults_to_empty_list():
+    settings = MergeSettings.from_dict({})
+    assert settings.to_dict()["paths"] == []
+
+
 def test_merge_settings_from_dict_defaults():
     settings = MergeSettings.from_dict({})
     assert settings == MergeSettings(
+        paths=[],
         agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
