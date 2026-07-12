@@ -61,3 +61,19 @@ def test_normalize_row_preserves_none_sources():
     ).normalize() == Row(
         family="apiaceae", scientific_name="ammi majus l.", sources_=None
     )
+
+
+def test_normalize_row_with_decomposed_accent_in_str_value():
+    # "lant" + e (U+0065) + combining acute (U+0301) + "n" — NFD/decomposed form
+    decomposed = "lantén"
+    # "lant" + é (U+00E9) + "n" — NFC/precomposed form
+    precomposed = "lantén"
+    assert Row(genus=decomposed).normalize() == Row(genus=precomposed)
+
+
+def test_normalize_row_with_decomposed_accent_in_agreement_value():
+    decomposed = "lantén"
+    precomposed = "lantén"
+    assert Row(genus=[ValueWithAgreement(value=decomposed, agreement_level=1)]).normalize() == Row(
+        genus=[ValueWithAgreement(value=precomposed, agreement_level=1)]
+    )

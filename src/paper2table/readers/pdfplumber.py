@@ -97,6 +97,6 @@ def read_tables(
         column_names_hints=column_names_hints,
         mapping=mapping,
         read_document=lambda pdf_path: PDFPlumberDocument(
-            pdfplumber.open(pdf_path, unicode_norm="NFKD", repair=True)
+            pdfplumber.open(pdf_path, unicode_norm="NFKC", repair=True)
         ),
     )
