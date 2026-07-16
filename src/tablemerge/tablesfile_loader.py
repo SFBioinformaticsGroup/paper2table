@@ -8,7 +8,7 @@ from tablemerge.tablesfile_transformer import (
     NullTablesfileTransformer,
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner
-from tablemerge.analyzers import LoadTimeAnalyzer
+from tablemerge.analyzers import LoadTimeAnalyzer, ColumnNamesNormalizerLoadTimeAnalyzer
 
 
 class TablesFileLoader:
@@ -21,7 +21,7 @@ class TablesFileLoader:
     ):
         self.pretransformers = pretransformers
         self.tablesfile_transformer = tablesfile_transformer
-        self.analyzers = analyzers
+        self.analyzers = [ColumnNamesNormalizerLoadTimeAnalyzer()] + list(analyzers)
         self.posttransformers = posttransformers
 
     def load(self, path: Path) -> TablesFile:

@@ -102,6 +102,25 @@ class HintsLoadTimeAnalyzer:
         return result
 
 
+class ColumnNamesNormalizerLoadTimeAnalyzer:
+    """Always-on: normalizes every column name to snake_case ASCII.
+
+    Runs before all other load-time analyzers so that the rest of the chain
+    (aliases, hints, semantic) only ever sees already-normalized names.
+    """
+
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]:
+        return {
+            col: normalize_column_name(col)
+            for col in column_names
+            if normalize_column_name(col) != col
+        }
+
+
 class AliasLoadTimeAnalyzer:
     """Enabled by --column-aliases / --column-aliases-path. Runs at load time via LoadTimeColumnAligner.
 

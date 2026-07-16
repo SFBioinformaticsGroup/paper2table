@@ -135,6 +135,13 @@ def test_alias_deduplicates_duplicate_column_names():
     assert result == {"familia": "family"}
 
 
+def test_alias_matches_denormalized_column_name():
+    result = AliasLoadTimeAnalyzer({"utilized_part": "part_used"}).build_mapping(
+        ["Utilized part"], []
+    )
+    assert result == {"Utilized part": "part_used"}
+
+
 def test_alias_remove_column_produces_remove_sentinel():
     result = AliasLoadTimeAnalyzer({"notes": REMOVE_COLUMN}).build_mapping(
         ["family", "notes"], []

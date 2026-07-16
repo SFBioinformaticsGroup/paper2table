@@ -1432,6 +1432,22 @@ def test_merge_tablesfiles_normalizes_citation_dashes():
     assert result.citation == "Perez-Vílchez, 2020"
 
 
+def test_loader_normalizes_column_names():
+    loader = TablesFileLoader()
+    tablesfile = loader.align_tablesfile(
+        wrap([Row(**{"Nombre vernáculo toba (Nombre criollo)": "menta"})])
+    )
+    result = merge_tablesfiles([tablesfile])
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(
+            nombre_vernaculo_toba_nombre_criollo="menta",
+            agreement_level_=1,
+            row_=0,
+        )
+    ]
+
+
 def test_alias_applies_with_single_tablesfile():
     loader = TablesFileLoader(analyzers=[AliasLoadTimeAnalyzer({"familia": "family"})])
     tablesfile = loader.align_tablesfile(
