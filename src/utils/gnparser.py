@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 
 
 def parse_scientific_name(name: str) -> str:
@@ -17,6 +18,9 @@ def parse_scientific_name(name: str) -> str:
             "  go install github.com/gnames/gnparser/gnparser@latest\n"
             "or download a binary from https://github.com/gnames/gnparser/releases"
         )
+    except subprocess.CalledProcessError:
+        print(f"Warning: gnparser could not parse {name!r}, keeping as-is", file=sys.stderr)
+        return name
     record = json.loads(result.stdout)
     # using canonical form in order to
     # remove author, if possible
