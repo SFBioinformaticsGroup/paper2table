@@ -25,8 +25,18 @@ class TablesFileLoader:
         self.posttransformers = posttransformers
 
     def load(self, path: Path) -> TablesFile:
-        with open(path, "r", encoding="utf-8") as f:
-            tablesfile = TablesFile.model_validate(json.load(f))
+        try:
+            f_handle = open(path, "r", encoding="utf-8")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"{path}: NOT FOUND") from None
+        with f_handle:
+            try:
+                data = json.load(f_handle)
+            except json.JSONDecodeError as e:
+                raise json.JSONDecodeError(
+                    f"{path}: MALFORMED JSON: {e.msg}", e.doc, e.pos
+                ) from None
+            tablesfile = TablesFile.model_validate(data)
         tablesfile = self.transform_tablesfile(tablesfile, self.pretransformers)
         tablesfile = self.tablesfile_transformer.transform(tablesfile)
         tablesfile = self.align_tablesfile(tablesfile)

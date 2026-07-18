@@ -3,7 +3,15 @@ import sys
 from pathlib import Path
 from typing import List, Literal
 
-from .validate import validate_file
+from .validate import validate_file, MalformedJsonError
+
+
+def error_label(error: Exception) -> str:
+    if isinstance(error, MalformedJsonError):
+        return "MALFORMED JSON"
+    if isinstance(error, FileNotFoundError):
+        return "NOT FOUND"
+    return "INVALID"
 
 
 def validate_files(paths: List[Path], mode: Literal["quiet", "all", "default"]) -> int:
@@ -17,13 +25,13 @@ def validate_files(paths: List[Path], mode: Literal["quiet", "all", "default"]) 
                 return 1
 
         elif mode == "all":
-            status = "INVALID" if error else "VALID"
+            status = error_label(error) if error else "VALID"
             print(f"{path}: {status}")
-            if error:
+            if error and not isinstance(error, FileNotFoundError):
                 print(error)
         elif error:
-            print(f"{path}: INVALID")
-            if error:
+            print(f"{path}: {error_label(error)}")
+            if not isinstance(error, FileNotFoundError):
                 print(error)
             return 1
         else:
