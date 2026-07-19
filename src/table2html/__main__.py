@@ -12,7 +12,7 @@ from tablevalidate.schema import (
 )
 
 
-def load_papers_with_metadata(directory: Path) -> tuple[dict, dict[str, TablesFile]]:
+def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, TablesFile]]:
     metadata: dict = {}
     metadata_file = directory / "tables.metadata.json"
     if metadata_file.exists():
@@ -20,7 +20,16 @@ def load_papers_with_metadata(directory: Path) -> tuple[dict, dict[str, TablesFi
             metadata = json.load(f)
     if metadata.get("reader") == "tablemerge" and "agreement_method" not in metadata:
         metadata = {**metadata, "agreement_method": "simple-count"}
-    return metadata, load_papers(directory)
+
+    settings: dict = {}
+    settings_file = directory / "settings.tablemerge.json"
+    if settings_file.exists():
+        with open(settings_file, "r", encoding="utf-8") as f:
+            settings = json.load(f)
+    elif isinstance(metadata.get("settings"), dict):
+        settings = metadata["settings"]
+
+    return metadata, settings, load_papers(directory)
 
 
 def _reader_emoji(reader: str) -> str:
@@ -86,7 +95,7 @@ def flatten_dict(data: dict, prefix: str, rows: list[tuple[str, str]]) -> None:
 def flatten_metadata_rows(metadata: dict) -> list[tuple[str, str]]:
     rows = []
     for key, value in metadata.items():
-        if key == "sources":
+        if key in ("sources", "settings", "agreement_method"):
             continue
         if isinstance(value, dict):
             flatten_dict(value, "", rows)
@@ -95,6 +104,18 @@ def flatten_metadata_rows(metadata: dict) -> list[tuple[str, str]]:
         else:
             rows.append((key, str(value)))
     return rows
+
+
+def build_settings_html(settings: dict) -> list[str]:
+    html = ["<h2>Settings</h2>"]
+    rows: list[tuple[str, str]] = []
+    flatten_dict(settings, "", rows)
+    if rows:
+        html.append("<div class='table-wrapper'><table class='table metadata-table'>")
+        for key, value in rows:
+            html.append(f"<tr><th>{key}</th><td>{value.replace('\n', '<br>')}</td></tr>")
+        html.append("</table></div>")
+    return html
 
 
 def build_metadata_html(metadata: dict) -> list[str]:
@@ -378,7 +399,7 @@ def build_css() -> list[str]:
     ]
 
 
-def build_html(metadata: dict, papers: dict[str, TablesFile]) -> str:
+def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) -> str:
     html = ["<!DOCTYPE html>", "<html>", "<head>"]
     html.append("<meta charset='utf-8'>")
     html.append("<title>Paper2Table Viewer</title>")
@@ -393,6 +414,8 @@ def build_html(metadata: dict, papers: dict[str, TablesFile]) -> str:
     html.append("<h1>Paper2Table Viewer</h1>")
     if metadata:
         html.extend(build_metadata_html(metadata))
+    if settings:
+        html.extend(build_settings_html(settings))
 
     uuid_to_reader: dict[str, str] = {
         s["uuid"]: s["reader"]
@@ -445,8 +468,8 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    metadata, papers = load_papers_with_metadata(Path(args.input_dir))
-    html = build_html(metadata, papers)
+    metadata, settings, papers = load_papers_with_metadata(Path(args.input_dir))
+    html = build_html(metadata, settings, papers)
     save_html(html, Path(args.out))
 
     print(f"Viewer generated: {args.out}")

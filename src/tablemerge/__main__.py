@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
+from utils.read_path import read_path
 from tablevalidate.schema import TablesFile
 from utils.handle_sigint import handle_sigint
 from utils.tokenize_schema import tokenize_schema
@@ -18,6 +19,9 @@ from utils.column_schema import ColumnSchema
 handle_sigint()
 
 from .aliases import PaperAlias, parse_column_aliases, parse_paper_aliases
+from .settings import (
+    MergeSettings,
+)
 from .analyzers import (
     LoadTimeAnalyzer,
     MergeTimeAnalyzer,
@@ -71,7 +75,6 @@ def write_merge_metadata(
     resultset_dirs: list[str],
     output_path: Path,
     resultset_metadata: dict[str, dict],
-    settings: dict,
 ):
     sources = []
     for resultset_dir in resultset_dirs:
@@ -87,7 +90,6 @@ def write_merge_metadata(
         "reader": "tablemerge",
         "uuid": str(uuid4()),
         "datetime": dt.now().isoformat(),
-        "settings": settings,
         "sources": sources,
     }
 
@@ -98,17 +100,6 @@ def write_merge_metadata(
 
     print(f"Metadata written to {metadata_out}")
     return merge_metadata
-
-
-def load_text_or_file(value: str) -> str:
-    path = Path(value)
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return value
-
-
-def load_schema(value: str) -> ColumnSchema:
-    return ColumnSchema.parse(load_text_or_file(value))
 
 
 def build_analyzers(
@@ -168,7 +159,11 @@ def filter_groups_by_paper(
     paper_filter: str,
 ) -> dict[str, list[TablesFileSource]]:
     pattern = paper_filter.removesuffix(".tables.json")
-    return {k: v for k, v in groups.items() if re.fullmatch(pattern, k.removesuffix(".tables.json"))}
+    return {
+        k: v
+        for k, v in groups.items()
+        if re.fullmatch(pattern, k.removesuffix(".tables.json"))
+    }
 
 
 def merge_tablesfiles_paths(
@@ -234,16 +229,12 @@ def merge_resultsets(
     output_dir: str,
     metadata_only=False,
     agreement_method: str = "simple-count",
-    drop_empty_columns: bool = True,
-    drop_empty_tables: bool = True,
-    only_semantic_columns: bool = False,
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
     pretransformers: list[FragmentTransformer] = [],
     load_analyzers: list[LoadTimeAnalyzer] = [],
     merge_analyzers: list[MergeTimeAnalyzer] = [],
-    schema: Optional[ColumnSchema] = None,
     postprocessors: list[PostProcessor] = [],
     tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
     workers: int = 1,
@@ -257,27 +248,7 @@ def merge_resultsets(
     if remove_header_rows:
         posttransformers.append(FilterHeaderRowsTransformer(hints))
 
-    settings = {
-        "agreement_method": agreement_method,
-        "pretransformers": {type(t).__name__: t.settings for t in pretransformers},
-        "tablesfile_transformer": tablesfile_transformer.settings,
-        "drop_empty_columns": drop_empty_columns,
-        "drop_empty_tables": drop_empty_tables,
-        "only_semantic_columns": only_semantic_columns,
-        "remove_header_rows": remove_header_rows,
-        "column_names_hints": hints,
-        "schema": schema.serialize() if schema else {},
-        "analyzers": {
-            **{type(a).__name__: a.settings for a in load_analyzers},
-            **{type(a).__name__: a.settings for a in merge_analyzers},
-        },
-        "postprocessors": {type(p).__name__: p.settings for p in postprocessors},
-        "paper_aliases": {
-            k: {"canonical": v.canonical, "offset": v.offset}
-            for k, v in paper_aliases.items()
-        },
-    }
-    write_merge_metadata(resultset_dirs, output_path, resultset_metadata, settings)
+    write_merge_metadata(resultset_dirs, output_path, resultset_metadata)
 
     if metadata_only:
         return
@@ -399,7 +370,7 @@ def parse_args():
         action="store_true",
         help=(
             "Rename numeric columns by comparing their cell values against schema column names "
-            "using spaCy similarity. Runs at load time. Requires -p/--schema-path."
+            "using spaCy similarity. Runs at load time. Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -464,21 +435,26 @@ def parse_args():
         help="Path to a file with alias:target[:offset] basename mappings (one per line)",
     )
     parser.add_argument(
-        "-p",
-        "--schema-path",
+        "--schema",
         type=str,
         help=(
-            "Schema with column:type pairs (file path or inline string). "
+            "Inline schema with column:type pairs. "
             "Required by --filter-schema-columns, --order-schema-columns, "
             "and --coerce-schema-column-types."
         ),
+    )
+    parser.add_argument(
+        "-p",
+        "--schema-path",
+        type=str,
+        help="Path to a schema file with column:type pairs (same format as --schema).",
     )
     parser.add_argument(
         "--filter-schema-columns",
         action="store_true",
         help=(
             "Drop merged tables whose rows share no column names with the schema. "
-            "Requires -p."
+            "Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -486,7 +462,7 @@ def parse_args():
         action="store_true",
         help=(
             "Reorder output columns so schema columns come first (in schema order), "
-            "followed by any remaining columns. Requires -p."
+            "followed by any remaining columns. Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -494,7 +470,7 @@ def parse_args():
         action="store_true",
         help=(
             "Normalize cell string values in schema columns to the declared type. "
-            "Requires -p."
+            "Requires -schema/--schema-path."
         ),
     )
     parser.add_argument(
@@ -558,7 +534,36 @@ def parse_args():
         default=1,
         help="Number of parallel worker threads for merging (default: 1)",
     )
+    parser.add_argument(
+        "--settings",
+        action="store_true",
+        help=(
+            "Load settings.tablemerge.json from the output directory as defaults. "
+            "Explicit CLI flags take precedence."
+        ),
+    )
+    parser.add_argument(
+        "--export-settings",
+        action="store_true",
+        help="Write settings.tablemerge.json to the output directory",
+    )
+
+    default_settings = parse_default_settings()
+    if default_settings:
+        parser.set_defaults(**default_settings.to_dict())
+
     return parser.parse_args()
+
+
+def parse_default_settings() -> Optional[MergeSettings]:
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--settings", action="store_true")
+    pre_parser.add_argument("-o", "--output-directory", default=".")
+    pre_args, _ = pre_parser.parse_known_args()
+
+    if pre_args.settings:
+        return MergeSettings.read_file(Path(pre_args.output_directory))
+    return None
 
 
 def main():
@@ -570,12 +575,24 @@ def main():
         (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
     ]
     for flag, name in schema_required:
-        if flag and not args.schema_path:
-            print(f"Error: {name} requires -p/--schema-path.", file=sys.stderr)
+        if flag and not args.schema_path and not args.schema:
+            print(f"Error: {name} requires -schema/--schema-path.", file=sys.stderr)
             sys.exit(1)
-    schema: Optional[ColumnSchema] = (
-        load_schema(args.schema_path) if args.schema_path else None
-    )
+
+    schema: ColumnSchema | None = try_parse_schema(args)
+    aliases: dict[str, str] = try_parse_column_aliases(args)
+    hints: list[str] = try_parse_hints(args)
+    paper_aliases: dict[str, PaperAlias] = try_parse_paper_aliases(args)
+    pretransformers = try_parse_pretransformers(args)
+
+    if args.hints_column_alignment is not None and not hints:
+        print(
+            "Error: --hints-column-alignment requires --column-names-hints or "
+            "--column-names-hints-path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     postprocessors = build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -585,40 +602,6 @@ def main():
         drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
     )
-
-    aliases: dict[str, str] = {}
-    if args.column_aliases:
-        aliases.update(parse_column_aliases(args.column_aliases))
-    if args.column_aliases_path:
-        aliases.update(
-            parse_column_aliases(load_text_or_file(args.column_aliases_path))
-        )
-
-    hints: list[str] = []
-    if args.column_names_hints:
-        hints.extend(
-            normalize_column_name(h) for h in tokenize_schema(args.column_names_hints)
-        )
-    if args.column_names_hints_path:
-        hints.extend(
-            normalize_column_name(h)
-            for h in tokenize_schema(load_text_or_file(args.column_names_hints_path))
-        )
-    if args.hints_column_alignment is not None and not hints:
-        print(
-            "Error: --hints-column-alignment requires --column-names-hints or "
-            "--column-names-hints-path.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    paper_aliases: dict[str, PaperAlias] = {}
-    if args.paper_aliases:
-        paper_aliases.update(parse_paper_aliases(args.paper_aliases))
-    if args.paper_aliases_path:
-        paper_aliases.update(
-            parse_paper_aliases(load_text_or_file(args.paper_aliases_path))
-        )
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
@@ -632,6 +615,36 @@ def main():
         hints=hints,
     )
 
+    tablesfile_transformer = TRANSFORMER_MAP.get(
+        args.transform_tablesfile, NullTablesfileTransformer()
+    )
+
+    merge_resultsets(
+        args.paths,
+        args.output_directory,
+        metadata_only=args.metadata_only,
+        agreement_method=args.agreement_method,
+        remove_header_rows=args.remove_header_rows,
+        hints=hints,
+        pretty=args.pretty,
+        pretransformers=pretransformers,
+        load_analyzers=load_analyzers,
+        merge_analyzers=merge_analyzers,
+        postprocessors=postprocessors,
+        tablesfile_transformer=tablesfile_transformer,
+        workers=args.workers,
+        paper_aliases=paper_aliases,
+        paper_filter=args.paper,
+    )
+
+    if args.export_settings:
+        settings_path_file = MergeSettings.from_args(args).write_file(
+            Path(args.output_directory)
+        )
+        print(f"Settings exported to {settings_path_file}")
+
+
+def try_parse_pretransformers(args):
     pretransformers: list[FragmentTransformer] = []
     if args.fix_reversed_column_values:
         pretransformers.append(FragmentValuesReverser(args.semantic_language))
@@ -644,32 +657,34 @@ def main():
     if args.split_conjunction_columns:
         pretransformers.append(SplitColumnTransformer(args.semantic_language))
     pretransformers.append(FilterEmptyRowsTransformer())
+    return pretransformers
 
-    tablesfile_transformer = TRANSFORMER_MAP.get(
-        args.transform_tablesfile, NullTablesfileTransformer()
-    )
 
-    merge_resultsets(
-        args.paths,
-        args.output_directory,
-        metadata_only=args.metadata_only,
-        agreement_method=args.agreement_method,
-        drop_empty_columns=args.drop_empty_columns,
-        drop_empty_tables=args.drop_empty_tables,
-        only_semantic_columns=args.only_semantic_columns,
-        remove_header_rows=args.remove_header_rows,
-        hints=hints,
-        pretty=args.pretty,
-        pretransformers=pretransformers,
-        load_analyzers=load_analyzers,
-        merge_analyzers=merge_analyzers,
-        schema=schema,
-        postprocessors=postprocessors,
-        tablesfile_transformer=tablesfile_transformer,
-        workers=args.workers,
-        paper_aliases=paper_aliases,
-        paper_filter=args.paper,
-    )
+def try_parse_column_aliases(args):
+    alias_str = read_path(args.column_aliases_path, inline=args.column_aliases)
+    if alias_str:
+        return parse_column_aliases(alias_str)
+    return {}
+
+
+def try_parse_paper_aliases(args):
+    paper_aliases_str = read_path(args.paper_aliases_path, inline=args.paper_aliases)
+    if paper_aliases_str:
+        return parse_paper_aliases(paper_aliases_str)
+    return {}
+
+
+def try_parse_hints(args):
+    hints_str = read_path(args.column_names_hints_path, inline=args.column_names_hints)
+    if hints_str:
+        return [normalize_column_name(h) for h in tokenize_schema(hints_str)]
+    return []
+
+
+def try_parse_schema(args):
+    schema_str = read_path(args.schema_path, inline=args.schema)
+    if schema_str:
+        return ColumnSchema.parse(schema_str)
 
 
 if __name__ == "__main__":

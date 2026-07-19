@@ -122,14 +122,6 @@ def test_filter_title_rows_transformer_keeps_title_after_first_three_rows():
     )
 
 
-def test_filter_title_rows_transformer_settings_is_empty():
-    assert FilterTitleRowsTransformer().settings == {"enabled": True}
-
-
-def test_fragment_values_reverser_settings_contains_language():
-    reverser = make_reverser(set())
-    assert reverser.settings == {"language": "en"}
-
 
 @pytest.mark.integration
 def test_fragment_values_reverser_corrects_fully_reversed_fragment(en_spacy_model):
@@ -193,10 +185,6 @@ def test_split_column_transformer_returns_none_unknown_language():
     transformer = SplitColumnTransformer("de")
     assert transformer.find_conjunction_split("stadt_und_land") is None
 
-
-def test_split_column_transformer_settings():
-    transformer = SplitColumnTransformer("en")
-    assert transformer.settings == {"language": "en"}
 
 
 @pytest.mark.integration
@@ -411,5 +399,3 @@ def test_normalize_punctuation_preserves_row_special_fields():
     )
 
 
-def test_normalize_punctuation_settings():
-    assert NormalizePunctuationTransformer().settings == {"enabled": True}

@@ -11,26 +11,15 @@ from tablevalidate.schema import (
 
 
 class TablesfileTransformer(Protocol):
-    @property
-    def settings(self) -> dict: ...
-
     def transform(self, tablesfile: TablesFile) -> TablesFile: ...
 
 
 class NullTablesfileTransformer:
-    @property
-    def settings(self) -> dict:
-        return {}
-
     def transform(self, tablesfile: TablesFile) -> TablesFile:
         return tablesfile
 
 
 class FragmentsExploder:
-    @property
-    def settings(self) -> dict:
-        return {"type": "exploder"}
-
     def transform(self, tablesfile: TablesFile) -> TablesFile:
         expanded_tables: list[Table] = [
             TableWithRows(rows=fragment.rows, page=fragment.page)
@@ -98,10 +87,6 @@ class ConsecutiveFragmentsCompactor:
 
 
 class SafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
-    @property
-    def settings(self) -> dict:
-        return {"type": "compact-safe"}
-
     def non_semantic_columns_match(
         self, one: TableFragment, other: TableFragment
     ) -> bool:
@@ -114,10 +99,6 @@ class SafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
 
 
 class UnsafeConsecutiveFragmentsCompactor(ConsecutiveFragmentsCompactor):
-    @property
-    def settings(self) -> dict:
-        return {"type": "compact-unsafe"}
-
     def semantic_fragments_are_close(
         self, one: TableFragment, other: TableFragment
     ) -> bool:

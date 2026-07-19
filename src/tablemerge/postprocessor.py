@@ -18,34 +18,20 @@ from .merge import (
 
 
 class PostProcessor(Protocol):
-    @property
-    def settings(self) -> dict: ...
     def postprocess(self, tablesfile: TablesFile) -> TablesFile: ...
 
 
 class FilterSemanticColumnsPostProcessor:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
-
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return filter_semantic_columns(tablesfile)
 
 
 class DropEmptyColumnsPostProcessor:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
-
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return drop_empty_columns(tablesfile)
 
 
 class DropEmptyTablesPostProcessor:
-    @property
-    def settings(self) -> dict:
-        return {"enabled": True}
-
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         return drop_empty_tables(tablesfile)
 
@@ -62,14 +48,6 @@ class SchemaPostProcessor:
         self.filter_columns = filter_columns
         self.order_columns = order_columns
         self.coerce_types = coerce_types
-
-    @property
-    def settings(self) -> dict:
-        return {
-            "filter_schema_columns": self.filter_columns,
-            "order_schema_columns": self.order_columns,
-            "coerce_schema_column_types": self.coerce_types,
-        }
 
     def postprocess(self, tablesfile: TablesFile) -> TablesFile:
         if self.filter_columns:

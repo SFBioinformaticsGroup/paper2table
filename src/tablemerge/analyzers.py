@@ -46,9 +46,6 @@ def renamable_target_columns(
 
 
 class LoadTimeAnalyzer(Protocol):
-    @property
-    def settings(self) -> dict: ...
-
     def build_mapping(
         self,
         column_names: list[str],
@@ -72,10 +69,6 @@ class HintsLoadTimeAnalyzer:
     def __init__(self, hints: list[str], safe: bool = True):
         self.hints = hints
         self.safe = safe
-
-    @property
-    def settings(self) -> dict:
-        return {"hints": bool(self.hints), "safe": self.safe}
 
     def build_mapping(
         self,
@@ -124,10 +117,6 @@ class AliasLoadTimeAnalyzer:
     def __init__(self, aliases: dict[str, str]):
         self.aliases = aliases
 
-    @property
-    def settings(self) -> dict:
-        return {"aliases": self.aliases}
-
     def build_mapping(
         self,
         column_names: list[str],
@@ -162,10 +151,6 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         self.language = language
         self.schema = schema
         self._nlp = None
-
-    @property
-    def settings(self) -> dict:
-        return {"threshold": self.threshold, "language": self.language}
 
     def build_mapping(
         self,
@@ -260,9 +245,6 @@ class ColumnNameSemanticLoadTimeAnalyzer:
 
 
 class MergeTimeAnalyzer(Protocol):
-    @property
-    def settings(self) -> dict: ...
-
     def build_mapping(
         self,
         left_column_names: list[str],
@@ -288,10 +270,6 @@ class JaccardMergeTimeAnalyzer:
     def __init__(self, threshold: float = 0.5, schema: Optional[ColumnSchema] = None):
         self.threshold = threshold
         self.schema = schema
-
-    @property
-    def settings(self) -> dict:
-        return {"threshold": self.threshold, "schema": bool(self.schema)}
 
     def build_mapping(
         self,
@@ -382,14 +360,6 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         self.language = language
         self.schema = schema
         self._nlp = None
-
-    @property
-    def settings(self) -> dict:
-        return {
-            "threshold": self.threshold,
-            "language": self.language,
-            "schema": bool(self.schema),
-        }
 
     def build_mapping(
         self,

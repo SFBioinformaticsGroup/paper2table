@@ -8,7 +8,7 @@ from .validate import validate_file
 
 def validate_files(paths: List[Path], mode: Literal["quiet", "all", "default"]) -> int:
     for path in paths:
-        if path.name == "tables.metadata.json":
+        if path.name in ("tables.metadata.json", "settings.tablemerge.json"):
             continue
         error = validate_file(path)
 

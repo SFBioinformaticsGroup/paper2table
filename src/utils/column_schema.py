@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import Field
 from utils.scientific_name import scientific_name
@@ -55,6 +55,12 @@ class ColumnSchema:
 
     def pydantic_field_description(self, name: str) -> str | None:
         return pydantic_field_description(self._columns[name])
+
+    @staticmethod
+    def from_settings_dict(schema_dict: dict[str, str]) -> Optional["ColumnSchema"]:
+        if not schema_dict:
+            return None
+        return ColumnSchema.parse(",".join(f"{k}:{v}" for k, v in schema_dict.items()))
 
     @staticmethod
     def parse_pydantic(schema_str: str) -> dict[str, tuple[Any, ...]]:

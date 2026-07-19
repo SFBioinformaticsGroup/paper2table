@@ -24,19 +24,6 @@ class TablesFileLoader:
         self.analyzers = analyzers
         self.posttransformers = posttransformers
 
-    @property
-    def settings(self) -> dict:
-        return {
-            "pretransformers": {
-                type(t).__name__: t.settings for t in self.pretransformers
-            },
-            "tablesfile_transformer": self.tablesfile_transformer.settings,
-            "analyzers": {type(a).__name__: a.settings for a in self.analyzers},
-            "posttransformers": {
-                type(t).__name__: t.settings for t in self.posttransformers
-            },
-        }
-
     def load(self, path: Path) -> TablesFile:
         with open(path, "r", encoding="utf-8") as f:
             tablesfile = TablesFile.model_validate(json.load(f))
