@@ -25,3 +25,19 @@ def test_scientific_name_binomen_with_author():
 @pytest.mark.integration
 def test_scientific_name_approximation():
     assert scientific_name("acaena sp.") == "Acaena"
+
+@pytest.mark.integration
+def test_scientific_name_comma_separated():
+    assert scientific_name("homo sapiens, pan troglodytes") == "Homo sapiens, Pan troglodytes"
+
+@pytest.mark.integration
+def test_scientific_name_slash_separated():
+    assert scientific_name("homo sapiens / pan troglodytes") == "Homo sapiens, Pan troglodytes"
+
+@pytest.mark.integration
+def test_scientific_name_comma_separated_strips_authors():
+    assert scientific_name("Acantholippia seriphioides (A. Gray) Mold., Apium australe Pet. Thouars") == "Acantholippia seriphioides, Apium australe"
+
+@pytest.mark.integration
+def test_scientific_name_comma_separated_with_unparseable_part():
+    assert scientific_name("homo sapiens, not a name") == "Homo sapiens, not a name"

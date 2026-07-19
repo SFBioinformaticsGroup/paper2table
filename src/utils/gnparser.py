@@ -1,9 +1,17 @@
 import json
+import re
 import subprocess
 import sys
 
 
 def parse_scientific_name(name: str) -> str:
+    parts = [p.strip() for p in re.split(r"[,/]", name) if p.strip()]
+    if len(parts) <= 1:
+        return parse_single_scientific_name(name)
+    return ", ".join(parse_single_scientific_name(p) for p in parts)
+
+
+def parse_single_scientific_name(name: str) -> str:
     try:
         result = subprocess.run(
             ["gnparser", "-f", "compact", "--capitalize", name],
@@ -22,8 +30,7 @@ def parse_scientific_name(name: str) -> str:
         print(f"Warning: gnparser could not parse {name!r}, keeping as-is", file=sys.stderr)
         return name
     record = json.loads(result.stdout)
-    # using canonical form in order to
-    # remove author, if possible
+    # using canonical form in order to remove author, if possible
     canonical = record.get("canonical", {}).get("full")
     normalized = record.get("normalized")
     return canonical or normalized or name
