@@ -331,9 +331,41 @@ def test_normalize_punctuation_converts_straight_double_quotes_to_single():
 
 def test_normalize_punctuation_normalizes_typographic_apostrophe():
     transformer = NormalizePunctuationTransformer()
-    fragment = make_fragment(Row(note="don’t", opening="L‘Hopital"))
+    fragment = make_fragment(Row(note="don’t", opening="L’Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don't", opening="L'Hopital")
+        Row(note="don’t", opening="L’Hopital")
+    )
+
+
+def test_normalize_punctuation_normalizes_acute_accent_apostrophe():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="don´t", opening="L´Hopital"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="don’t", opening="L’Hopital")
+    )
+
+
+def test_normalize_punctuation_normalizes_grave_accent_apostrophe():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="don`t", opening="L`Hopital"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="don’t", opening="L’Hopital")
+    )
+
+
+def test_normalize_punctuation_normalizes_prime_apostrophe():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="don′t", opening="L′Hopital"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="don’t", opening="L’Hopital")
+    )
+
+
+def test_normalize_punctuation_normalizes_modifier_letter_apostrophe():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(note="donʼt", opening="Lʻopital"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(note="don’t", opening="L’opital")
     )
 
 

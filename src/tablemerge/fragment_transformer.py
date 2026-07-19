@@ -21,7 +21,7 @@ _LEADING_NUMBER_RE = re.compile(r"^(\d+)\.\s+")
 _DASH_VARIANTS_RE = re.compile(r"[‐‑‒–—―−]")
 _GUILLEMETS_RE = re.compile(r"[«»‹›]")
 _TYPOGRAPHIC_DOUBLE_QUOTES_RE = re.compile(r"[“”]")
-_TYPOGRAPHIC_SINGLE_QUOTES_RE = re.compile(r"[‘’]")
+_TYPOGRAPHIC_SINGLE_QUOTES_RE = re.compile(r"[‘’´`ʹʻʼʽ′‵]")
 _ELLIPSIS_RE = re.compile("…")
 _TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
