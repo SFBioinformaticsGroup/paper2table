@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from typing import Protocol
 
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
@@ -22,6 +23,14 @@ _DASH_VARIANTS_RE = re.compile(r"[‐‑‒–—―−]")
 _GUILLEMETS_RE = re.compile(r"[«»‹›]")
 _TYPOGRAPHIC_DOUBLE_QUOTES_RE = re.compile(r"[“”]")
 _TYPOGRAPHIC_SINGLE_QUOTES_RE = re.compile(r"[‘’´`ʹʻʼʽ′‵]")
+_VOWEL_ACUTE_RE = re.compile(r"([aeiouAEIOU])´")
+
+
+def _combine_vowel_acute(match: re.Match) -> str:
+    combined = unicodedata.normalize("NFC", match.group(1) + "́")
+    if len(combined) == 1:
+        return combined
+    return match.group(0)
 _ELLIPSIS_RE = re.compile("…")
 _TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
@@ -164,6 +173,7 @@ class NormalizePunctuationTransformer:
         text = _GUILLEMETS_RE.sub("", text)
         text = _TYPOGRAPHIC_DOUBLE_QUOTES_RE.sub('"', text)
         text = text.replace('"', "'")
+        text = _VOWEL_ACUTE_RE.sub(_combine_vowel_acute, text)
         text = _TYPOGRAPHIC_SINGLE_QUOTES_RE.sub("'", text)
         match = _TRAILING_DOT_RE.match(text)
         if match:

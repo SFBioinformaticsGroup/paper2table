@@ -337,7 +337,15 @@ def test_normalize_punctuation_normalizes_typographic_apostrophe():
     )
 
 
-def test_normalize_punctuation_normalizes_acute_accent_apostrophe():
+def test_normalize_punctuation_combines_acute_with_vowel():
+    transformer = NormalizePunctuationTransformer()
+    fragment = make_fragment(Row(city="Mo´nica", note="u´ltimo"))
+    assert transformer.transform_fragment(fragment) == make_fragment(
+        Row(city="Mónica", note="último")
+    )
+
+
+def test_normalize_punctuation_acute_after_non_vowel_becomes_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="don´t", opening="L´Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
