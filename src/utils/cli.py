@@ -44,7 +44,7 @@ def add_postprocessor_args(parser) -> None:
         ),
     )
     parser.add_argument(
-        "--only-semantic-columns",
+        "--filter-semantic-columns",
         action="store_true",
         help="Remove columns whose names are numeric",
     )
@@ -81,7 +81,7 @@ def build_postprocessors_from_args(
         filter_columns=args.filter_schema_columns,
         order_columns=args.order_schema_columns,
         coerce_types=args.coerce_schema_column_types,
-        only_semantic_columns=args.only_semantic_columns,
+        filter_semantic_columns=args.filter_semantic_columns,
         drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
     )

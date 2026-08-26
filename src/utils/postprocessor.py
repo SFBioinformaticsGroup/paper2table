@@ -180,12 +180,12 @@ def build_postprocessors(
     filter_columns: bool,
     order_columns: bool,
     coerce_types: bool,
-    only_semantic_columns: bool = False,
+    filter_semantic_columns: bool = False,
     drop_empty_columns: bool = True,
     drop_empty_tables: bool = True,
 ) -> list[PostProcessor]:
     result: list[PostProcessor] = []
-    if only_semantic_columns:
+    if filter_semantic_columns:
         result.append(FilterSemanticColumnsPostProcessor())
     if drop_empty_columns:
         result.append(DropEmptyColumnsPostProcessor())

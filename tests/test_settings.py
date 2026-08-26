@@ -9,7 +9,7 @@ def test_from_args_maps_fields_and_ignores_extras():
         agreement_method="distinct-readers",
         drop_empty_columns=False,
         drop_empty_tables=True,
-        only_semantic_columns=True,
+        filter_semantic_columns=True,
         remove_header_rows=False,
         pretty=True,
         filter_title_rows=True,
@@ -61,7 +61,7 @@ def test_from_args_reads_schema_from_path():
         agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
-        only_semantic_columns=False,
+        filter_semantic_columns=False,
         remove_header_rows=False,
         pretty=False,
         filter_title_rows=True,
@@ -104,7 +104,7 @@ def test_from_args_paths_stored_as_list():
         agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
-        only_semantic_columns=False,
+        filter_semantic_columns=False,
         remove_header_rows=False,
         pretty=False,
         filter_title_rows=True,
@@ -164,7 +164,7 @@ def test_merge_settings_from_dict_defaults():
         agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
-        only_semantic_columns=False,
+        filter_semantic_columns=False,
         remove_header_rows=False,
         column_names_hints=None,
         schema=None,
@@ -185,7 +185,7 @@ def test_merge_settings_from_dict_simple_fields():
             "agreement_method": "distinct-readers",
             "drop_empty_columns": False,
             "drop_empty_tables": False,
-            "only_semantic_columns": True,
+            "filter_semantic_columns": True,
             "remove_header_rows": True,
             "column_names_hints": ["species", "family"],
             "schema": {"family": "str", "count": "int"},
@@ -194,7 +194,7 @@ def test_merge_settings_from_dict_simple_fields():
     assert settings.agreement_method == "distinct-readers"
     assert settings.drop_empty_columns is False
     assert settings.drop_empty_tables is False
-    assert settings.only_semantic_columns is True
+    assert settings.filter_semantic_columns is True
     assert settings.remove_header_rows is True
     assert settings.column_names_hints == ["species", "family"]
     assert settings.schema == {"family": "str", "count": "int"}
@@ -206,7 +206,7 @@ def test_to_dict_simple_fields():
             "agreement_method": "distinct-readers",
             "drop_empty_columns": False,
             "drop_empty_tables": True,
-            "only_semantic_columns": True,
+            "filter_semantic_columns": True,
             "remove_header_rows": True,
         }
     )
@@ -214,7 +214,7 @@ def test_to_dict_simple_fields():
     assert defaults["agreement_method"] == "distinct-readers"
     assert defaults["drop_empty_columns"] is False
     assert defaults["drop_empty_tables"] is True
-    assert defaults["only_semantic_columns"] is True
+    assert defaults["filter_semantic_columns"] is True
     assert defaults["remove_header_rows"] is True
 
 
