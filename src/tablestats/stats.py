@@ -14,9 +14,11 @@ class PaperStats:
     rows_with_agreement: int
     rows_in_shared_groups: int
     rows_with_shared_values: int
+    curations: int
     agreement_percentage: Optional[float] = None
     empty_rows_percentage: Optional[float] = None
     shared_values_percentage: Optional[float] = None
+    convergent_rows_percentage: Optional[float] = None
 
     def to_dict(self):
         return {
@@ -28,9 +30,11 @@ class PaperStats:
             "rows_with_agreement": self.rows_with_agreement,
             "rows_in_shared_groups": self.rows_in_shared_groups,
             "rows_with_shared_values": self.rows_with_shared_values,
+            "curations": self.curations,
             "agreement_percentage": self.agreement_percentage,
             "empty_rows_percentage": self.empty_rows_percentage,
             "shared_values_percentage": self.shared_values_percentage,
+            "convergent_rows_percentage": self.convergent_rows_percentage,
         }
 
 
@@ -44,6 +48,8 @@ class GlobalStats:
     rows_with_agreement: int
     rows_in_shared_groups: int
     rows_with_shared_values: int
+    papers_with_curations: int
+    papers_with_full_convergence: int
     papers_stats: Dict[str, PaperStats]
     global_agreement_percentage: Optional[float] = None
     global_shared_values_percentage: Optional[float] = None
@@ -58,6 +64,8 @@ class GlobalStats:
             "rows_with_agreement": self.rows_with_agreement,
             "rows_in_shared_groups": self.rows_in_shared_groups,
             "rows_with_shared_values": self.rows_with_shared_values,
+            "papers_with_curations": self.papers_with_curations,
+            "papers_with_full_convergence": self.papers_with_full_convergence,
             "global_agreement_percentage": self.global_agreement_percentage,
             "global_shared_values_percentage": self.global_shared_values_percentage,
             "papers_stats": [
@@ -81,6 +89,25 @@ def row_value_strings(row: Row) -> frozenset:
                 if normalized:
                     result.add((col, normalized))
     return frozenset(result)
+
+
+def count_convergent_rows(tables: list) -> tuple:
+    convergent_groups = 0
+    total_rows_with_row_id = 0
+
+    for table in tables:
+        groups: Dict[int, List[Row]] = {}
+        for fragment in table.get_table_fragments():
+            for row in fragment.rows:
+                if row.row_ is not None:
+                    groups.setdefault(row.row_, []).append(row)
+
+        for group in groups.values():
+            total_rows_with_row_id += len(group)
+            if len(group) == 1:
+                convergent_groups += 1
+
+    return convergent_groups, total_rows_with_row_id
 
 
 def count_shared_values(tables: list) -> tuple:
@@ -125,6 +152,11 @@ def update_papers_stats(
     stats.rows_in_shared_groups += paper_stats.rows_in_shared_groups
     stats.rows_with_shared_values += paper_stats.rows_with_shared_values
 
+    if paper_stats.curations > 0:
+        stats.papers_with_curations += 1
+    if paper_stats.convergent_rows_percentage == 100.0:
+        stats.papers_with_full_convergence += 1
+
     if stats.rows > 0:
         stats.global_agreement_percentage = stats.rows_with_agreement / stats.rows * 100
     if stats.rows_in_shared_groups > 0:
@@ -168,15 +200,24 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         for col in row.get_columns()
     }
     rows_in_shared_groups, rows_with_shared_values = count_shared_values(tables)
+    convergent_groups, total_rows_with_row_id = count_convergent_rows(tables)
+    curations = (
+        len(paper_data.metadata.curations)
+        if paper_data.metadata and paper_data.metadata.curations
+        else 0
+    )
 
     agreement_percentage = None
     empty_rows_percentage = None
     shared_values_percentage = None
+    convergent_rows_percentage = None
     if rows_count > 0:
         agreement_percentage = rows_with_agreement / rows_count * 100
         empty_rows_percentage = empty_rows_count / rows_count * 100
     if rows_in_shared_groups > 0:
         shared_values_percentage = rows_with_shared_values / rows_in_shared_groups * 100
+    if total_rows_with_row_id > 0:
+        convergent_rows_percentage = convergent_groups / total_rows_with_row_id * 100
 
     return PaperStats(
         tables=tables_count,
@@ -187,7 +228,9 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         rows_with_agreement=rows_with_agreement,
         rows_in_shared_groups=rows_in_shared_groups,
         rows_with_shared_values=rows_with_shared_values,
+        curations=curations,
         agreement_percentage=agreement_percentage,
         empty_rows_percentage=empty_rows_percentage,
         shared_values_percentage=shared_values_percentage,
+        convergent_rows_percentage=convergent_rows_percentage,
     )
