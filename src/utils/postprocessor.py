@@ -76,10 +76,33 @@ class SchemaPostProcessor:
 
     def _filter_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
         schema_keys = set(self.schema.column_names())
-        kept = [
-            t for t in tablesfile.tables if schema_keys & self._table_column_names(t)
-        ]
-        return self._rebuild_tablesfile(tablesfile, kept)
+
+        def filter_row(row: Row) -> Row:
+            cols = {
+                k: v
+                for k, v in row.get_columns().items()
+                if not Row.is_semantic_column(k) or k in schema_keys
+            }
+            return Row(
+                agreement_level_=row.agreement_level_,
+                sources_=row.sources_,
+                row_=row.row_,
+                **cols,
+            )
+
+        def filter_fragment(fragment: TableFragment) -> TableFragment:
+            return TableFragment(
+                rows=[filter_row(r) for r in fragment.rows],
+                page=fragment.page,
+            )
+
+        tables = []
+        for table in tablesfile.tables:
+            filtered_fragments = [filter_fragment(f) for f in table.get_table_fragments()]
+            filtered_table = TableWithFragments(table_fragments=filtered_fragments)
+            if self._table_column_names(filtered_table):
+                tables.append(filtered_table)
+        return self._rebuild_tablesfile(tablesfile, tables)
 
     def _order_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
         schema_keys = self.schema.column_names()
