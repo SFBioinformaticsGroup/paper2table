@@ -6,9 +6,8 @@ from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
+from utils.cli import add_postprocessor_args, build_postprocessors_from_args
 from utils.column_schema import ColumnSchema, try_parse_schema
-from utils.postprocessor import build_postprocessors
-from utils.read_path import read_path
 from utils.table_fragments import load_papers
 
 from .collect import gather_tablesfiles
@@ -95,87 +94,12 @@ def main():
         help="Directory to write gathered.tables.json and tables.metadata.json (default: stdout)",
     )
     parser.add_argument("--pretty", action="store_true", help="Indent JSON output")
-    parser.add_argument(
-        "--schema",
-        type=str,
-        help=(
-            "Inline schema with column:type pairs. "
-            "Required by --filter-schema-columns, --order-schema-columns, "
-            "and --coerce-schema-column-types."
-        ),
-    )
-    parser.add_argument(
-        "-p",
-        "--schema-path",
-        type=str,
-        help="Path to a schema file with column:type pairs (same format as --schema).",
-    )
-    parser.add_argument(
-        "--filter-schema-columns",
-        action="store_true",
-        help=(
-            "Drop tables whose rows share no column names with the schema. "
-            "Requires --schema/--schema-path."
-        ),
-    )
-    parser.add_argument(
-        "--order-schema-columns",
-        action="store_true",
-        help=(
-            "Reorder output columns so schema columns come first (in schema order), "
-            "followed by any remaining columns. Requires --schema/--schema-path."
-        ),
-    )
-    parser.add_argument(
-        "--coerce-schema-column-types",
-        action="store_true",
-        help=(
-            "Normalize cell string values in schema columns to the declared type. "
-            "Requires --schema/--schema-path."
-        ),
-    )
-    parser.add_argument(
-        "--only-semantic-columns",
-        action="store_true",
-        help="Remove columns whose names are numeric after gathering",
-    )
-    parser.add_argument(
-        "--no-drop-empty-columns",
-        action="store_false",
-        dest="drop_empty_columns",
-        default=True,
-        help="Skip dropping columns that are entirely empty after gathering",
-    )
-    parser.add_argument(
-        "--no-drop-empty-tables",
-        action="store_false",
-        dest="drop_empty_tables",
-        default=True,
-        help="Skip dropping tables that are entirely empty after gathering",
-    )
+    add_postprocessor_args(parser)
 
     args = parser.parse_args()
 
-    schema_required = [
-        (args.filter_schema_columns, "--filter-schema-columns"),
-        (args.order_schema_columns, "--order-schema-columns"),
-        (args.coerce_schema_column_types, "--coerce-schema-column-types"),
-    ]
-    for flag, name in schema_required:
-        if flag and not args.schema_path and not args.schema:
-            print(f"Error: {name} requires --schema/--schema-path.", file=sys.stderr)
-            sys.exit(1)
-
     schema: ColumnSchema | None = try_parse_schema(args)
-    postprocessors = build_postprocessors(
-        schema=schema,
-        filter_columns=args.filter_schema_columns,
-        order_columns=args.order_schema_columns,
-        coerce_types=args.coerce_schema_column_types,
-        only_semantic_columns=args.only_semantic_columns,
-        drop_empty_columns=args.drop_empty_columns,
-        drop_empty_tables=args.drop_empty_tables,
-    )
+    postprocessors = build_postprocessors_from_args(args, schema)
 
     key_columns: list[str] = args.key_columns or []
 
