@@ -337,6 +337,78 @@ table2html tests/data/merges
 ```
 
 
+###  Gathering
+
+`tablegather` collects *all* `.tables.json` files from one or more result directories into
+a single flat table. Unlike `tablemerge`, it does not pair files by name — it combines every
+file regardless of filename. A citation column is added to each row so you can trace it back to
+its source paper.
+
+```bash
+# gather all files in a resultset directory
+$ tablegather tests/data/tables/
+
+# write output to a directory (produces gathered.tables.json + tables.metadata.json)
+$ tablegather --pretty -o tests/data/gathered/ tests/data/tables/
+
+# customize the citation column name
+$ tablegather --citation-column paper -o tests/data/gathered/ tests/data/tables/
+
+# gather from multiple directories at once
+$ tablegather -o tests/data/gathered/ tests/data/tables/ tests/data/other_tables/
+```
+
+#### Key columns
+
+Pass `-p` with a schema string to declare which columns are keys. Key columns are used to
+sort (and thus visually group) rows across papers. Mark a column as a key by appending `:key`
+to its type specifier:
+
+```bash
+# rows will be sorted by species name across all gathered papers
+$ tablegather -p "species:str:key family:str" tests/data/tables/
+```
+
+Multiple key columns are supported; rows are sorted by the first key, then the second, and so on:
+
+```bash
+$ tablegather -p "family:str:key species:str:key" tests/data/tables/
+```
+
+The schema accepts a file path or an inline string, exactly like `tablemerge`.
+
+#### Deduplication
+
+If two files share the same citation string (i.e. the same paper appears in more than one input
+directory), `tablegather` includes it only once. The citation is taken from the `citation`
+field of the `.tables.json` file; when that field is absent the filename stem is used as a
+fallback.
+
+#### Metadata
+
+When `-o` is specified, `tablegather` writes a `tables.metadata.json` file alongside the
+output, following the same format used by `paper2table` and `tablemerge`:
+
+```javascript
+    {
+      "reader": "tablegather",
+      "uuid": "...",
+      "datetime": "...",
+      "settings": {
+        "citation_column": "citation",
+        "key_columns": ["species"]
+      },
+      "sources": [
+        {
+          "path": "tests/data/tables/mamani_2020.tables.json",
+          "uuid": "...",     // if present in the source file
+          "reader": "..."    // if present in the source directory metadata
+        }
+      ]
+    }
+```
+
+
 ##  2. <a name='Development'></a>Development
 
 ###  2.1. <a name='Runningtests'></a>Running tests
