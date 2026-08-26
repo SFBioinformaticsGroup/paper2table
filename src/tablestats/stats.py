@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from tablevalidate.schema import Row, TablesFile
+from utils.convergence import convergent_row_ids
 
 
 @dataclass
@@ -96,16 +97,14 @@ def count_convergent_rows(tables: list) -> tuple:
     total_rows_with_row_id = 0
 
     for table in tables:
-        groups: Dict[int, List[Row]] = {}
-        for fragment in table.get_table_fragments():
-            for row in fragment.rows:
-                if row.row_ is not None:
-                    groups.setdefault(row.row_, []).append(row)
-
-        for group in groups.values():
-            total_rows_with_row_id += len(group)
-            if len(group) == 1:
-                convergent_groups += 1
+        rows_with_id = [
+            row
+            for fragment in table.get_table_fragments()
+            for row in fragment.rows
+            if row.row_ is not None
+        ]
+        total_rows_with_row_id += len(rows_with_id)
+        convergent_groups += len(convergent_row_ids(rows_with_id))
 
     return convergent_groups, total_rows_with_row_id
 

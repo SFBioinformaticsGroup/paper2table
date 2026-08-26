@@ -9,14 +9,6 @@ from tablevalidate.schema import TablesFile
 from utils.table_fragments import load_papers
 
 from .collect import gather_tablesfiles
-from .schema import parse_schema_with_keys
-
-
-def load_text_or_file(value: str) -> str:
-    path = Path(value)
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return value
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -70,16 +62,26 @@ def main():
     )
     parser.add_argument("resultset_dirs", nargs="+", metavar="RESULTSET_DIR")
     parser.add_argument(
-        "-p",
-        "--schema-path",
-        metavar="SCHEMA",
-        help='Schema string or file; supports :key marker (e.g. "species:str:key")',
+        "--key-columns",
+        nargs="+",
+        metavar="COLUMN",
+        help="Column names to sort gathered rows by",
     )
     parser.add_argument(
         "--citation-column",
         default="citation",
         metavar="NAME",
         help="Column name added to each row for the source citation (default: citation)",
+    )
+    parser.add_argument(
+        "--path-column",
+        metavar="NAME",
+        help="Column name added to each row for the source file path (omit to disable)",
+    )
+    parser.add_argument(
+        "--only-convergent",
+        action="store_true",
+        help="Only include rows whose row_ ID appears exactly once in the gathered output",
     )
     parser.add_argument(
         "-o",
@@ -91,9 +93,7 @@ def main():
 
     args = parser.parse_args()
 
-    key_columns: list[str] = []
-    if args.schema_path:
-        _, key_columns = parse_schema_with_keys(load_text_or_file(args.schema_path))
+    key_columns: list[str] = args.key_columns or []
 
     directory_metadata = {d: read_resultset_metadata(d) for d in args.resultset_dirs}
 
@@ -103,7 +103,13 @@ def main():
         for name, tablesfile in papers.items():
             tablesfiles_with_paths.append((tablesfile, Path(directory) / name))
 
-    result = gather_tablesfiles(tablesfiles_with_paths, args.citation_column, key_columns)
+    result = gather_tablesfiles(
+        tablesfiles_with_paths,
+        args.citation_column,
+        key_columns,
+        path_column=args.path_column,
+        only_convergent=args.only_convergent,
+    )
 
     indent = 2 if args.pretty else None
     output = result.model_dump_json(indent=indent, exclude_none=True)
@@ -118,6 +124,8 @@ def main():
         settings = {
             "citation_column": args.citation_column,
             "key_columns": key_columns,
+            "path_column": args.path_column,
+            "only_convergent": args.only_convergent,
         }
         write_gather_metadata(output_dir, sources, settings)
     else:

@@ -3,10 +3,11 @@ import json
 import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import Literal
 
 from tablevalidate.schema import ColumnValue, TablesFile
 from .stats import GlobalStats, update_papers_stats
+
+VALID_SORT_KEYS = {"tables-count", "rows-convergence", "curations-count"}
 
 
 def read_paper(paper_path: Path) -> TablesFile:
@@ -25,6 +26,8 @@ def compute_papers_stats(path: str) -> GlobalStats:
         rows_with_agreement=0,
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
+        papers_with_curations=0,
+        papers_with_full_convergence=0,
         papers_stats={},
     )
 
@@ -35,16 +38,50 @@ def compute_papers_stats(path: str) -> GlobalStats:
     return stats
 
 
-def sort_stats(
-    stats: GlobalStats, mode: Literal["none"] | Literal["asc"] | Literal["desc"]
-):
-    if mode == "none":
+def sort_stats(stats: GlobalStats, sort_keys: list[tuple[str, str]]) -> None:
+    if not sort_keys:
         return
 
-    multiplier = 1 if mode == "asc" else -1
+    def paper_sort_key(item):
+        paper_stats = item[1]
+        result = []
+        for key, direction in sort_keys:
+            multiplier = -1 if direction == "desc" else 1
+            if key == "tables-count":
+                result.append(multiplier * paper_stats.tables)
+            elif key == "rows-convergence":
+                v = paper_stats.convergent_rows_percentage
+                result.append(multiplier * v if v is not None else float("inf"))
+            elif key == "curations-count":
+                result.append(multiplier * paper_stats.curations)
+        return result
+
     stats.papers_stats = OrderedDict(
-        sorted(stats.papers_stats.items(), key=lambda item: multiplier * item[1].tables)
+        sorted(stats.papers_stats.items(), key=paper_sort_key)
     )
+
+
+def parse_sort_keys(sort_arg: str | None) -> list[tuple[str, str]]:
+    if not sort_arg:
+        return []
+    result = []
+    for part in sort_arg.split(","):
+        part = part.strip()
+        if ":" in part:
+            key, direction = part.rsplit(":", 1)
+            key = key.strip()
+            direction = direction.strip()
+        else:
+            key = part
+            direction = "asc"
+        if key not in VALID_SORT_KEYS:
+            print(f"Unknown sort key: {key!r}")
+            sys.exit(1)
+        if direction not in ("asc", "desc"):
+            print(f"Unknown sort direction: {direction!r} (use 'asc' or 'desc')")
+            sys.exit(1)
+        result.append((key, direction))
+    return result
 
 
 def write_stats(stats: GlobalStats, output_file):
@@ -100,9 +137,12 @@ def parse_args():
     parser.add_argument(
         "-s",
         "--sort",
-        choices=["none", "asc", "desc"],
-        help="Sort by number of tables",
-        default="none",
+        help=(
+            "Comma-separated sort keys, each optionally suffixed with :asc or :desc "
+            "(default asc). E.g. tables-count,rows-convergence:asc,curations-count:desc. "
+            "Valid keys: tables-count, rows-convergence, curations-count"
+        ),
+        default=None,
     )
     parser.add_argument(
         "-e",
@@ -128,6 +168,8 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
     lines.append(f"  Rows: {stats.rows}")
     lines.append(f"  Unique rows: {stats.unique_rows}")
     lines.append(f"  Rows with agreement > 1: {stats.rows_with_agreement}")
+    lines.append(f"  Papers with curations: {stats.papers_with_curations}")
+    lines.append(f"  Papers with full convergence: {stats.papers_with_full_convergence}")
     if stats.global_agreement_percentage is not None:
         lines.append(
             f"  Global agreement percentage: {stats.global_agreement_percentage:.2f}%"
@@ -158,6 +200,11 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
             lines.append(
                 f"    Shared values percentage: {paper_stats.shared_values_percentage:.2f}%"
             )
+        lines.append(f"    Curations: {paper_stats.curations}")
+        if paper_stats.convergent_rows_percentage is not None:
+            lines.append(
+                f"    Convergent rows percentage: {paper_stats.convergent_rows_percentage:.2f}%"
+            )
     if columns is not None:
         lines.append("")
         lines.append("Unique Columns:")
@@ -169,7 +216,7 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
 def main():
     args = parse_args()
     stats = compute_papers_stats(args.path)
-    sort_stats(stats, args.sort)
+    sort_stats(stats, parse_sort_keys(args.sort))
 
     if args.empty:
         if args.out:

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from tablegather.collect import gather_tablesfiles
 from tablegather.__main__ import compute_sources, write_gather_metadata
-from tablegather.schema import parse_schema_with_keys
 from tablevalidate.schema import (
     TablesFile,
     TableFragment,
@@ -100,22 +99,106 @@ def test_custom_citation_column_name():
     assert fragments[0].rows == [Row(paper="Mamani 2020", species="Ammi majus")]
 
 
-def test_parse_schema_with_keys_extracts_key_columns():
-    schema, key_columns = parse_schema_with_keys("species:str:key compound:str")
-    assert key_columns == ["species"]
-    assert list(schema.column_names()) == ["species", "compound"]
+def test_path_column_adds_file_path():
+    tablesfile, path = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], path_column="path"
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(citation="Mamani 2020", path="Mamani 2020.tables.json", species="Ammi majus")
+    ]
 
 
-def test_parse_schema_with_keys_no_keys():
-    schema, key_columns = parse_schema_with_keys("species:str compound:str")
-    assert key_columns == []
-    assert list(schema.column_names()) == ["species", "compound"]
+def test_only_convergent_keeps_singleton_row_ids():
+    tablesfile, path = wrap(
+        [Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
+        citation="Mamani 2020",
+    )
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(citation="Mamani 2020", species="Ammi majus"),
+        Row(citation="Mamani 2020", species="Carum carvi"),
+    ]
 
 
-def test_parse_schema_with_keys_multiple_keys():
-    schema, key_columns = parse_schema_with_keys("species:str:key compound:str:key value:int")
-    assert key_columns == ["species", "compound"]
-    assert list(schema.column_names()) == ["species", "compound", "value"]
+def test_only_convergent_excludes_duplicate_row_ids():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[
+                            Row(species="Ammi majus", row_=1),
+                            Row(species="Carum carvi", row_=1),
+                            Row(species="Zea mays", row_=2),
+                        ],
+                        page=1,
+                    )
+                ]
+            )
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Zea mays")]
+
+
+def test_only_convergent_excludes_rows_without_row_id():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Ammi majus"), Row(species="Carum carvi", row_=1)],
+                        page=1,
+                    )
+                ]
+            )
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Carum carvi")]
+
+
+def test_only_convergent_computed_per_file_not_globally():
+    file_a, path_a = wrap([Row(species="Ammi majus", row_=1)], citation="Mamani 2020")
+    file_b, path_b = wrap([Row(species="Carum carvi", row_=1)], citation="Jones 2021")
+    result = gather_tablesfiles(
+        [(file_a, path_a), (file_b, path_b)],
+        citation_column="citation",
+        key_columns=[],
+        only_convergent=True,
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(citation="Mamani 2020", species="Ammi majus"),
+        Row(citation="Jones 2021", species="Carum carvi"),
+    ]
+
+
+def test_gather_tablesfiles_prints_row_count_per_file(capsys):
+    file_a, path_a = wrap(
+        [Row(species="Ammi majus"), Row(species="Carum carvi")], citation="Mamani 2020"
+    )
+    file_b, path_b = wrap([Row(species="Zea mays")], citation="Jones 2021")
+    gather_tablesfiles(
+        [(file_a, path_a), (file_b, path_b)], citation_column="citation", key_columns=[]
+    )
+    captured = capsys.readouterr()
+    assert captured.out == "Mamani 2020.tables.json: 2 rows\nJones 2021.tables.json: 1 rows\n"
 
 
 def test_compute_sources_includes_gathered_files():
