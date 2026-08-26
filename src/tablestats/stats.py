@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from tablevalidate.schema import Row, TablesFile
-from utils.convergence import convergent_row_ids
+from tablevalidate.schema import Row, Table, TablesFile
 
 
 @dataclass
@@ -16,16 +15,23 @@ class PaperStats:
     rows_in_shared_groups: int
     rows_with_shared_values: int
     curations: int
+
+    convergent_tables: int
+    convergent_fragments: int
+    convergent_rows: int
+
     agreement_percentage: Optional[float] = None
     empty_rows_percentage: Optional[float] = None
     shared_values_percentage: Optional[float] = None
-    convergent_rows_percentage: Optional[float] = None
 
     def to_dict(self):
         return {
             "tables": self.tables,
+            "convergent_tables": self.convergent_tables,
             "fragments": self.fragments,
+            "convergent_fragments": self.convergent_fragments,
             "rows": self.rows,
+            "convergent_rows": self.convergent_rows,
             "unique_rows": self.unique_rows,
             "columns": self.columns,
             "rows_with_agreement": self.rows_with_agreement,
@@ -35,7 +41,6 @@ class PaperStats:
             "agreement_percentage": self.agreement_percentage,
             "empty_rows_percentage": self.empty_rows_percentage,
             "shared_values_percentage": self.shared_values_percentage,
-            "convergent_rows_percentage": self.convergent_rows_percentage,
         }
 
 
@@ -49,8 +54,10 @@ class GlobalStats:
     rows_with_agreement: int
     rows_in_shared_groups: int
     rows_with_shared_values: int
+    papers_with_convergent_tables: int
+    papers_with_convergent_fragments: int
+    papers_with_convergent_rows: int
     papers_with_curations: int
-    papers_with_full_convergence: int
     papers_stats: Dict[str, PaperStats]
     global_agreement_percentage: Optional[float] = None
     global_shared_values_percentage: Optional[float] = None
@@ -65,8 +72,10 @@ class GlobalStats:
             "rows_with_agreement": self.rows_with_agreement,
             "rows_in_shared_groups": self.rows_in_shared_groups,
             "rows_with_shared_values": self.rows_with_shared_values,
+            "papers_with_convergent_tables": self.papers_with_convergent_tables,
+            "papers_with_convergent_fragments": self.papers_with_convergent_fragments,
+            "papers_with_convergent_rows": self.papers_with_convergent_rows,
             "papers_with_curations": self.papers_with_curations,
-            "papers_with_full_convergence": self.papers_with_full_convergence,
             "global_agreement_percentage": self.global_agreement_percentage,
             "global_shared_values_percentage": self.global_shared_values_percentage,
             "papers_stats": [
@@ -90,23 +99,6 @@ def row_value_strings(row: Row) -> frozenset:
                 if normalized:
                     result.add((col, normalized))
     return frozenset(result)
-
-
-def count_convergent_rows(tables: list) -> tuple:
-    convergent_groups = 0
-    total_rows_with_row_id = 0
-
-    for table in tables:
-        rows_with_id = [
-            row
-            for fragment in table.get_table_fragments()
-            for row in fragment.rows
-            if row.row_ is not None
-        ]
-        total_rows_with_row_id += len(rows_with_id)
-        convergent_groups += len(convergent_row_ids(rows_with_id))
-
-    return convergent_groups, total_rows_with_row_id
 
 
 def count_shared_values(tables: list) -> tuple:
@@ -153,8 +145,12 @@ def update_papers_stats(
 
     if paper_stats.curations > 0:
         stats.papers_with_curations += 1
-    if paper_stats.convergent_rows_percentage == 100.0:
-        stats.papers_with_full_convergence += 1
+    if paper_stats.convergent_tables > 0:
+        stats.papers_with_convergent_tables += 1
+    if paper_stats.convergent_fragments > 0:
+        stats.papers_with_convergent_fragments += 1
+    if paper_stats.convergent_rows > 0:
+        stats.papers_with_convergent_rows += 1
 
     if stats.rows > 0:
         stats.global_agreement_percentage = stats.rows_with_agreement / stats.rows * 100
@@ -166,8 +162,8 @@ def update_papers_stats(
     stats.papers_stats[paper_filename] = paper_stats
 
 
-def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
-    tables = paper_data.tables
+def compute_paper_stats(tablesfile: TablesFile) -> PaperStats:
+    tables = tablesfile.tables
     all_fragments = [
         fragment for table in tables for fragment in table.get_table_fragments()
     ]
@@ -199,24 +195,20 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         for col in row.get_columns()
     }
     rows_in_shared_groups, rows_with_shared_values = count_shared_values(tables)
-    convergent_groups, total_rows_with_row_id = count_convergent_rows(tables)
     curations = (
-        len(paper_data.metadata.curations)
-        if paper_data.metadata and paper_data.metadata.curations
+        len(tablesfile.metadata.curations)
+        if tablesfile.metadata and tablesfile.metadata.curations
         else 0
     )
 
     agreement_percentage = None
     empty_rows_percentage = None
     shared_values_percentage = None
-    convergent_rows_percentage = None
     if rows_count > 0:
         agreement_percentage = rows_with_agreement / rows_count * 100
         empty_rows_percentage = empty_rows_count / rows_count * 100
     if rows_in_shared_groups > 0:
         shared_values_percentage = rows_with_shared_values / rows_in_shared_groups * 100
-    if total_rows_with_row_id > 0:
-        convergent_rows_percentage = convergent_groups / total_rows_with_row_id * 100
 
     return PaperStats(
         tables=tables_count,
@@ -231,5 +223,13 @@ def compute_paper_stats(paper_data: TablesFile) -> PaperStats:
         agreement_percentage=agreement_percentage,
         empty_rows_percentage=empty_rows_percentage,
         shared_values_percentage=shared_values_percentage,
-        convergent_rows_percentage=convergent_rows_percentage,
+        convergent_tables=len(tablesfile.get_convergent_tables()),
+        convergent_fragments=sum(
+            len(table.get_convergent_fragments()) for table in tablesfile.tables
+        ),
+        convergent_rows=sum(
+            len(fragment.get_convergent_rows())
+            for table in tablesfile.tables
+            for fragment in table.get_table_fragments()
+        ),
     )

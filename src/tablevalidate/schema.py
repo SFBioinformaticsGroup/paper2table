@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
 from typing import List, Union, Dict, Optional
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
 from utils.str import normalize_str
@@ -29,7 +30,11 @@ class Row(BaseModel):
             for key, value in self.__pydantic_extra__.items():
                 if isinstance(value, list):
                     self.__pydantic_extra__[key] = [
-                        ValueWithAgreement.model_validate(v) if isinstance(v, dict) else v
+                        (
+                            ValueWithAgreement.model_validate(v)
+                            if isinstance(v, dict)
+                            else v
+                        )
                         for v in value
                     ]
         return self
@@ -109,6 +114,7 @@ class Row(BaseModel):
 class TableFragment(BaseModel):
     rows: List[Row]
     page: int
+    _groups: Optional[Dict[int, List[Row]]] = PrivateAttr(default=None)
 
     def get_column_names(self) -> List[str]:
         return Row.column_names(self.rows)
@@ -119,8 +125,36 @@ class TableFragment(BaseModel):
     def is_empty(self) -> bool:
         return all(row.is_empty() for row in self.rows)
 
+    def get_row_groups(self) -> Dict[int, List[Row]]:
+        if self._groups is None:
+            groups: Dict[int, List[Row]] = {}
+            for row in self.rows:
+                if row.row_ is not None:
+                    groups.setdefault(row.row_, []).append(row)
+            self._groups = groups
+        return self._groups
 
-class TableWithRows(BaseModel):
+    def get_convergent_rows(self) -> List[Row]:
+        convergent_ids = frozenset(rid for rid, group in self.get_row_groups().items() if len(group) == 1)
+        return [row for row in self.rows if row.row_ in convergent_ids]
+
+
+class Table(ABC):
+    @abstractmethod
+    def get_table_fragments(self) -> List[TableFragment]: ...
+
+    @abstractmethod
+    def is_empty(self) -> bool: ...
+
+    def get_convergent_fragments(self) -> List[TableFragment]:
+        return [
+            f
+            for f in self.get_table_fragments()
+            if len(f.get_convergent_rows()) == len(f.rows)
+        ]
+
+
+class TableWithRows(BaseModel, Table):
     rows: List[Row]
     page: int
 
@@ -131,7 +165,7 @@ class TableWithRows(BaseModel):
         return all(row.is_empty() for row in self.rows)
 
 
-class TableWithFragments(BaseModel):
+class TableWithFragments(BaseModel, Table):
     table_fragments: List[TableFragment]
 
     def get_table_fragments(self) -> List[TableFragment]:
@@ -139,9 +173,6 @@ class TableWithFragments(BaseModel):
 
     def is_empty(self) -> bool:
         return all(fragment.is_empty() for fragment in self.table_fragments)
-
-
-Table = Union[TableWithRows, TableWithFragments]
 
 
 class Curation(BaseModel):
@@ -163,13 +194,20 @@ Citation = Union[None, str, List[ValueWithAgreement]]
 
 
 class TablesFile(BaseModel):
-    tables: List[Table]
+    tables: List[Union[TableWithRows, TableWithFragments]]
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
 
     def has_curations(self) -> bool:
         return bool(self.metadata and self.metadata.curations)
+
+    def get_convergent_tables(self) -> List[Table]:
+        return [
+            t
+            for t in self.tables
+            if len(t.get_convergent_fragments()) == len(t.get_table_fragments())
+        ]
 
     def clone(
         self,

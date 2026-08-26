@@ -79,9 +79,11 @@ def main():
         help="Column name added to each row for the source file path (omit to disable)",
     )
     parser.add_argument(
-        "--only-convergent",
-        action="store_true",
-        help="Only include rows whose row_ ID appears exactly once in the gathered output",
+        "--convergence",
+        choices=["none", "rows", "fragments", "tables"],
+        default="none",
+        metavar="LEVEL",
+        help="Convergence filter: none (default), rows, fragments, tables",
     )
     parser.add_argument(
         "-o",
@@ -108,7 +110,7 @@ def main():
         args.citation_column,
         key_columns,
         path_column=args.path_column,
-        only_convergent=args.only_convergent,
+        convergence=args.convergence,
     )
 
     indent = 2 if args.pretty else None
@@ -125,7 +127,7 @@ def main():
             "citation_column": args.citation_column,
             "key_columns": key_columns,
             "path_column": args.path_column,
-            "only_convergent": args.only_convergent,
+            "convergence": args.convergence,
         }
         write_gather_metadata(output_dir, sources, settings)
     else:

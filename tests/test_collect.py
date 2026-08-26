@@ -110,13 +110,13 @@ def test_path_column_adds_file_path():
     ]
 
 
-def test_only_convergent_keeps_singleton_row_ids():
+def test_convergence_rows_keeps_singleton_row_ids():
     tablesfile, path = wrap(
         [Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
         citation="Mamani 2020",
     )
     result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="rows"
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
@@ -125,7 +125,7 @@ def test_only_convergent_keeps_singleton_row_ids():
     ]
 
 
-def test_only_convergent_excludes_duplicate_row_ids():
+def test_convergence_rows_excludes_duplicate_row_ids():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
@@ -145,13 +145,13 @@ def test_only_convergent_excludes_duplicate_row_ids():
     )
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="rows"
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [Row(citation="Mamani 2020", species="Zea mays")]
 
 
-def test_only_convergent_excludes_rows_without_row_id():
+def test_convergence_rows_excludes_rows_without_row_id():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
@@ -167,26 +167,177 @@ def test_only_convergent_excludes_rows_without_row_id():
     )
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[], only_convergent=True
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="rows"
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [Row(citation="Mamani 2020", species="Carum carvi")]
 
 
-def test_only_convergent_computed_per_file_not_globally():
+def test_convergence_rows_computed_per_file_not_globally():
     file_a, path_a = wrap([Row(species="Ammi majus", row_=1)], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Carum carvi", row_=1)], citation="Jones 2021")
     result = gather_tablesfiles(
         [(file_a, path_a), (file_b, path_b)],
         citation_column="citation",
         key_columns=[],
-        only_convergent=True,
+        convergence="rows",
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
         Row(citation="Mamani 2020", species="Ammi majus"),
         Row(citation="Jones 2021", species="Carum carvi"),
     ]
+
+
+def test_convergence_fragments_includes_fully_convergent_fragments():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
+                        page=1,
+                    )
+                ]
+            ),
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Zea mays", row_=1), Row(species="Zea mays", row_=1)],
+                        page=2,
+                    )
+                ]
+            ),
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="fragments"
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(citation="Mamani 2020", species="Ammi majus"),
+        Row(citation="Mamani 2020", species="Carum carvi"),
+    ]
+
+
+def test_convergence_fragments_excludes_fragment_with_missing_row_id():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Ammi majus", row_=1), Row(species="Carum carvi")],
+                        page=1,
+                    )
+                ]
+            ),
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(rows=[Row(species="Zea mays", row_=1)], page=2)
+                ]
+            ),
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="fragments"
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Zea mays")]
+
+
+def test_convergence_tables_includes_fully_convergent_tablesfiles():
+    file_a = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
+                        page=1,
+                    )
+                ]
+            )
+        ],
+        citation="Mamani 2020",
+    )
+    file_b = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Zea mays", row_=1), Row(species="Zea mays", row_=1)],
+                        page=1,
+                    )
+                ]
+            )
+        ],
+        citation="Jones 2021",
+    )
+    path_a = Path("Mamani 2020.tables.json")
+    path_b = Path("Jones 2021.tables.json")
+    result = gather_tablesfiles(
+        [(file_a, path_a), (file_b, path_b)],
+        citation_column="citation",
+        key_columns=[],
+        convergence="tables",
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(citation="Mamani 2020", species="Ammi majus"),
+        Row(citation="Mamani 2020", species="Carum carvi"),
+    ]
+
+
+def test_convergence_tables_excludes_non_convergent_tables():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(rows=[Row(species="Ammi majus", row_=1)], page=1)
+                ]
+            ),
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Zea mays", row_=1), Row(species="Zea mays", row_=1)],
+                        page=2,
+                    )
+                ]
+            ),
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="tables"
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Ammi majus")]
+
+
+def test_convergence_tables_prints_nothing_when_no_convergent_tables(capsys):
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(
+                        rows=[Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=1)],
+                        page=1,
+                    )
+                ]
+            )
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    gather_tablesfiles(
+        [(tablesfile, path)], citation_column="citation", key_columns=[], convergence="tables"
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
 
 
 def test_gather_tablesfiles_prints_row_count_per_file(capsys):

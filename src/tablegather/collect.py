@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from tablevalidate.schema import (
     Row,
@@ -6,7 +7,35 @@ from tablevalidate.schema import (
     TableWithFragments,
     TablesFile,
 )
-from utils.convergence import convergent_row_ids
+
+Convergence = Literal["none", "rows", "fragments", "tables"]
+
+
+def apply_tables_convergence(tablesfile: TablesFile) -> list[Row]:
+    return [
+        row
+        for table in tablesfile.get_convergent_tables()
+        for fragment in table.get_table_fragments()
+        for row in fragment.rows
+    ]
+
+
+def apply_fragments_convergence(tablesfile: TablesFile) -> list[Row]:
+    return [
+        row
+        for table in tablesfile.tables
+        for fragment in table.get_convergent_fragments()
+        for row in fragment.rows
+    ]
+
+
+def apply_rows_convergence(tablesfile: TablesFile) -> list[Row]:
+    return [
+        row
+        for table in tablesfile.tables
+        for fragment in table.get_table_fragments()
+        for row in fragment.get_convergent_rows()
+    ]
 
 
 def gather_tablesfiles(
@@ -14,7 +43,7 @@ def gather_tablesfiles(
     citation_column: str,
     key_columns: list[str],
     path_column: str | None = None,
-    only_convergent: bool = False,
+    convergence: Convergence = "none",
 ) -> TablesFile:
     seen_citations: set[str] = set()
     all_rows: list[Row] = []
@@ -32,20 +61,24 @@ def gather_tablesfiles(
         if path_column:
             extra[path_column] = str(path)
 
-        source_rows = [
-            row
-            for table in tablesfile.tables
-            for fragment in table.get_table_fragments()
-            for row in fragment.rows
-        ]
-
-        if only_convergent:
-            convergent_ids = convergent_row_ids(source_rows)
-            source_rows = [row for row in source_rows if row.row_ in convergent_ids]
+        if convergence == "tables":
+            source_rows = apply_tables_convergence(tablesfile)
+        elif convergence == "fragments":
+            source_rows = apply_fragments_convergence(tablesfile)
+        elif convergence == "rows":
+            source_rows = apply_rows_convergence(tablesfile)
+        else:
+            source_rows = [
+                row
+                for table in tablesfile.tables
+                for fragment in table.get_table_fragments()
+                for row in fragment.rows
+            ]
 
         gathered = [Row(**{**extra, **row.get_columns()}) for row in source_rows]
-        print(f"{path}: {len(gathered)} rows")
         all_rows.extend(gathered)
+        if gathered:
+            print(f"{path}: {len(gathered)} rows")
 
     if key_columns:
         all_rows.sort(
