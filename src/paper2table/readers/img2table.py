@@ -4,7 +4,7 @@ from typing import Optional
 import pandas as pd
 from img2table.document import PDF
 from img2table.ocr import TesseractOCR
-from img2table.tables.objects.extraction import ExtractedTable  # pyright: ignore[reportMissingImports]
+from img2table.tables.objects.extraction import ExtractedTable
 
 from paper2table.mapping import TablesMapping
 from paper2table.readers import document
