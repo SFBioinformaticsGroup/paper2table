@@ -14,7 +14,7 @@ from tablevalidate.schema import TablesFile
 from utils.handle_sigint import handle_sigint
 from utils.tokenize_schema import tokenize_schema
 from utils.column_names import normalize_column_name
-from utils.column_schema import ColumnSchema
+from utils.column_schema import ColumnSchema, try_parse_schema
 
 handle_sigint()
 
@@ -35,7 +35,7 @@ from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger
-from .postprocessor import PostProcessor, build_postprocessors
+from utils.postprocessor import PostProcessor, build_postprocessors
 from .fragment_transformer import (
     FragmentTransformer,
     FilterEmptyRowsTransformer,
@@ -709,10 +709,7 @@ def try_parse_hints(args):
     return []
 
 
-def try_parse_schema(args):
-    schema_str = read_path(args.schema_path, inline=args.schema)
-    if schema_str:
-        return ColumnSchema.parse(schema_str)
+
 
 
 if __name__ == "__main__":

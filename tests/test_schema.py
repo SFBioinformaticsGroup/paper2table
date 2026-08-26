@@ -1,5 +1,5 @@
 # pyright: reportCallIssue=false
-from tablemerge.postprocessor import (
+from utils.postprocessor import (
     SchemaPostProcessor,
     DropEmptyColumnsPostProcessor,
     DropEmptyTablesPostProcessor,

@@ -3,7 +3,7 @@ import unicodedata
 from typing import Protocol
 
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
-from tablemerge.merge import is_header_row
+from utils.filters import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 
 
