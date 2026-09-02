@@ -21,7 +21,7 @@ class NullTablesfileTransformer:
 
 class FragmentsExploder:
     def transform(self, tablesfile: TablesFile) -> TablesFile:
-        expanded_tables: list[Table] = [
+        expanded_tables: list[TableWithRows | TableWithFragments] = [
             TableWithRows(rows=fragment.rows, page=fragment.page)
             for table in tablesfile.tables
             for fragment in table.get_table_fragments()

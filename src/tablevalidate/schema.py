@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
@@ -11,7 +11,7 @@ class ValueWithAgreement(BaseModel):
     agreement_level: int
 
 
-ColumnValue = Union[None, str, List[ValueWithAgreement]]
+ColumnValue = None | str | List[ValueWithAgreement]
 
 
 _SPECIAL_FIELDS = frozenset(("agreement_level_", "sources_", "row_"))
@@ -190,11 +190,11 @@ class Metadata(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-Citation = Union[None, str, List[ValueWithAgreement]]
+Citation = None | str | List[ValueWithAgreement]
 
 
 class TablesFile(BaseModel):
-    tables: List[Union[TableWithRows, TableWithFragments]]
+    tables: List[TableWithRows | TableWithFragments]
     citation: Citation
     metadata: Optional[Metadata] = None
     uuid: Optional[str] = None
