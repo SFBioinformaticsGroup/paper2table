@@ -10,7 +10,8 @@
 - `paper2table`: the main command, which is used to extract data
 - `filenorm`: a command for preparing papers
 - `tablemerge`: a command for merging result of multiple `paper2table` runs
-- `tablestats`: a command for querying `paper2table` and `tablemerge` results
+- `tablestats`: a command for querying `paper2table` and `tablemerge` resultsets
+- `tablegather`: a command for combining multiple `paper2table` and `tablemerge` resultsets into one
 - `table2html`: a command for generating simple extracted data visualizations
 - `table2csv`: a command for exporting tables to csv files
 - `tablevalidate`: a command for validating tables files
@@ -31,6 +32,10 @@
 		* 1.4.5. [Compacting consecutive fragments](#Compactingconsecutivefragments)
 	* 1.5. [Querying stats](#Queryingstats)
 	* 1.6. [Visualizing data](#Visualizingdata)
+	* 1.7. [ Gathering](#Gathering)
+		* 1.7.1. [Key columns](#Keycolumns)
+		* 1.7.2. [Deduplication](#Deduplication)
+		* 1.7.3. [Metadata](#Metadata)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -337,7 +342,7 @@ table2html tests/data/merges
 ```
 
 
-###  Gathering
+###  1.7. <a name='Gathering'></a> Gathering
 
 `tablegather` collects *all* `.tables.json` files from one or more result directories into
 a single flat table. Unlike `tablemerge`, it does not pair files by name — it combines every
@@ -358,7 +363,7 @@ $ tablegather --citation-column paper -o tests/data/gathered/ tests/data/tables/
 $ tablegather -o tests/data/gathered/ tests/data/tables/ tests/data/other_tables/
 ```
 
-#### Key columns
+####  1.7.1. <a name='Keycolumns'></a>Key columns
 
 Pass `-p` with a schema string to declare which columns are keys. Key columns are used to
 sort (and thus visually group) rows across papers. Mark a column as a key by appending `:key`
@@ -377,14 +382,14 @@ $ tablegather -p "family:str:key species:str:key" tests/data/tables/
 
 The schema accepts a file path or an inline string, exactly like `tablemerge`.
 
-#### Deduplication
+####  1.7.2. <a name='Deduplication'></a>Deduplication
 
 If two files share the same citation string (i.e. the same paper appears in more than one input
 directory), `tablegather` includes it only once. The citation is taken from the `citation`
 field of the `.tables.json` file; when that field is absent the filename stem is used as a
 fallback.
 
-#### Metadata
+####  1.7.3. <a name='Metadata'></a>Metadata
 
 When `-o` is specified, `tablegather` writes a `tables.metadata.json` file alongside the
 output, following the same format used by `paper2table` and `tablemerge`:
