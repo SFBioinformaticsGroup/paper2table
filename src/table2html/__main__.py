@@ -10,6 +10,7 @@ from tablevalidate.schema import (
     TablesFile,
     TableFragment,
 )
+from paper2table import __version__
 
 
 def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, TablesFile]]:
@@ -456,6 +457,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate static HTML viewer for paper2tables results"
     )
+    parser.add_argument("--version", action="version", version=f"table2html {__version__}")
     parser.add_argument(
         "input_dir", help="Directory with tables.metadata.json and *.tables.json"
     )

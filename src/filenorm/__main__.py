@@ -4,10 +4,12 @@ import os
 
 from utils.column_names import normalize_column_name
 from utils.handle_sigint import handle_sigint
+from paper2table import __version__
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--version", action="version", version=f"filenorm {__version__}")
     parser.add_argument("files", nargs="+", help="List of files to process")
     parser.add_argument(
         "-y", "--yes", action="store_true", help="Do not ask for confirmation"

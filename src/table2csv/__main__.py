@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 from utils.table_fragments import load_papers
 from tablevalidate.schema import TablesFile
+from paper2table import __version__
 
 
 def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFrame]]:
@@ -24,6 +25,7 @@ def save_csv(dataframe: pd.DataFrame, output_file: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export paper2table tables to csvs")
+    parser.add_argument("--version", action="version", version=f"table2csv {__version__}")
     parser.add_argument(
         "input_dir", help="Directory with tables.metadata.json and *.tables.json"
     )
