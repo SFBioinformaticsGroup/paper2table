@@ -14,7 +14,7 @@ from tablevalidate.schema import TablesFile
 from utils.handle_sigint import handle_sigint
 from utils.tokenize_schema import tokenize_schema
 from utils.column_names import normalize_column_name
-from utils.column_schema import ColumnSchema
+from utils.column_schema import ColumnSchema, try_parse_schema
 
 handle_sigint()
 
@@ -35,7 +35,8 @@ from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger
-from .postprocessor import PostProcessor, build_postprocessors
+from utils.postprocessor import PostProcessor
+from utils.cli import add_postprocessor_args, build_postprocessors_from_args
 from .fragment_transformer import (
     FragmentTransformer,
     FilterEmptyRowsTransformer,
@@ -343,25 +344,6 @@ def parse_args():
         help="Skip removing rows whose values match their column names (title rows)",
     )
     parser.add_argument(
-        "--no-drop-empty-columns",
-        action="store_false",
-        dest="drop_empty_columns",
-        default=True,
-        help="Skip dropping columns that are entirely empty after merging",
-    )
-    parser.add_argument(
-        "--no-drop-empty-tables",
-        action="store_false",
-        dest="drop_empty_tables",
-        default=True,
-        help="Skip dropping tables that are entirely empty after merging",
-    )
-    parser.add_argument(
-        "--only-semantic-columns",
-        action="store_true",
-        help="Remove columns whose names are numeric after merging",
-    )
-    parser.add_argument(
         "--remove-header-rows",
         action="store_true",
         help=(
@@ -453,45 +435,7 @@ def parse_args():
         type=str,
         help="Path to a file with alias:target[:offset] basename mappings (one per line)",
     )
-    parser.add_argument(
-        "--schema",
-        type=str,
-        help=(
-            "Inline schema with column:type pairs. "
-            "Required by --filter-schema-columns, --order-schema-columns, "
-            "and --coerce-schema-column-types."
-        ),
-    )
-    parser.add_argument(
-        "-p",
-        "--schema-path",
-        type=str,
-        help="Path to a schema file with column:type pairs (same format as --schema).",
-    )
-    parser.add_argument(
-        "--filter-schema-columns",
-        action="store_true",
-        help=(
-            "Drop merged tables whose rows share no column names with the schema. "
-            "Requires -schema/--schema-path."
-        ),
-    )
-    parser.add_argument(
-        "--order-schema-columns",
-        action="store_true",
-        help=(
-            "Reorder output columns so schema columns come first (in schema order), "
-            "followed by any remaining columns. Requires -schema/--schema-path."
-        ),
-    )
-    parser.add_argument(
-        "--coerce-schema-column-types",
-        action="store_true",
-        help=(
-            "Normalize cell string values in schema columns to the declared type. "
-            "Requires -schema/--schema-path."
-        ),
-    )
+    add_postprocessor_args(parser)
     parser.add_argument(
         "--fix-reversed-column-values",
         action="store_true",
@@ -595,18 +539,14 @@ def parse_default_settings() -> Optional[MergeSettings]:
 
 def main():
     args = parse_args()
-    schema_required = [
-        (args.filter_schema_columns, "--filter-schema-columns"),
-        (args.order_schema_columns, "--order-schema-columns"),
-        (args.coerce_schema_column_types, "--coerce-schema-column-types"),
-        (args.column_name_semantic_alignment, "--column-name-semantic-alignment"),
-    ]
-    for flag, name in schema_required:
-        if flag and not args.schema_path and not args.schema:
-            print(f"Error: {name} requires -schema/--schema-path.", file=sys.stderr)
-            sys.exit(1)
-
     schema: ColumnSchema | None = try_parse_schema(args)
+
+    if args.column_name_semantic_alignment and schema is None:
+        print(
+            "Error: --column-name-semantic-alignment requires --schema/--schema-path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     aliases: dict[str, str] = try_parse_column_aliases(args)
     hints: list[str] = try_parse_hints(args)
     paper_aliases: dict[str, PaperAlias] = try_parse_paper_aliases(args)
@@ -620,15 +560,7 @@ def main():
         )
         sys.exit(1)
 
-    postprocessors = build_postprocessors(
-        schema=schema,
-        filter_columns=args.filter_schema_columns,
-        order_columns=args.order_schema_columns,
-        coerce_types=args.coerce_schema_column_types,
-        only_semantic_columns=args.only_semantic_columns,
-        drop_empty_columns=args.drop_empty_columns,
-        drop_empty_tables=args.drop_empty_tables,
-    )
+    postprocessors = build_postprocessors_from_args(args, schema)
 
     load_analyzers, merge_analyzers = build_analyzers(
         use_jaccard=args.jaccard_column_alignment,
@@ -709,10 +641,7 @@ def try_parse_hints(args):
     return []
 
 
-def try_parse_schema(args):
-    schema_str = read_path(args.schema_path, inline=args.schema)
-    if schema_str:
-        return ColumnSchema.parse(schema_str)
+
 
 
 if __name__ == "__main__":

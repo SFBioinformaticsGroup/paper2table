@@ -1,5 +1,5 @@
 # pyright: reportCallIssue=false
-from tablemerge.postprocessor import (
+from utils.postprocessor import (
     SchemaPostProcessor,
     DropEmptyColumnsPostProcessor,
     DropEmptyTablesPostProcessor,
@@ -49,25 +49,51 @@ def filter_processor() -> SchemaPostProcessor:
 
 def test_filter_keeps_table_with_matching_column():
     result = filter_processor().postprocess(wrap([Row(name="foo")]))
-    assert len(result.tables) == 1
+    assert rows_of(result) == [Row(name="foo")]
 
 
 def test_filter_drops_table_with_no_matching_column():
     result = filter_processor().postprocess(wrap([Row(color="red", size="big")]))
-    assert len(result.tables) == 0
+    assert result.tables == []
 
 
-def test_filter_keeps_table_with_partial_match():
+def test_filter_removes_non_schema_semantic_columns():
     result = filter_processor().postprocess(
         wrap([Row(species="Canis lupus", habitat="forest")])
     )
-    assert len(result.tables) == 1
+    assert rows_of(result) == [Row(species="Canis lupus")]
 
 
 def test_filter_mixed_tables():
     tf = wrap_two_tables([Row(name="Rosa")], [Row(color="red")])
     result = filter_processor().postprocess(tf)
-    assert len(result.tables) == 1
+    assert rows_of(result) == [Row(name="Rosa")]
+
+
+def test_filter_preserves_non_semantic_columns():
+    result = filter_processor().postprocess(
+        wrap([Row(name="Rosa", **{"1": "a", "2": "b"})])
+    )
+    assert rows_of(result) == [Row(name="Rosa", **{"1": "a", "2": "b"})]
+
+
+def test_filter_preserves_table_with_only_non_semantic_columns():
+    result = filter_processor().postprocess(wrap([Row(**{"1": "a", "2": "b"})]))
+    assert rows_of(result) == [Row(**{"1": "a", "2": "b"})]
+
+
+def test_filter_drops_semantic_non_schema_leaves_non_semantic():
+    result = filter_processor().postprocess(
+        wrap([Row(habitat="forest", **{"1": "a"})])
+    )
+    assert rows_of(result) == [Row(**{"1": "a"})]
+
+
+def test_filter_all_three_column_types():
+    result = filter_processor().postprocess(
+        wrap([Row(name="Rosa", habitat="forest", **{"1": "a"})])
+    )
+    assert rows_of(result) == [Row(name="Rosa", **{"1": "a"})]
 
 
 def test_filter_preserves_citation():

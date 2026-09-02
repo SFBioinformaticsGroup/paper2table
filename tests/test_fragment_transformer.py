@@ -333,7 +333,7 @@ def test_normalize_punctuation_normalizes_typographic_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="don’t", opening="L’Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don’t", opening="L’Hopital")
+        Row(note="don't", opening="L'Hopital")
     )
 
 
@@ -349,7 +349,7 @@ def test_normalize_punctuation_acute_after_non_vowel_becomes_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="don´t", opening="L´Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don’t", opening="L’Hopital")
+        Row(note="don't", opening="L'Hopital")
     )
 
 
@@ -357,7 +357,7 @@ def test_normalize_punctuation_normalizes_grave_accent_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="don`t", opening="L`Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don’t", opening="L’Hopital")
+        Row(note="don't", opening="L'Hopital")
     )
 
 
@@ -365,7 +365,7 @@ def test_normalize_punctuation_normalizes_prime_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="don′t", opening="L′Hopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don’t", opening="L’Hopital")
+        Row(note="don't", opening="L'Hopital")
     )
 
 
@@ -373,7 +373,7 @@ def test_normalize_punctuation_normalizes_modifier_letter_apostrophe():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(Row(note="donʼt", opening="Lʻopital"))
     assert transformer.transform_fragment(fragment) == make_fragment(
-        Row(note="don’t", opening="L’opital")
+        Row(note="don't", opening="L'opital")
     )
 
 
@@ -437,5 +437,3 @@ def test_normalize_punctuation_preserves_row_special_fields():
     assert transformer.transform_fragment(fragment) == make_fragment(
         Row(species="Homo sapiens", agreement_level_=3, sources_=["s1"], row_=5)
     )
-
-

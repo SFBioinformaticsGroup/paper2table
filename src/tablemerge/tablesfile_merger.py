@@ -8,6 +8,7 @@ from tablevalidate.schema import (
     Table,
     TableFragment,
     TableWithFragments,
+    TableWithRows,
     ValueWithAgreement,
     ColumnValue,
     Row,
@@ -100,7 +101,7 @@ class TablesFileMerger:
         if page_offsets is None:
             page_offsets = [0] * len(tablesfiles)
 
-        merged_tables: list[Table] = []
+        merged_tables: list[TableWithRows | TableWithFragments] = []
 
         tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
         for tables_cluster in tables_clusters:

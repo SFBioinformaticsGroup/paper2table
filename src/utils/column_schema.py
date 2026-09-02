@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from pydantic import Field
+from utils.read_path import read_path
 from utils.scientific_name import scientific_name
 from utils.tokenize_schema import tokenize_schema
 
@@ -69,3 +70,9 @@ class ColumnSchema:
             desc = pydantic_field_description(typ)
             result[name] = (typ, Field(..., description=desc) if desc else ...)
         return result
+
+
+def try_parse_schema(args)  -> ColumnSchema | None:
+    schema_str = read_path(args.schema_path, inline=args.schema)
+    if schema_str:
+        return ColumnSchema.parse(schema_str)

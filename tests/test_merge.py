@@ -13,7 +13,7 @@ from tablemerge.aliases import parse_paper_aliases, PaperAlias
 from tablemerge.analyzers import JaccardMergeTimeAnalyzer, AliasLoadTimeAnalyzer
 from tablemerge.fragment_transformer import FilterTitleRowsTransformer
 from tablemerge.tablesfile_loader import TablesFileLoader
-from tablemerge.merge import (
+from utils.filters import (
     filter_semantic_columns,
     filter_header_rows,
     drop_empty_columns,
@@ -1996,9 +1996,6 @@ def test_output_file_has_curations_true_when_curations_present(tmp_path):
         ),
     )
     assert output_file_has_curations(output_file) is True
-
-
-# --- merge_tablesfiles_paths guard ---
 
 
 def write_source_tablesfile(source_dir: Path, basename: str, rows: list[Row]) -> None:
