@@ -211,7 +211,7 @@ class TablesFile(BaseModel):
 
     def clone(
         self,
-        tables: Optional[List[Table]] = None,
+        tables: Optional[List[TableWithRows | TableWithFragments]] = None,
         citation: Optional[Citation] = None,
         metadata: Optional[Metadata] = None,
         uuid: Optional[str] = None,

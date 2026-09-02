@@ -64,7 +64,7 @@ class ConsecutiveFragmentsCompactor:
         return self.columns_match(previous_fragment, other)
 
     def transform(self, tablesfile: TablesFile) -> TablesFile:
-        compacted: list[Table] = []
+        compacted: list[TableWithRows | TableWithFragments] = []
         for table in tablesfile.tables:
             fragments = table.get_table_fragments()
             if (

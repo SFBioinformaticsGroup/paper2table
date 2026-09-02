@@ -13,7 +13,7 @@ class MalformedJsonError(ValueError):
         self.cause = cause
 
 
-def validate_file(path: Path) -> Optional[ValueError]:
+def validate_file(path: Path) -> Optional[Exception]:
     try:
         with path.open("r", encoding="utf-8") as f:
             try:
