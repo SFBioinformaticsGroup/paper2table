@@ -12,3 +12,17 @@ tables-editor
 *.tables.json
 *.pdf
 tests/
+
+# docs / community files not needed at runtime
+README.md
+CLAUDE.md
+CHANGELOG.rst
+CONTRIBUTING.rst
+CODE_OF_CONDUCT.md
+
+# dev tooling
+tox.ini
+
+# scratch outputs
+stats.txt
+viewer.html
