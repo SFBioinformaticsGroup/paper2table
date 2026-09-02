@@ -69,6 +69,16 @@ pip install -e .[testing]
 pip install tox
 ```
 
+#### Docker
+
+Build the image once from the repository root:
+
+```bash
+docker build -f docker/Dockerfile -t paper2table .
+```
+
+All commands below have Docker equivalents. Mount the directory containing your PDFs or result files to `/data` inside the container — the working directory is `/data`, so paths starting with `/data/` work naturally.
+
 ###  1.2. <a name='Preparingfiles'></a>Preparing files
 
 Before running `paper2table`, it is recommended that you normalize your input papers files first, so that you avoid duplicate work. In order to do so, a small program `filenorm` is provided that will remove duplicate files and normalize filenames.
@@ -80,6 +90,11 @@ filenorm -q PATH [PATH ...]
 
 # don't ask for confirmation. a log with each change will be printed
 filenorm -y PATH [PATH ...]
+```
+
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/pdfs:/data paper2table filenorm -y /data
 ```
 
 ###  1.3. <a name='Running'></a>Running
@@ -110,6 +125,19 @@ paper2table -o . tests/data/demo_table.pdf
 
 # e.g. use the agent backend with the Gemini API
 GEMINI_API_KEY=... paper2table -r agent -m google-gla:gemini-2.5-flash -p tests/data/demo_schema.txt tests/data/demo_table.pdf
+```
+
+```bash
+# Docker equivalents
+docker run --rm -v /path/to/pdfs:/data paper2table /data/paper.pdf
+
+# write output back to the mounted directory
+docker run --rm -v /path/to/pdfs:/data paper2table -o /data /data/paper.pdf
+
+# agent backend (pass API key as env var)
+docker run --rm -e GEMINI_API_KEY=... -v /path/to/pdfs:/data \
+    paper2table -r agent -m google-gla:gemini-2.5-flash \
+    -p /data/schema.txt /data/paper.pdf
 ```
 
 ####  1.3.1. <a name='Hybridmode'></a>Hybrid mode
@@ -193,6 +221,12 @@ After doing this, you can merge tables like this:
 
 ```bash
 tablemerge -o tests/data/merges tests/data/demo_resultsets/*
+```
+
+```bash
+# Docker equivalents
+docker run --rm -v /path/to/data:/data paper2table -t -o /data/tables /data/*.pdf
+docker run --rm -v /path/to/data:/data paper2table tablemerge -o /data/merges /data/tables/*
 ```
 
 ####  1.4.1. <a name='Columnalignment'></a>Column alignment
@@ -333,6 +367,11 @@ tablestats --sort desc tests/data/merges
 tablestats --empty tests/data/merges
 ```
 
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/data:/data paper2table tablestats /data/merges
+```
+
 ###  1.6. <a name='Visualizingdata'></a>Visualizing data
 
 A tool `table2html` is provided for displaying a resultset:
@@ -343,6 +382,10 @@ A tool `table2html` is provided for displaying a resultset:
 table2html tests/data/merges
 ```
 
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/data:/data paper2table table2html /data/merges
+```
 
 ###  1.7. <a name='Gathering'></a> Gathering
 
@@ -363,6 +406,12 @@ $ tablegather --citation-column paper -o tests/data/gathered/ tests/data/tables/
 
 # gather from multiple directories at once
 $ tablegather -o tests/data/gathered/ tests/data/tables/ tests/data/other_tables/
+```
+
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/data:/data paper2table tablegather \
+    -o /data/gathered /data/tables/
 ```
 
 ####  1.7.1. <a name='Keycolumns'></a>Key columns
@@ -462,6 +511,11 @@ tox -e lint
 
 ```bash
 tablevalidate tests/data/demo_resultsets/*/*
+```
+
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/data:/data paper2table tablevalidate /data/*.tables.json
 ```
 
 The format is informally specified this way:

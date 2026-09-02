@@ -1,0 +1,14 @@
+.git
+__pycache__
+*.pyc
+*.egg-info
+build
+dist
+.tox
+output
+mappings
+gathers
+tables-editor
+*.tables.json
+*.pdf
+tests/
