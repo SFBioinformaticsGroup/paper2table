@@ -35,7 +35,9 @@
 	* 1.7. [ Gathering](#Gathering)
 		* 1.7.1. [Key columns](#Keycolumns)
 		* 1.7.2. [Deduplication](#Deduplication)
-		* 1.7.3. [Metadata](#Metadata)
+		* 1.7.3. [Path column](#Pathcolumn)
+		* 1.7.4. [Convergence filter](#Convergencefilter)
+		* 1.7.5. [Metadata](#Metadata)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -291,7 +293,7 @@ When a column is declared as `scientific_name`, `--coerce-schema-column-types` n
 
 Example: `"Ammi majus L."` and `"ammi majus l."` both normalize to `"Ammi majus"`.
 
-**Dependency — gnparser**: required only when `scientific_name` columns are present in the schema and `--coerce-schema-column-types` is used. Installing `paper2table` does not require it; the dependency is only needed at runtime when coercion is triggered.
+**Dependency - gnparser**: required only when `scientific_name` columns are present in the schema and `--coerce-schema-column-types` is used. Installing `paper2table` does not require it; the dependency is only needed at runtime when coercion is triggered.
 
 ```bash
 # install via Go
@@ -345,7 +347,7 @@ table2html tests/data/merges
 ###  1.7. <a name='Gathering'></a> Gathering
 
 `tablegather` collects *all* `.tables.json` files from one or more result directories into
-a single flat table. Unlike `tablemerge`, it does not pair files by name — it combines every
+a single flat table. Unlike `tablemerge`, it does not pair files by name - it combines every
 file regardless of filename. A citation column is added to each row so you can trace it back to
 its source paper.
 
@@ -389,7 +391,30 @@ directory), `tablegather` includes it only once. The citation is taken from the 
 field of the `.tables.json` file; when that field is absent the filename stem is used as a
 fallback.
 
-####  1.7.3. <a name='Metadata'></a>Metadata
+####  1.7.3. <a name='Pathcolumn'></a>Path column
+
+Pass `--path-column NAME` to add a column with the source file path to every row:
+
+```bash
+$ tablegather --path-column source_file tests/data/tables/
+```
+
+By default no path column is added.
+
+####  1.7.4. <a name='Convergencefilter'></a>Convergence filter
+
+`--convergence` filters which rows are included based on how consistently they were extracted across runs. Accepted values:
+
+- `none` (default) - include all rows
+- `rows` - include only rows with a unique `row_` ID within their fragment (no duplicates)
+- `fragments` - include only rows from fragments where every row is convergent
+- `tables` - include only rows from tablesfiles where all tables are fully convergent
+
+```bash
+$ tablegather --convergence rows tests/data/tables/
+```
+
+####  1.7.5. <a name='Metadata'></a>Metadata
 
 When `-o` is specified, `tablegather` writes a `tables.metadata.json` file alongside the
 output, following the same format used by `paper2table` and `tablemerge`:
@@ -495,7 +520,7 @@ Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file a
 
 `tablemerge` processes each input file through three phases before writing the merged output.
 
-**Phase 1 — Load time** (`TablesFileLoader`, once per input file):
+**Phase 1 - Load time** (`TablesFileLoader`, once per input file):
 
 | Step | Operation                                            | Classes                                                                              | Condition                         |
 |------|------------------------------------------------------|--------------------------------------------------------------------------------------|-----------------------------------|
@@ -504,14 +529,14 @@ Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file a
 | 3    | `analyzers` per fragment via `LoadTimeColumnAligner` | `HintsAnalyzer`, `AliasAnalyzer`, `ColumnNameSemanticAnalyzer`                       | per flag                          |
 | 4    | `posttransformers` per fragment                      | `FilterHeaderRowsTransformer`                                                        | `--remove-header-rows`            |
 
-**Phase 2 — Merge time** (`TablesFileMerger`, once per fragment pair):
+**Phase 2 - Merge time** (`TablesFileMerger`, once per fragment pair):
 
 | Step | Operation                                     | Classes                                          | Condition |
 |------|-----------------------------------------------|--------------------------------------------------|-----------|
 | 1    | column alignment via `MergeTimeColumnAligner` | `JaccardAnalyzer`, `ColumnValueSemanticAnalyzer` | per flag  |
 | 2    | row merging                                   | `TableFragmentBuilder`                           | always    |
 
-**Phase 3 — Post-merge** (applied once to the merged output):
+**Phase 3 - Post-merge** (applied once to the merged output):
 
 | Step | Operation       | Classes                                                                                                                                 | Condition |
 |------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------|
