@@ -15,7 +15,9 @@ from .collect import gather_tablesfiles
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
     try:
-        with open(Path(resultset_dir) / "tables.metadata.json", "r", encoding="utf-8") as f:
+        with open(
+            Path(resultset_dir) / "tables.metadata.json", "r", encoding="utf-8"
+        ) as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
@@ -44,7 +46,9 @@ def compute_sources(
     return sources
 
 
-def write_gather_metadata(output_dir: Path, sources: list[dict], settings: dict) -> None:
+def write_gather_metadata(
+    output_dir: Path, sources: list[dict], settings: dict
+) -> None:
     metadata = {
         "reader": "tablegather",
         "uuid": str(uuid4()),
@@ -56,6 +60,19 @@ def write_gather_metadata(output_dir: Path, sources: list[dict], settings: dict)
     with open(metadata_out, "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
     print(f"Metadata written to {metadata_out}")
+
+
+def tablegather_schema(
+    schema: ColumnSchema | None,
+    citation_column: str,
+    path_column: str | None,
+) -> ColumnSchema | None:
+    if schema is None:
+        return None
+    gather_columns: dict[str, type] = {citation_column: str}
+    if path_column:
+        gather_columns[path_column] = str
+    return ColumnSchema(dict(schema.definitions()) | gather_columns)
 
 
 def main():
@@ -99,6 +116,7 @@ def main():
     args = parser.parse_args()
 
     schema: ColumnSchema | None = try_parse_schema(args)
+    schema = tablegather_schema(schema, args.citation_column, args.path_column)
     postprocessors = build_postprocessors_from_args(args, schema)
 
     key_columns: list[str] = args.key_columns or []
