@@ -10,10 +10,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . .
 
-RUN SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 \
-    pip install --no-cache-dir .
+# Install dependencies
+COPY setup.cfg pyproject.toml ./
+RUN mkdir -p src && \
+    SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 pip install --no-cache-dir . && \
+    rm -rf src/
+
+# Install package
+COPY . .
+RUN SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 pip install --no-cache-dir --no-deps .
 
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
