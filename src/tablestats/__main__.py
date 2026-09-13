@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tablevalidate.schema import ColumnValue, TablesFile
 from .stats import GlobalStats, PaperStats, update_papers_stats
+from paper2table import __version__
 
 VALID_SORT_KEYS = {"tables-count", "tables-convergence", "curations-count"}
 
@@ -130,6 +131,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Compute stats for JSON tables directory."
     )
+    parser.add_argument("--version", action="version", version=f"tablestats {__version__}")
     parser.add_argument(
         "path",
         help="Directory containing tables.metadata.json and .tables.json paper files",

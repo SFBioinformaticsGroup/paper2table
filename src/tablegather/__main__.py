@@ -11,6 +11,7 @@ from utils.column_schema import ColumnSchema, try_parse_schema
 from utils.table_fragments import load_papers
 
 from .collect import gather_tablesfiles
+from paper2table import __version__
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
@@ -79,6 +80,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Collect all .tables.json files from one or more directories into a single table."
     )
+    parser.add_argument("--version", action="version", version=f"tablegather {__version__}")
     parser.add_argument("resultset_dirs", nargs="+", metavar="RESULTSET_DIR")
     parser.add_argument(
         "--key-columns",

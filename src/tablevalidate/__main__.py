@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Literal
 
 from .validate import validate_file, MalformedJsonError
+from paper2table import __version__
 
 
 def error_label(error: Exception) -> str:
@@ -44,6 +45,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="Validate JSON tables files against the schema"
     )
+    parser.add_argument("--version", action="version", version=f"tablevalidate {__version__}")
     parser.add_argument(
         "-q",
         "--quiet",

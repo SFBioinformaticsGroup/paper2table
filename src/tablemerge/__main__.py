@@ -54,6 +54,7 @@ from .tablesfile_transformer import (
     SafeConsecutiveFragmentsCompactor,
     UnsafeConsecutiveFragmentsCompactor,
 )
+from paper2table import __version__
 
 TRANSFORMER_MAP = {
     "explode": FragmentsExploder(),
@@ -315,6 +316,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Merge JSON tables from multiple directories."
     )
+    parser.add_argument("--version", action="version", version=f"tablemerge {__version__}")
     parser.add_argument(
         "-o",
         "--output-directory",
