@@ -40,9 +40,7 @@ def apply_rows_convergence(tablesfile: TablesFile) -> list[Row]:
 
 def gather_tablesfiles(
     tablesfiles_with_paths: list[tuple[TablesFile, Path]],
-    citation_column: str,
     key_columns: list[str],
-    path_column: str | None = None,
     convergence: Convergence = "none",
 ) -> TablesFile:
     seen_citations: set[str] = set()
@@ -56,10 +54,6 @@ def gather_tablesfiles(
         if citation in seen_citations:
             continue
         seen_citations.add(citation)
-
-        extra: dict = {citation_column: citation}
-        if path_column:
-            extra[path_column] = str(path)
 
         if convergence == "tables":
             source_rows = apply_tables_convergence(tablesfile)
@@ -75,7 +69,10 @@ def gather_tablesfiles(
                 for row in fragment.rows
             ]
 
-        gathered = [Row(**{**extra, **row.get_columns()}) for row in source_rows]
+        gathered = [
+            Row(**{"citation_": citation, "path_": str(path), **row.get_columns()})
+            for row in source_rows
+        ]
         all_rows.extend(gathered)
         if gathered:
             print(f"{path}: {len(gathered)} rows")
