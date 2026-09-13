@@ -5,11 +5,9 @@ from pathlib import Path
 
 from tablegather.collect import gather_tablesfiles
 from tablegather.__main__ import (
-    tablegather_schema,
     compute_sources,
     write_gather_metadata,
 )
-from utils.column_schema import ColumnSchema
 from tablevalidate.schema import (
     TablesFile,
     TableFragment,
@@ -28,36 +26,58 @@ def wrap(rows: list[Row], citation: str = "", page: int = 1) -> tuple[TablesFile
     return tablesfile, Path(f"{citation or 'unnamed'}.tables.json")
 
 
-def test_single_file_adds_citation_column():
+def test_single_file_adds_citation_and_path_columns():
     tablesfile, path = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
-    result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[]
-    )
-    fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Ammi majus")]
-
-
-def test_two_files_distinct_citations_combined():
-    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
-    file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
-    result = gather_tablesfiles(
-        [(file_a, path_a), (file_b, path_b)], citation_column="citation", key_columns=[]
-    )
+    result = gather_tablesfiles([(tablesfile, path)], key_columns=[])
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Jones 2021", species="Carum carvi"),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        )
     ]
 
 
-def test_duplicate_citation_rows_added_once():
+def test_gathers_two_different_rows():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Jones 2021",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        ),
+    ]
+
+
+def test_duplicate_row_added_once():
     file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
-    result = gather_tablesfiles(
-        [(file_a, path_a), (file_b, path_b)], citation_column="citation", key_columns=[]
-    )
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Ammi majus")]
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        )
+    ]
 
 
 def test_missing_citation_falls_back_to_filename_stem():
@@ -72,11 +92,18 @@ def test_missing_citation_falls_back_to_filename_stem():
         citation="",
     )
     path = Path("mamani_2020.tables.json")
-    result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[]
-    )
+    result = gather_tablesfiles([(tablesfile, path)], key_columns=[])
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="mamani_2020", species="Ammi majus")]
+    assert fragments[0].rows == [
+        Row(
+            # FIXME this is wrong. is OK to lack of citation
+            citation_="mamani_2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        )
+    ]
 
 
 def test_key_column_sorts_rows():
@@ -84,17 +111,28 @@ def test_key_column_sorts_rows():
     file_b, path_b = wrap([Row(species="Ammi majus")], citation="Jones 2021")
     result = gather_tablesfiles(
         [(file_a, path_a), (file_b, path_b)],
-        citation_column="citation",
         key_columns=["species"],
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Jones 2021", species="Ammi majus"),
-        Row(citation="Mamani 2020", species="Zea mays"),
+        Row(
+            citation_="Jones 2021",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Zea mays",
+        ),
     ]
 
 
-def test_multiple_tables_in_one_file_collected_flat():
+def test_multi_table_file_is_properly_gathered():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
@@ -111,56 +149,94 @@ def test_multiple_tables_in_one_file_collected_flat():
         citation="Mamani 2020",
     )
     path = Path("mamani_2020.tables.json")
-    result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="citation", key_columns=[]
-    )
-    fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Mamani 2020", species="Carum carvi"),
-    ]
-
-
-def test_custom_citation_column_name():
-    tablesfile, path = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
-    result = gather_tablesfiles(
-        [(tablesfile, path)], citation_column="paper", key_columns=[]
-    )
-    fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(paper="Mamani 2020", species="Ammi majus")]
-
-
-def test_path_column_adds_file_path():
-    tablesfile, path = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
-    result = gather_tablesfiles(
-        [(tablesfile, path)],
-        citation_column="citation",
-        key_columns=[],
-        path_column="path",
-    )
+    result = gather_tablesfiles([(tablesfile, path)], key_columns=[])
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
         Row(
-            citation="Mamani 2020", path="Mamani 2020.tables.json", species="Ammi majus"
-        )
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=2,
+            fragment_=1,
+            species="Carum carvi",
+        ),
+    ]
+
+
+def test_multi_fragment_file_is_properly_gathered():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    TableFragment(rows=[Row(species="Ammi majus")], page=1),
+                    TableFragment(rows=[Row(species="Carum carvi")], page=2),
+                    TableFragment(rows=[Row(species="Zea mays")], page=2),
+                ]
+            ),
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("mamani_2020.tables.json")
+    result = gather_tablesfiles([(tablesfile, path)], key_columns=[])
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=2,
+            fragment_=2,
+            species="Carum carvi",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=2,
+            fragment_=3,
+            species="Zea mays",
+        ),
     ]
 
 
 def test_convergence_rows_keeps_singleton_row_ids():
+    # FIXME we should preserve row_
     tablesfile, path = wrap(
         [Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
         citation="Mamani 2020",
     )
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="rows",
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Mamani 2020", species="Carum carvi"),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        ),
     ]
 
 
@@ -185,12 +261,19 @@ def test_convergence_rows_excludes_duplicate_row_ids():
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="rows",
     )
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Zea mays")]
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Zea mays",
+        )
+    ]
 
 
 def test_convergence_rows_excludes_rows_without_row_id():
@@ -213,12 +296,19 @@ def test_convergence_rows_excludes_rows_without_row_id():
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="rows",
     )
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Carum carvi")]
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        )
+    ]
 
 
 def test_convergence_rows_computed_per_file_not_globally():
@@ -226,14 +316,25 @@ def test_convergence_rows_computed_per_file_not_globally():
     file_b, path_b = wrap([Row(species="Carum carvi", row_=1)], citation="Jones 2021")
     result = gather_tablesfiles(
         [(file_a, path_a), (file_b, path_b)],
-        citation_column="citation",
         key_columns=[],
         convergence="rows",
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Jones 2021", species="Carum carvi"),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Jones 2021",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        ),
     ]
 
 
@@ -268,14 +369,25 @@ def test_convergence_fragments_includes_fully_convergent_fragments():
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="fragments",
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Mamani 2020", species="Carum carvi"),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        ),
     ]
 
 
@@ -304,12 +416,59 @@ def test_convergence_fragments_excludes_fragment_with_missing_row_id():
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="fragments",
     )
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Zea mays")]
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=2,
+            fragment_=1,
+            species="Zea mays",
+        )
+    ]
+
+
+def test_convergence_fragments_keeps_1_indexed_fragment_number_of_surviving_fragment():
+    tablesfile = TablesFile(
+        tables=[
+            TableWithFragments(
+                table_fragments=[
+                    # fragment 1: not convergent, dropped
+                    TableFragment(
+                        rows=[
+                            Row(species="Ammi majus", row_=1),
+                            Row(species="Carum carvi", row_=1),
+                        ],
+                        page=1,
+                    ),
+                    # fragment 2: convergent, kept - must report fragment_=2,
+                    # not fragment_=1, even though it's the only one that
+                    # survives
+                    TableFragment(rows=[Row(species="Zea mays", row_=1)], page=2),
+                ]
+            ),
+        ],
+        citation="Mamani 2020",
+    )
+    path = Path("Mamani 2020.tables.json")
+    result = gather_tablesfiles(
+        [(tablesfile, path)],
+        key_columns=[],
+        convergence="fragments",
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=2,
+            fragment_=2,
+            species="Zea mays",
+        )
+    ]
 
 
 def test_convergence_tables_includes_fully_convergent_tablesfiles():
@@ -349,14 +508,25 @@ def test_convergence_tables_includes_fully_convergent_tablesfiles():
     path_b = Path("Jones 2021.tables.json")
     result = gather_tablesfiles(
         [(file_a, path_a), (file_b, path_b)],
-        citation_column="citation",
         key_columns=[],
         convergence="tables",
     )
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
-        Row(citation="Mamani 2020", species="Ammi majus"),
-        Row(citation="Mamani 2020", species="Carum carvi"),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            species="Carum carvi",
+        ),
     ]
 
 
@@ -385,12 +555,19 @@ def test_convergence_tables_excludes_non_convergent_tables():
     path = Path("Mamani 2020.tables.json")
     result = gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="tables",
     )
     fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [Row(citation="Mamani 2020", species="Ammi majus")]
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        )
+    ]
 
 
 def test_convergence_tables_prints_nothing_when_no_convergent_tables(capsys):
@@ -413,7 +590,6 @@ def test_convergence_tables_prints_nothing_when_no_convergent_tables(capsys):
     path = Path("Mamani 2020.tables.json")
     gather_tablesfiles(
         [(tablesfile, path)],
-        citation_column="citation",
         key_columns=[],
         convergence="tables",
     )
@@ -426,39 +602,12 @@ def test_gather_tablesfiles_prints_row_count_per_file(capsys):
         [Row(species="Ammi majus"), Row(species="Carum carvi")], citation="Mamani 2020"
     )
     file_b, path_b = wrap([Row(species="Zea mays")], citation="Jones 2021")
-    gather_tablesfiles(
-        [(file_a, path_a), (file_b, path_b)], citation_column="citation", key_columns=[]
-    )
+    gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
     captured = capsys.readouterr()
     assert (
         captured.out
         == "Mamani 2020.tables.json: 2 rows\nJones 2021.tables.json: 1 rows\n"
     )
-
-
-def test_tablegather_schema_returns_none_when_no_schema():
-    assert tablegather_schema(None, "citation", None) is None
-
-
-def test_tablegather_schema_adds_citation_column():
-    schema = ColumnSchema({"species": str})
-    result = tablegather_schema(schema, "citation", None)
-    assert result is not None
-    assert dict(result.definitions()) == {"species": str, "citation": str}
-
-
-def test_tablegather_schema_adds_path_column_when_provided():
-    schema = ColumnSchema({"species": str})
-    result = tablegather_schema(schema, "citation", "path")
-    assert result is not None
-    assert dict(result.definitions()) == {"species": str, "citation": str, "path": str}
-
-
-def test_tablegather_schema_omits_path_column_when_none():
-    schema = ColumnSchema({"species": str})
-    result = tablegather_schema(schema, "citation", None)
-    assert result is not None
-    assert "path" not in dict(result.definitions())
 
 
 def test_compute_sources_includes_gathered_files():
@@ -545,15 +694,15 @@ def test_compute_sources_includes_reader_from_directory_metadata():
 
 def test_write_gather_metadata_creates_file(tmp_path):
     sources = [{"path": "resultset/mamani_2020.tables.json", "uuid": "uuid-a"}]
-    settings = {"citation_column": "citation", "key_columns": ["species"]}
+    settings = {"key_columns": ["species"], "convergence": "none"}
     write_gather_metadata(tmp_path, sources, settings)
     metadata_file = tmp_path / "tables.metadata.json"
     assert metadata_file.exists()
     metadata = json.loads(metadata_file.read_text())
     assert metadata["reader"] == "tablegather"
     assert metadata["settings"] == {
-        "citation_column": "citation",
         "key_columns": ["species"],
+        "convergence": "none",
     }
     assert metadata["sources"] == [
         {"path": "resultset/mamani_2020.tables.json", "uuid": "uuid-a"}
