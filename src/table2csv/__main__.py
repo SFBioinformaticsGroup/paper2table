@@ -13,6 +13,8 @@ def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFra
             rows = []
             for fragment in table.get_table_fragments():
                 for row in fragment.rows:
+                    # TODO add tests for this column. evaluate if we should use page_ convention
+                    # also ensure that we are effectively generating the page_, fragment_, etc columns
                     rows.append({**dict(row.get_columns()), "$page": fragment.page})
             csvs[basename].append(pd.DataFrame(rows))
     return csvs
