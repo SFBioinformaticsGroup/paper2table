@@ -178,6 +178,30 @@
             {"type": "null"},
             {"type": "integer"}
           ]
+        },
+        "citation_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string"}
+          ]
+        },
+        "path_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string"}
+          ]
+        },
+        "page_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer"}
+          ]
+        },
+        "fragment_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer"}
+          ]
         }
       },
       "patternProperties": {

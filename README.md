@@ -35,7 +35,7 @@
 	* 1.7. [ Gathering](#Gathering)
 		* 1.7.1. [Key columns](#Keycolumns)
 		* 1.7.2. [Deduplication](#Deduplication)
-		* 1.7.3. [Path column](#Pathcolumn)
+		* 1.7.3. [Meta-columns](#Metacolumnsintablegather)
 		* 1.7.4. [Convergence filter](#Convergencefilter)
 		* 1.7.5. [Metadata](#Metadata)
 * 2. [Development](#Development)
@@ -43,9 +43,10 @@
 	* 2.2. [Type checking](#Typechecking)
 * 3. [Architecture](#Architecture)
 	* 3.1. [TablesFile format](#TablesFileformat)
-	* 3.2. [Metadata files](#Metadatafiles)
-	* 3.3. [Processing pipeline](#Processingpipeline)
-	* 3.4. [Class diagram](#Classdiagram)
+	* 3.2. [Meta-columns convention](#Metacolumnsconvention)
+	* 3.3. [Metadata files](#Metadatafiles)
+	* 3.4. [Processing pipeline](#Processingpipeline)
+	* 3.5. [Class diagram](#Classdiagram)
 
 <!-- vscode-markdown-toc-config
 	numbering=true
@@ -348,8 +349,9 @@ table2html tests/data/merges
 
 `tablegather` collects *all* `.tables.json` files from one or more result directories into
 a single flat table. Unlike `tablemerge`, it does not pair files by name - it combines every
-file regardless of filename. A citation column is added to each row so you can trace it back to
-its source paper.
+file regardless of filename. Every gathered row is annotated with `citation_`, `path_`,
+`page_` and `fragment_` meta-columns so you can trace it back to its source paper, file,
+page and fragment - see [Meta-columns](#Metacolumnsintablegather) below.
 
 ```bash
 # gather all files in a resultset directory
@@ -357,9 +359,6 @@ $ tablegather tests/data/tables/
 
 # write output to a directory (produces gathered.tables.json + tables.metadata.json)
 $ tablegather --pretty -o tests/data/gathered/ tests/data/tables/
-
-# customize the citation column name
-$ tablegather --citation-column paper -o tests/data/gathered/ tests/data/tables/
 
 # gather from multiple directories at once
 $ tablegather -o tests/data/gathered/ tests/data/tables/ tests/data/other_tables/
@@ -425,8 +424,8 @@ output, following the same format used by `paper2table` and `tablemerge`:
       "uuid": "...",
       "datetime": "...",
       "settings": {
-        "citation_column": "citation",
-        "key_columns": ["species"]
+        "key_columns": ["species"],
+        "convergence": "none"
       },
       "sources": [
         {
@@ -474,7 +473,10 @@ The format is informally specified this way:
         {
           "COLUMN_NAME_1": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
           "COLUMN_NAME_2": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
-          "agreement_level_": "integer (optional)"
+          "citation_": "string (optional, added by tablegather)",
+          "path_": "string (optional, added by tablegather)",
+          "page_": "integer (optional, added by tablegather)",
+          "fragment_": "integer (optional, added by tablegather)"
         }
       ],
       "page": "integer"
