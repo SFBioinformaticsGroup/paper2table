@@ -253,7 +253,7 @@ def test_split_column_transformer_leaves_non_conjunction_columns_unchanged(en_sp
 
 
 @pytest.mark.integration
-def test_split_column_transformer_preserves_row_special_fields(en_spacy_model):
+def test_split_column_transformer_preserves_row_meta_columns(en_spacy_model):
     transformer = SplitColumnTransformer("en")
     fragment = make_fragment(
         Row(city_and_country="Bogota Colombia", agreement_level_=3, sources_=["s1"], row_=5)
@@ -429,7 +429,7 @@ def test_normalize_punctuation_transforms_list_values():
     )
 
 
-def test_normalize_punctuation_preserves_row_special_fields():
+def test_normalize_punctuation_preserves_row_meta_columns():
     transformer = NormalizePunctuationTransformer()
     fragment = make_fragment(
         Row(species="Homo sapiens.", agreement_level_=3, sources_=["s1"], row_=5)

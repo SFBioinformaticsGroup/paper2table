@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
@@ -13,18 +13,11 @@ class ValueWithAgreement(BaseModel):
 
 ColumnValue = None | str | List[ValueWithAgreement]
 
-
-# Meta-columns: any Row field ending in "_" is non-semantic bookkeeping data,
-# not extracted table content. This is enforced by tablesfile.schema.json
-# (see the "row" definition's patternProperties/additionalProperties rules).
-# See the "Meta-columns" section of README.md for the full convention and a
-# per-tool listing of which meta-columns each tool produces/consumes.
-_SPECIAL_FIELDS = frozenset(
+_META_COLUMNS = frozenset(
     (
         "agreement_level_",
         "sources_",
         "row_",
-        # tablegather-only meta-columns (see README.md "Meta-columns" section)
         "citation_",
         "path_",
         "page_",
@@ -63,7 +56,10 @@ class Row(BaseModel):
         return self.__dict__[item]
 
     def get_columns(self) -> Dict[str, ColumnValue]:
-        return {k: v for k, v in self if k not in _SPECIAL_FIELDS}
+        return {k: v for k, v in self if k not in _META_COLUMNS}
+
+    def get_meta_columns(self) -> Dict[str, Any]:
+        return {k: v for k, v in self if k in _META_COLUMNS}
 
     @staticmethod
     def is_semantic_column(name: str) -> bool:
