@@ -88,16 +88,40 @@ class Row(BaseModel):
         self,
         row_agreement: bool = False,
     ):
-        return Row(
-            **{
+        return self.clone(
+            columns={
                 column: Row.normalize_value(value)
                 for column, value in self.get_columns().items()
             },
-            agreement_level_=(
+            agreement_level=(
                 self.get_agreement_level() if row_agreement else self.agreement_level_
             ),
-            sources_=self.sources_,
-            row_=self.row_,
+        )
+
+    def clone(
+        self,
+        agreement_level: Optional[int] = None,
+        sources: Optional[List[str]] = None,
+        row: Optional[int] = None,
+        citation: Optional[str] = None,
+        path: Optional[str] = None,
+        page: Optional[int] = None,
+        fragment: Optional[int] = None,
+        columns: Optional[Dict[str, ColumnValue]] = None,
+    ) -> "Row":
+        return Row(
+            agreement_level_=(
+                agreement_level
+                if agreement_level is not None
+                else self.agreement_level_
+            ),
+            sources_=sources if sources is not None else self.sources_,
+            row_=row if row is not None else self.row_,
+            citation_=citation if citation is not None else self.citation_,
+            path_=path if path is not None else self.path_,
+            page_=page if page is not None else self.page_,
+            fragment_=fragment if fragment is not None else self.fragment_,
+            **(columns if columns is not None else self.get_columns()),
         )
 
     @staticmethod
@@ -155,7 +179,9 @@ class TableFragment(BaseModel):
         return self._groups
 
     def get_convergent_rows(self) -> List[Row]:
-        convergent_ids = frozenset(rid for rid, group in self.get_row_groups().items() if len(group) == 1)
+        convergent_ids = frozenset(
+            rid for rid, group in self.get_row_groups().items() if len(group) == 1
+        )
         return [row for row in self.rows if row.row_ in convergent_ids]
 
 

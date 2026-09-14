@@ -55,7 +55,14 @@ def merge_rows(
     sources = list(dict.fromkeys(left_sources + right_sources)) or None
 
     return Row(
-        agreement_level_=agreement_level, sources_=sources, row_=left.row_, **columns
+        citation_=None,
+        fragment_=None,
+        page_=None,
+        path_=None,
+        agreement_level_=agreement_level,
+        sources_=sources,
+        row_=left.row_,
+        **columns
     )
 
 

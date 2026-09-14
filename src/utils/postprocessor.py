@@ -83,12 +83,7 @@ class SchemaPostProcessor:
                 for k, v in row.get_columns().items()
                 if not Row.is_semantic_column(k) or k in schema_keys
             }
-            return Row(
-                agreement_level_=row.agreement_level_,
-                sources_=row.sources_,
-                row_=row.row_,
-                **cols,
-            )
+            return row.clone(columns=cols)
 
         def filter_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(
@@ -98,7 +93,9 @@ class SchemaPostProcessor:
 
         tables = []
         for table in tablesfile.tables:
-            filtered_fragments = [filter_fragment(f) for f in table.get_table_fragments()]
+            filtered_fragments = [
+                filter_fragment(f) for f in table.get_table_fragments()
+            ]
             filtered_table = TableWithFragments(table_fragments=filtered_fragments)
             if self._table_column_names(filtered_table):
                 tables.append(filtered_table)
@@ -111,12 +108,7 @@ class SchemaPostProcessor:
             cols = row.get_columns()
             ordered = {k: cols[k] for k in schema_keys if k in cols}
             ordered |= {k: v for k, v in cols.items() if k not in ordered}
-            return Row(
-                agreement_level_=row.agreement_level_,
-                sources_=row.sources_,
-                row_=row.row_,
-                **ordered
-            )
+            return row.clone(columns=ordered)
 
         def reorder_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(
@@ -146,19 +138,15 @@ class SchemaPostProcessor:
             ]
 
         def coerce_row(row: Row) -> Row:
-            cols = {
-                col: (
-                    coerce_column_value(val, self.schema.column_type(col))
-                    if col in self.schema
-                    else val
-                )
-                for col, val in row.get_columns().items()
-            }
-            return Row(
-                agreement_level_=row.agreement_level_,
-                sources_=row.sources_,
-                row_=row.row_,
-                **cols
+            return row.clone(
+                columns={
+                    col: (
+                        coerce_column_value(val, self.schema.column_type(col))
+                        if col in self.schema
+                        else val
+                    )
+                    for col, val in row.get_columns().items()
+                }
             )
 
         def coerce_fragment(fragment: TableFragment) -> TableFragment:

@@ -211,7 +211,6 @@ def test_multi_fragment_file_is_properly_gathered():
 
 
 def test_convergence_rows_keeps_singleton_row_ids():
-    # FIXME we should preserve row_
     tablesfile, path = wrap(
         [Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
         citation="Mamani 2020",
@@ -228,6 +227,7 @@ def test_convergence_rows_keeps_singleton_row_ids():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -235,6 +235,7 @@ def test_convergence_rows_keeps_singleton_row_ids():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Carum carvi",
         ),
     ]
@@ -271,6 +272,7 @@ def test_convergence_rows_excludes_duplicate_row_ids():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=2,  # original row_
             species="Zea mays",
         )
     ]
@@ -306,6 +308,7 @@ def test_convergence_rows_excludes_rows_without_row_id():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Carum carvi",
         )
     ]
@@ -326,6 +329,7 @@ def test_convergence_rows_computed_per_file_not_globally():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -333,6 +337,7 @@ def test_convergence_rows_computed_per_file_not_globally():
             path_=str(path_b),
             page_=1,
             fragment_=1,
+            row_=1,  # original row_
             species="Carum carvi",
         ),
     ]
@@ -379,6 +384,7 @@ def test_convergence_fragments_includes_fully_convergent_fragments():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -386,6 +392,7 @@ def test_convergence_fragments_includes_fully_convergent_fragments():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Carum carvi",
         ),
     ]
@@ -426,6 +433,7 @@ def test_convergence_fragments_excludes_fragment_with_missing_row_id():
             path_=str(path),
             page_=2,
             fragment_=1,
+            row_=1,
             species="Zea mays",
         )
     ]
@@ -466,6 +474,7 @@ def test_convergence_fragments_keeps_1_indexed_fragment_number_of_surviving_frag
             path_=str(path),
             page_=2,
             fragment_=2,
+            row_=1,
             species="Zea mays",
         )
     ]
@@ -518,6 +527,7 @@ def test_convergence_tables_includes_fully_convergent_tablesfiles():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -525,6 +535,7 @@ def test_convergence_tables_includes_fully_convergent_tablesfiles():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Carum carvi",
         ),
     ]
@@ -565,6 +576,7 @@ def test_convergence_tables_excludes_non_convergent_tables():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         )
     ]
