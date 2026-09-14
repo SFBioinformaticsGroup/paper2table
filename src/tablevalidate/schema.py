@@ -14,13 +14,33 @@ class ValueWithAgreement(BaseModel):
 ColumnValue = None | str | List[ValueWithAgreement]
 
 
-_SPECIAL_FIELDS = frozenset(("agreement_level_", "sources_", "row_"))
+# Meta-columns: any Row field ending in "_" is non-semantic bookkeeping data,
+# not extracted table content. This is enforced by tablesfile.schema.json
+# (see the "row" definition's patternProperties/additionalProperties rules).
+# See the "Meta-columns" section of README.md for the full convention and a
+# per-tool listing of which meta-columns each tool produces/consumes.
+_SPECIAL_FIELDS = frozenset(
+    (
+        "agreement_level_",
+        "sources_",
+        "row_",
+        # tablegather-only meta-columns (see README.md "Meta-columns" section)
+        "citation_",
+        "path_",
+        "page_",
+        "fragment_",
+    )
+)
 
 
 class Row(BaseModel):
     agreement_level_: Optional[int] = Field(None)
     sources_: Optional[List[str]] = Field(None)
     row_: Optional[int] = Field(None)
+    citation_: Optional[str] = Field(None)
+    path_: Optional[str] = Field(None)
+    page_: Optional[int] = Field(None)
+    fragment_: Optional[int] = Field(None)
 
     model_config = ConfigDict(extra="allow")
 

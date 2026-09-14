@@ -473,6 +473,9 @@ The format is informally specified this way:
         {
           "COLUMN_NAME_1": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
           "COLUMN_NAME_2": "string | [{\"value\": \"string\", \"agreement_level\": integer}]",
+          "agreement_level_": "integer (optional)",
+          "sources_": "list of strings (optional)",
+          "row_": "integer (optional)",
           "citation_": "string (optional, added by tablegather)",
           "path_": "string (optional, added by tablegather)",
           "page_": "integer (optional, added by tablegather)",
