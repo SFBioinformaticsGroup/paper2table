@@ -27,15 +27,8 @@ def compute_sources(
     tablesfiles_with_paths: list[tuple[TablesFile, Path]],
     directory_metadata: dict[str, dict],
 ) -> list[dict]:
-    seen_citations: set[str] = set()
     sources = []
     for tablesfile, path in tablesfiles_with_paths:
-        citation = tablesfile.citation
-        if not citation or isinstance(citation, list):
-            citation = Path(path.stem).stem
-        if citation in seen_citations:
-            continue
-        seen_citations.add(citation)
         source: dict = {"path": str(path)}
         if tablesfile.uuid:
             source["uuid"] = tablesfile.uuid

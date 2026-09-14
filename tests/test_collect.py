@@ -64,7 +64,7 @@ def test_gathers_two_different_rows():
     ]
 
 
-def test_duplicate_row_added_once():
+def test_same_citation_files_are_both_included():
     file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
     result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
@@ -76,11 +76,18 @@ def test_duplicate_row_added_once():
             page_=1,
             fragment_=1,
             species="Ammi majus",
-        )
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            species="Ammi majus",
+        ),
     ]
 
 
-def test_missing_citation_falls_back_to_filename_stem():
+def test_missing_citation_outputs_no_citation_column():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
@@ -96,8 +103,6 @@ def test_missing_citation_falls_back_to_filename_stem():
     fragments = result.tables[0].get_table_fragments()
     assert fragments[0].rows == [
         Row(
-            # FIXME this is wrong. is OK to lack of citation
-            citation_="mamani_2020",
             path_=str(path),
             page_=1,
             fragment_=1,
@@ -654,7 +659,7 @@ def test_compute_sources_includes_gathered_files():
     ]
 
 
-def test_compute_sources_skips_duplicate_citations():
+def test_compute_sources_includes_all_files():
     file_a = TablesFile(
         tables=[
             TableWithFragments(
@@ -681,7 +686,8 @@ def test_compute_sources_skips_duplicate_citations():
     path_b = Path("resultset_2/mamani_2020.tables.json")
     sources = compute_sources([(file_a, path_a), (file_b, path_b)], {})
     assert sources == [
-        {"path": "resultset_1/mamani_2020.tables.json", "uuid": "uuid-a"}
+        {"path": "resultset_1/mamani_2020.tables.json", "uuid": "uuid-a"},
+        {"path": "resultset_2/mamani_2020.tables.json", "uuid": "uuid-b"},
     ]
 
 

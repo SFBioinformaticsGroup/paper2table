@@ -47,17 +47,14 @@ def gather_tablesfiles(
     key_columns: list[str],
     convergence: Convergence = "none",
 ) -> TablesFile:
-    seen_citations: set[str] = set()
     all_rows: list[Row] = []
 
     for tablesfile, path in tablesfiles_with_paths:
-        citation = tablesfile.citation
-        if not citation or isinstance(citation, list):
-            citation = Path(path.stem).stem
-
-        if citation in seen_citations:
-            continue
-        seen_citations.add(citation)
+        raw_citation = tablesfile.citation
+        if isinstance(raw_citation, list):
+            citation: str | None = raw_citation[0].value if raw_citation else None
+        else:
+            citation = raw_citation or None
 
         if convergence == "tables":
             source_rows = apply_tables_convergence(tablesfile)
