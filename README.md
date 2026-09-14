@@ -34,10 +34,9 @@
 	* 1.6. [Visualizing data](#Visualizingdata)
 	* 1.7. [ Gathering](#Gathering)
 		* 1.7.1. [Key columns](#Keycolumns)
-		* 1.7.2. [Deduplication](#Deduplication)
-		* 1.7.3. [Meta-columns](#Metacolumnsintablegather)
-		* 1.7.4. [Convergence filter](#Convergencefilter)
-		* 1.7.5. [Metadata](#Metadata)
+		* 1.7.2. [Meta-columns](#Metacolumnsintablegather)
+		* 1.7.3. [Convergence filter](#Convergencefilter)
+		* 1.7.4. [Metadata](#Metadata)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -383,24 +382,28 @@ $ tablegather -p "family:str:key species:str:key" tests/data/tables/
 
 The schema accepts a file path or an inline string, exactly like `tablemerge`.
 
-####  1.7.2. <a name='Deduplication'></a>Deduplication
+####  1.7.2. <a name='Metacolumnsintablegather'></a>Meta-columns
 
-If two files share the same citation string (i.e. the same paper appears in more than one input
-directory), `tablegather` includes it only once. The citation is taken from the `citation`
-field of the `.tables.json` file; when that field is absent the filename stem is used as a
-fallback.
+Every row `tablegather` outputs is always annotated with four fixed meta-columns (their names
+are not configurable - see [Meta-columns convention](#Metacolumnsconvention) for why):
 
-####  1.7.3. <a name='Pathcolumn'></a>Path column
+| Column      | Type    | Meaning                                                                                          |
+|-------------|---------|--------------------------------------------------------------------------------------------------|
+| `citation_` | string  | The source paper's citation, taken directly from the `citation` field of the `.tables.json` file (absent if no citation is present) |
+| `path_`     | string  | The path to the source `.tables.json` file                                                       |
+| `page_`     | integer | The (1-indexed) page number of the table fragment the row came from                              |
+| `fragment_` | integer | The (1-indexed) position of that fragment within its table                                       |
+| `row_`      | integer | The (1-indexed) position of that row within its fragment, if present in the source data          |
 
-Pass `--path-column NAME` to add a column with the source file path to every row:
 
 ```bash
-$ tablegather --path-column source_file tests/data/tables/
+$ tablegather tests/data/tables/
+```
+```javascript
+{"citation_": "mamani_2020", "path_": "tests/data/tables/mamani_2020.tables.json", "page_": 3, "fragment_": 1, "row_": 1, "species": "Ammi majus"}
 ```
 
-By default no path column is added.
-
-####  1.7.4. <a name='Convergencefilter'></a>Convergence filter
+####  1.7.3. <a name='Convergencefilter'></a>Convergence filter
 
 `--convergence` filters which rows are included based on how consistently they were extracted across runs. Accepted values:
 
@@ -413,7 +416,7 @@ By default no path column is added.
 $ tablegather --convergence rows tests/data/tables/
 ```
 
-####  1.7.5. <a name='Metadata'></a>Metadata
+####  1.7.4. <a name='Metadata'></a>Metadata
 
 When `-o` is specified, `tablegather` writes a `tables.metadata.json` file alongside the
 output, following the same format used by `paper2table` and `tablemerge`:
@@ -500,9 +503,56 @@ The format is informally specified this way:
 }
 ```
 
+Any field on a row ending in `_` is a meta-column rather than extracted data - see
+[Meta-columns convention](#Metacolumnsconvention) below.
+
 You can also find a proper JSON schema definition in [tablesfile.schema.json](./tablesfile.schema.json).
 
-###  3.2. <a name='Metadatafiles'></a>Metadata files
+###  3.2. <a name='Metacolumnsconvention'></a>Meta-columns convention
+
+Any `Row` field whose name ends in a trailing underscore (`_`) is a **meta-column**: bookkeeping
+data added by a tool, as opposed to a semantic column holding data extracted from a table. This
+is enforced by [tablesfile.schema.json](./tablesfile.schema.json): the `row` definition's
+`patternProperties` only accepts non-underscore-suffixed names as free-form extracted data
+(`^.*[^_]$`), and `additionalProperties: false` means any other trailing-underscore name must be
+explicitly declared there. In code, this list is `tablevalidate.schema._META_COLUMNS`, and
+`Row.get_columns()`/`Row.get_semantic_columns()` exclude meta-columns from "columns" - so any
+column-oriented view (CSV/HTML export, semantic-column filtering, header-row detection, etc.)
+naturally skips them unless a tool explicitly asks for a meta-column by name.
+
+Meta-columns are produced by a specific tool to be meaningful for *that* tool's purpose, not
+necessarily for every tool downstream. It is expected and fine for a tool to ignore
+meta-columns it doesn't recognize or doesn't need - for example, `tablemerge` deliberately does
+not propagate `tablegather`'s `citation_`/`path_`/`page_`/`fragment_` columns, because
+`tablemerge` runs upstream of `tablegather` in the normal pipeline and has no use for them. If a meta-column ever does need to survive a
+transformation, use `row.clone()` — it preserves all meta-columns by default, unlike a bare
+`Row(...)` constructor which only carries the fields you explicitly pass.
+
+Current meta-columns, by the tool that produces them:
+
+| Meta-column        | Type    | Indexing             | Produced by                | Meaning                                                                                                                                                                         |
+|--------------------|---------|----------------------|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `row_`             | integer | 0-indexed            | `tablemerge` (row merging) | Dedup-group id used to detect/collapse duplicate rows across merged fragments; unrelated to physical position, hence the different indexing base from `page_`/`fragment_` below |
+| `sources_`         | list    | n/a                  | `tablemerge` (row merging) | UUIDs of the source runs that contributed to a merged row                                                                                                                       |
+| `agreement_level_` | integer | n/a                  | `tablemerge` (row merging) | How many sources agreed on a row's/column's value                                                                                                                               |
+| `citation_`        | string  | n/a                  | `tablegather`              | The source paper's citation; absent if the source file has no citation                                                                                                          |
+| `path_`            | string  | n/a                  | `tablegather`              | Path to the source `.tables.json` file                                                                                                                                          |
+| `page_`            | integer | 1-indexed            | `tablegather`              | Page number of the source table fragment                                                                                                                                        |
+| `fragment_`        | integer | 1-indexed, per-table | `tablegather`              | Position of the source fragment within its table                                                                                                                                |
+
+And consumed/displayed by:
+
+| Tool            | Reads                                                                    |
+|-----------------|--------------------------------------------------------------------------|
+| `table2html`    | `row_`, `agreement_level_` (for row-span grouping and agreement styling) |
+| `tablestats`    | `row_`, `agreement_level_` (for convergence/agreement stats)             |
+| `tablevalidate` | `row_` (for convergence grouping)                                        |
+
+`tablegather`'s meta-columns are the final, terminal layer of the pipeline (a gathered
+`.tables.json` isn't meant to be fed back into `tablemerge`), so no other tool currently reads
+`citation_`/`path_`/`page_`/`fragment_`.
+
+###  3.3. <a name='Metadatafiles'></a>Metadata files
 
 Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file alongside the extracted tables. The file has the same structure in both cases:
 
@@ -521,7 +571,7 @@ Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file a
 }
 ```
 
-###  3.3. <a name='Processingpipeline'></a>Processing pipeline
+###  3.4. <a name='Processingpipeline'></a>Processing pipeline
 
 `tablemerge` processes each input file through three phases before writing the merged output.
 
@@ -547,7 +597,7 @@ Both `paper2table` (with the `-t` flag) and `tablemerge` write a metadata file a
 |------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------|
 | 1    | post-processors | `FilterSemanticColumnsPostProcessor`, `DropEmptyNonSemanticColumnsPostProcessor`, `DropEmptyTablesPostProcessor`, `SchemaPostProcessor` | per flag  |
 
-###  3.4. <a name='Classdiagram'></a>Class diagram
+###  3.5. <a name='Classdiagram'></a>Class diagram
 
 ```mermaid
 classDiagram
