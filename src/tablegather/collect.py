@@ -13,27 +13,31 @@ Convergence = Literal["none", "rows", "fragments", "tables"]
 
 def apply_tables_convergence(tablesfile: TablesFile) -> list[Row]:
     return [
-        row
+        row.clone(page=fragment.page, fragment=fragment_index)
         for table in tablesfile.get_convergent_tables()
-        for fragment in table.get_table_fragments()
+        for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1)
         for row in fragment.rows
     ]
 
 
 def apply_fragments_convergence(tablesfile: TablesFile) -> list[Row]:
-    return [
-        row
-        for table in tablesfile.tables
-        for fragment in table.get_convergent_fragments()
-        for row in fragment.rows
-    ]
+    result: list[Row] = []
+    for table in tablesfile.tables:
+        convergent_ids = {id(f) for f in table.get_convergent_fragments()}
+        for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1):
+            if id(fragment) in convergent_ids:
+                result.extend(
+                    row.clone(page=fragment.page, fragment=fragment_index)
+                    for row in fragment.rows
+                )
+    return result
 
 
 def apply_rows_convergence(tablesfile: TablesFile) -> list[Row]:
     return [
-        row
+        row.clone(page=fragment.page, fragment=fragment_index)
         for table in tablesfile.tables
-        for fragment in table.get_table_fragments()
+        for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1)
         for row in fragment.get_convergent_rows()
     ]
 
@@ -63,14 +67,19 @@ def gather_tablesfiles(
             source_rows = apply_rows_convergence(tablesfile)
         else:
             source_rows = [
-                row
+                row.clone(page=fragment.page, fragment=fragment_index)
                 for table in tablesfile.tables
-                for fragment in table.get_table_fragments()
+                for fragment_index, fragment in enumerate(
+                    table.get_table_fragments(), start=1
+                )
                 for row in fragment.rows
             ]
 
         gathered = [
-            Row(**{"citation_": citation, "path_": str(path), **row.get_columns()})
+            row.clone(
+                citation=citation,
+                path=str(path),
+            )
             for row in source_rows
         ]
         all_rows.extend(gathered)
