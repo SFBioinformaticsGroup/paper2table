@@ -86,15 +86,8 @@ def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
                 )
             }
             new_rows = [
-                Row(
-                    agreement_level_=row.agreement_level_,
-                    sources_=row.sources_,
-                    row_=row.row_,
-                    **{
-                        k: v
-                        for k, v in row.get_columns().items()
-                        if k not in empty_cols
-                    },
+                row.clone(
+                    columns={k: v for k, v in row.get_columns().items() if k not in empty_cols}
                 )
                 for row in fragment.rows
             ]
@@ -118,12 +111,7 @@ def filter_semantic_columns(tablesfile: TablesFile) -> TablesFile:
         filtered_fragments = []
         for fragment in table.get_table_fragments():
             filtered_rows = [
-                Row(
-                    agreement_level_=row.agreement_level_,
-                    sources_=row.sources_,
-                    row_=row.row_,
-                    **row.get_semantic_columns(),
-                )
+                row.clone(columns=row.get_semantic_columns())
                 for row in fragment.rows
             ]
             filtered_fragments.append(

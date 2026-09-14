@@ -28,15 +28,8 @@ def compute_sources(
     tablesfiles_with_paths: list[tuple[TablesFile, Path]],
     directory_metadata: dict[str, dict],
 ) -> list[dict]:
-    seen_citations: set[str] = set()
     sources = []
     for tablesfile, path in tablesfiles_with_paths:
-        citation = tablesfile.citation
-        if not citation or isinstance(citation, list):
-            citation = Path(path.stem).stem
-        if citation in seen_citations:
-            continue
-        seen_citations.add(citation)
         source: dict = {"path": str(path)}
         if tablesfile.uuid:
             source["uuid"] = tablesfile.uuid
@@ -63,19 +56,6 @@ def write_gather_metadata(
     print(f"Metadata written to {metadata_out}")
 
 
-def tablegather_schema(
-    schema: ColumnSchema | None,
-    citation_column: str,
-    path_column: str | None,
-) -> ColumnSchema | None:
-    if schema is None:
-        return None
-    gather_columns: dict[str, type] = {citation_column: str}
-    if path_column:
-        gather_columns[path_column] = str
-    return ColumnSchema(dict(schema.definitions()) | gather_columns)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Collect all .tables.json files from one or more directories into a single table."
@@ -87,17 +67,6 @@ def main():
         nargs="+",
         metavar="COLUMN",
         help="Column names to sort gathered rows by",
-    )
-    parser.add_argument(
-        "--citation-column",
-        default="citation",
-        metavar="NAME",
-        help="Column name added to each row for the source citation (default: citation)",
-    )
-    parser.add_argument(
-        "--path-column",
-        metavar="NAME",
-        help="Column name added to each row for the source file path (omit to disable)",
     )
     parser.add_argument(
         "--convergence",
@@ -118,7 +87,6 @@ def main():
     args = parser.parse_args()
 
     schema: ColumnSchema | None = try_parse_schema(args)
-    schema = tablegather_schema(schema, args.citation_column, args.path_column)
     postprocessors = build_postprocessors_from_args(args, schema)
 
     key_columns: list[str] = args.key_columns or []
@@ -133,9 +101,7 @@ def main():
 
     result = gather_tablesfiles(
         tablesfiles_with_paths,
-        args.citation_column,
         key_columns,
-        path_column=args.path_column,
         convergence=args.convergence,
     )
 
@@ -153,9 +119,7 @@ def main():
         print(f"Written to {output_file}")
         sources = compute_sources(tablesfiles_with_paths, directory_metadata)
         settings = {
-            "citation_column": args.citation_column,
             "key_columns": key_columns,
-            "path_column": args.path_column,
             "convergence": args.convergence,
         }
         write_gather_metadata(output_dir, sources, settings)

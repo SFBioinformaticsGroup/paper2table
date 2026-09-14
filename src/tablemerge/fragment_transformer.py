@@ -11,7 +11,6 @@ class FragmentTransformer(Protocol):
     def transform_fragment(self, fragment: TableFragment) -> TableFragment: ...
 
 
-
 _TITLE_ROW_RE = re.compile(
     r"^((figure|table|figura|tabla)\s+|fig\.\s*)\d+", re.IGNORECASE
 )
@@ -31,6 +30,8 @@ def _combine_vowel_acute(match: re.Match) -> str:
     if len(combined) == 1:
         return combined
     return match.group(0)
+
+
 _ELLIPSIS_RE = re.compile("…")
 _TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
@@ -108,15 +109,11 @@ class LeadingRowNumberTransformer:
         return ""
 
     def transform_row(self, row: Row, columns_to_strip: set[str]) -> Row:
-        new_cols = {
-            col: self.strip_leading_number(val) if col in columns_to_strip else val
-            for col, val in row.get_columns().items()
-        }
-        return Row(
-            **new_cols,
-            agreement_level_=row.agreement_level_,
-            sources_=row.sources_,
-            row_=row.row_,
+        return row.clone(
+            columns={
+                col: self.strip_leading_number(val) if col in columns_to_strip else val
+                for col, val in row.get_columns().items()
+            },
         )
 
     def strip_leading_number(self, val: ColumnValue) -> ColumnValue:
@@ -151,11 +148,10 @@ class NormalizePunctuationTransformer:
         )
 
     def transform_row(self, row: Row) -> Row:
-        return Row(
-            **{col: self.transform_value(val) for col, val in row.get_columns().items()},
-            agreement_level_=row.agreement_level_,
-            sources_=row.sources_,
-            row_=row.row_,
+        return row.clone(
+            columns={
+                col: self.transform_value(val) for col, val in row.get_columns().items()
+            }
         )
 
     def transform_value(self, val: ColumnValue) -> ColumnValue:
@@ -163,7 +159,9 @@ class NormalizePunctuationTransformer:
             return self.normalize(val)
         if isinstance(val, list):
             return [
-                ValueWithAgreement(value=self.normalize(v.value), agreement_level=v.agreement_level)
+                ValueWithAgreement(
+                    value=self.normalize(v.value), agreement_level=v.agreement_level
+                )
                 for v in val
             ]
         return val
@@ -202,7 +200,6 @@ class SplitColumnTransformer:
     def __init__(self, language: str = "en") -> None:
         self.language = language
         self._nlp = None
-
 
     def load_model(self):
         if self._nlp is None:
@@ -290,11 +287,8 @@ class SplitColumnTransformer:
                 new_cols[right_header] = right_value
             else:
                 new_cols[col] = value
-        return Row(
-            **new_cols,
-            agreement_level_=row.agreement_level_,
-            sources_=row.sources_,
-            row_=row.row_,
+        return row.clone(
+            columns=new_cols,
         )
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
@@ -326,7 +320,6 @@ class FragmentValuesReverser:
     def __init__(self, language: str = "en"):
         self.language = language
         self._nlp = load_spacy_model(language)
-
 
     def _count_known_words(self, text: str) -> int:
         return sum(
@@ -360,14 +353,11 @@ class FragmentValuesReverser:
         return value
 
     def _transform_row(self, row: Row) -> Row:
-        return Row(
-            **{
+        return row.clone(
+            columns={
                 col: self._reverse_cell(value)
                 for col, value in row.get_columns().items()
             },
-            agreement_level_=row.agreement_level_,
-            sources_=row.sources_,
-            row_=row.row_,
         )
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:

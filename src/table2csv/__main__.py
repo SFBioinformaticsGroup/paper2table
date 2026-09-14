@@ -14,8 +14,14 @@ def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFra
             rows = []
             for fragment in table.get_table_fragments():
                 for row in fragment.rows:
-                    rows.append({**dict(row.get_columns()), "$page": fragment.page})
-            csvs[basename].append(pd.DataFrame(rows))
+                    rows.append(
+                        {
+                            "$page": fragment.page,
+                            **row.get_meta_columns(),
+                            **row.get_columns(),
+                        }
+                    )
+            csvs[basename].append(pd.DataFrame(rows).dropna(axis="columns", how="all"))
     return csvs
 
 
