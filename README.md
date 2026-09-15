@@ -8,6 +8,7 @@
 `paper2table` is a toolchain for extracting tabular information from scientific papers. It is composed of various command-line programs:
 
 - `paper2table`: the main command, which is used to extract data
+- `paper2pipeline`: a command for running a declarative pipeline of paper2table tools
 - `filenorm`: a command for preparing papers
 - `tablemerge`: a command for merging result of multiple `paper2table` runs
 - `tablestats`: a command for querying `paper2table` and `tablemerge` resultsets
@@ -37,6 +38,7 @@
 		* 1.7.2. [Meta-columns](#Metacolumnsintablegather)
 		* 1.7.3. [Convergence filter](#Convergencefilter)
 		* 1.7.4. [Metadata](#Metadata)
+	* 1.8. [Running a pipeline](#Runningapipeline)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -489,6 +491,10 @@ output, following the same format used by `paper2table` and `tablemerge`:
     }
 ```
 
+
+###  1.8. <a name='Runningapipeline'></a>Running a pipeline
+
+`paper2pipeline` processes a declarative pipeline that chains paper2table tools together.
 
 ##  2. <a name='Development'></a>Development
 
