@@ -11,14 +11,22 @@ def parse_args(args=None):
     )
     parser.add_argument("--version", action="version", version=f"paper2pipeline {__version__}")
     parser.add_argument("pipeline_file", nargs="?", help="Path to pipeline JSON file")
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="Validate the pipeline file without running it",
+    )
     return parser.parse_args(args)
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     if args.pipeline_file:
         try:
             pipeline = load_pipeline(args.pipeline_file)
+            if args.validate_only:
+                print("Pipeline is valid.")
+                return
             run_pipeline(pipeline)
         except PipelineError as error:
             print(f"Pipeline error: {error}")

@@ -1,0 +1,34 @@
+{
+  "input_paths": ["tablas"],
+  "output_path": "out",
+  "schema_path": "schema.txt",
+  "normalize": {
+    "interactive": false,
+    "inplace": true
+  },
+  "extract": {
+    "runs": [
+      {
+        "reader": "agent",
+        "model": "google-gla:gemini-2.5-flash",
+        "model_sleep": 10
+      }
+    ],
+    "stats": true,
+    "validate": true,
+    "export": ["csv", "html"]
+  },
+  "merge": {
+    "agreement_method": "distinct-readers",
+    "jaccard_column_alignment": true,
+    "semantic_language": "es",
+    "stats": true,
+    "export": ["html"]
+  },
+  "gather": {
+    "convergence": "rows",
+    "key_columns": ["species", "family"],
+    "stats": true,
+    "export": ["csv"]
+  }
+}

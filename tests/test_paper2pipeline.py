@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
+
 import pytest
 
-from paper2pipeline.__main__ import parse_args
+from paper2pipeline.__main__ import main, parse_args
 from paper2pipeline.pipeline import (
     ExtractConfig,
     ExtractRun,
@@ -22,7 +24,9 @@ def test_version_prints_version_string(capsys):
 
 def test_load_pipeline_minimal(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
-    pipeline_file.write_text(json.dumps({"input_paths": ["papers"], "output_path": "out"}))
+    pipeline_file.write_text(
+        json.dumps({"input_paths": ["papers"], "output_path": "out"})
+    )
     pipeline = load_pipeline(str(pipeline_file))
     assert pipeline.input_paths == ["papers"]
     assert pipeline.output_path == "out"
@@ -33,41 +37,20 @@ def test_load_pipeline_minimal(tmp_path):
     assert pipeline.gather is None
 
 
-def test_load_pipeline_full(tmp_path):
-    data = {
-        "input_paths": ["tablas"],
-        "output_path": "out",
-        "schema_path": "schema.txt",
-        "normalize": {"interactive": False, "inplace": True},
-        "extract": {
-            "runs": [{"reader": "agent", "model": "google-gla:gemini-2.5-flash", "model_sleep": 10}],
-            "stats": True,
-            "validate": True,
-            "export": ["csv", "html"],
-        },
-        "merge": {
-            "agreement_method": "distinct-readers",
-            "jaccard_column_alignment": True,
-            "semantic_language": "es",
-            "stats": True,
-            "export": ["html"],
-        },
-        "gather": {
-            "convergence": "rows",
-            "key_columns": ["species", "family"],
-            "stats": True,
-            "export": ["csv"],
-        },
-    }
-    pipeline_file = tmp_path / "pipeline.json"
-    pipeline_file.write_text(json.dumps(data))
-    pipeline = load_pipeline(str(pipeline_file))
+def test_load_pipeline_full():
+    demo_pipeline = Path(__file__).parent / "data" / "demo.pipeline.json"
+    pipeline = load_pipeline(str(demo_pipeline))
 
     assert pipeline.input_paths == ["tablas"]
     assert pipeline.schema_path == "schema.txt"
     assert pipeline.normalize == NormalizeConfig(interactive=False, inplace=True)
     assert pipeline.extract == ExtractConfig(
-        runs=[ExtractRun(reader="agent", model="google-gla:gemini-2.5-flash", model_sleep=10)],
+        runs=[
+            ExtractRun(
+                
+                reader="agent", model="google-gla:gemini-2.5-flash", model_sleep=10
+            )
+        ],
         stats=True,
         validate=True,
         export=["csv", "html"],
@@ -112,6 +95,15 @@ def test_gather_config_defaults():
     assert config.key_columns is None
     assert config.stats is False
     assert config.export == []
+
+
+def test_validate_only_prints_valid(tmp_path, capsys):
+    pipeline_file = tmp_path / "pipeline.json"
+    pipeline_file.write_text(
+        json.dumps({"input_paths": ["papers"], "output_path": "out"})
+    )
+    main(["--validate-only", str(pipeline_file)])
+    assert capsys.readouterr().out == "Pipeline is valid.\n"
 
 
 def test_pipeline_rejects_unknown_fields(tmp_path):
