@@ -10,9 +10,10 @@
   "extract": {
     "runs": [
       {
-        "model": "...",
-        "verbose": true,
-        "model_sleep": 10
+        "reader": "pdfplumber"
+      },
+      {
+        "reader": "pymupdf"
       }
     ],
     "stats": true,
@@ -24,14 +25,11 @@
   },
   "merge": {
     "agreement_method": "distinct-readers",
-    "coerce_schema_column_types": true,
     "filter_title_rows": true,
     "fix_reversed_column_values": true,
-    "hints_column_alignment": "unsafe",
     "jaccard_column_alignment": true,
     "normalize_punctuation": true,
     "filter_semantic_columns": false,
-    "order_schema_columns": true,
     "semantic_language": "es",
     "split_conjunction_columns": false,
     "strip_leading_row_numbers": true,

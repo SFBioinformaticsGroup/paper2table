@@ -39,6 +39,7 @@ coverage.xml
 .pytest_cache/
 
 # Integration test
+tests/data/pipeline/papers/*
 tests/data/pipeline/tables/*
 tests/data/pipeline/merges/*
 tests/data/pipeline/gathers/*
