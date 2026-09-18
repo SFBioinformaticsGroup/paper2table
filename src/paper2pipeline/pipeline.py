@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NormalizeConfig(BaseModel):
@@ -12,7 +12,7 @@ class NormalizeConfig(BaseModel):
 
 
 class ExtractRun(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     reader: str = "pdfplumber"
     model: str | None = None
@@ -20,23 +20,23 @@ class ExtractRun(BaseModel):
     verbose: bool = False
     hybrid: bool = False
     force_mapping_generation: bool = False
-    schema: str | None = None
+    schema_: str | None = Field(None, alias="schema")
     column_names_hints_path: str | None = None
     split_pages: int | None = None
     quiet: bool = False
 
 
 class ExtractConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     runs: list[ExtractRun]
     stats: bool = False
-    validate: bool = False
+    validate_: bool = Field(False, alias="validate")
     export: list[str] = []
 
 
 class MergeConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     agreement_method: str = "simple-count"
     filter_title_rows: bool = True
@@ -64,7 +64,7 @@ class MergeConfig(BaseModel):
     filter_semantic_columns: bool = False
     drop_empty_columns: bool = True
     drop_empty_tables: bool = True
-    validate: bool = False
+    validate_: bool = Field(False, alias="validate")
     stats: bool = False
     export: list[str] = []
 

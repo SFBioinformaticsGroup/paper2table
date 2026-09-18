@@ -124,8 +124,8 @@ def build_extract_args(
         args += ["-H"]
     if run.force_mapping_generation: # TODO ensure or document where mappings go
         args += ["-F"]
-    if run.schema:
-        args += ["-s", run.schema]
+    if run.schema_:
+        args += ["-s", run.schema_]
     elif schema_path:
         args += ["-p", schema_path]
     if run.column_names_hints_path:
@@ -159,7 +159,7 @@ def run_extract(
 
         if config.stats:
             run_stats(uuid_dir, step_name=f"extract run {i + 1} stats")
-        if config.validate:
+        if config.validate_:
             table_files = sorted(uuid_dir.glob("*.tables.json"))
             if table_files:
                 run_validate(table_files, step_name=f"extract run {i + 1} validate")
@@ -249,7 +249,7 @@ def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -
 
     if config.stats:
         run_stats(merges_dir, step_name="merge stats")
-    if config.validate:
+    if config.validate_:
         table_files = sorted(merges_dir.glob("*.tables.json"))
         if table_files:
             run_validate(table_files, step_name="merge validate")
