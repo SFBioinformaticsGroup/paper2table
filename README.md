@@ -763,7 +763,18 @@ To get inline validation and autocomplete for `.tables.json` files in VS Code, a
 ]
 ```
 
-This is already configured in the project's `.vscode/settings.json`.
+A JSON schema for `tables.metadata.json` files is provided at [schema/tables.metadata.schema.json](./schema/tables.metadata.schema.json). The schema uses `if/then/else` to validate the three variants by `reader` value: extraction runs (any reader name, only `reader`/`uuid`/`datetime`), merge runs (`"tablemerge"`, adds `sources`), and gather runs (`"tablegather"`, adds `sources` and `settings`). To enable VS Code validation for metadata files:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/tables.metadata.json"],
+    "url": "./schema/tables.metadata.schema.json"
+  }
+]
+```
+
+All three schemas are already configured in the project's `.vscode/settings.json`.
 
 ###  3.2. <a name='Metacolumnsconvention'></a>Meta-columns convention
 

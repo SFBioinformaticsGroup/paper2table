@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tables.metadata.schema.json",
+  "title": "TablesMetadata",
+  "description": "Metadata file written alongside every tables output directory by paper2table, tablemerge, and tablegather.",
+  "type": "object",
+  "required": ["reader", "uuid", "datetime"],
+  "properties": {
+    "reader": {
+      "type": "string",
+      "description": "Identifies which tool produced the output. Extraction runs use the reader name (e.g. 'pdfplumber'), the model identifier (for agent runs), or 'hybrid-<reader>-<model>'. Merge outputs use 'tablemerge'. Gather outputs use 'tablegather'."
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4 assigned to this output."
+    },
+    "datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime when the output was produced."
+    }
+  },
+  "if": {
+    "properties": { "reader": { "const": "tablemerge" } }
+  },
+  "then": {
+    "required": ["sources"],
+    "properties": {
+      "sources": { "$ref": "#/$defs/sourceList" }
+    }
+  },
+  "else": {
+    "if": {
+      "properties": { "reader": { "const": "tablegather" } }
+    },
+    "then": {
+      "required": ["sources", "settings"],
+      "properties": {
+        "sources": { "$ref": "#/$defs/sourceList" },
+        "settings": { "$ref": "#/$defs/gatherSettings" }
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "source": {
+      "type": "object",
+      "description": "A single input that contributed to this output.",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the source file or directory."
+        },
+        "uuid": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID from the source's own metadata, if available."
+        },
+        "reader": {
+          "type": "string",
+          "description": "Reader value from the source's own metadata, if available."
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "gatherSettings": {
+      "type": "object",
+      "description": "tablegather configuration captured at the time of the gather run.",
+      "required": ["convergence"],
+      "properties": {
+        "key_columns": {
+          "description": "Columns used to sort gathered rows, or null when none were specified.",
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "null" }
+          ]
+        },
+        "convergence": {
+          "type": "string",
+          "enum": ["none", "rows", "fragments", "tables"],
+          "description": "Convergence filter applied during gather."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
