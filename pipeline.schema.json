@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pipeline",
+  "description": "Declarative pipeline for paper2table tools.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["input_paths", "output_path"],
+  "properties": {
+    "input_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Directories (or files) containing the source PDFs."
+    },
+    "output_path": {
+      "type": "string",
+      "description": "Root directory for all pipeline output."
+    },
+    "schema_path": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "default": null,
+      "description": "Path to a schema file; passed to every tool that accepts -p."
+    },
+    "normalize": {
+      "anyOf": [{ "$ref": "#/$defs/NormalizeConfig" }, { "type": "null" }],
+      "default": null
+    },
+    "extract": {
+      "anyOf": [{ "$ref": "#/$defs/ExtractConfig" }, { "type": "null" }],
+      "default": null
+    },
+    "merge": {
+      "anyOf": [{ "$ref": "#/$defs/MergeConfig" }, { "type": "null" }],
+      "default": null
+    },
+    "gather": {
+      "anyOf": [{ "$ref": "#/$defs/GatherConfig" }, { "type": "null" }],
+      "default": null
+    }
+  },
+  "$defs": {
+    "NormalizeConfig": {
+      "title": "NormalizeConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interactive": {
+          "type": "boolean",
+          "default": true,
+          "description": "true = prompt for each change; false = auto-confirm silently (-y -q)."
+        },
+        "inplace": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = copy PDFs into ${output_path}/papers/ first, then normalize there."
+        }
+      }
+    },
+    "ExtractRun": {
+      "title": "ExtractRun",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reader": {
+          "type": "string",
+          "default": "pdfplumber",
+          "enum": ["pdfplumber", "camelot", "agent", "hybrid", "pymupdf", "img2table"],
+          "description": "Extraction backend."
+        },
+        "model": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Language model (-m)."
+        },
+        "model_sleep": {
+          "anyOf": [{ "type": "integer" }, { "type": "null" }],
+          "default": null,
+          "description": "Seconds between model calls (-z)."
+        },
+        "verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable verbose logging (-vv)."
+        },
+        "hybrid": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable hybrid mode (-H)."
+        },
+        "force_mapping_generation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Regenerate mapping even if cached (-F)."
+        },
+        "schema": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Inline schema string (-s); overrides top-level schema_path for this run."
+        },
+        "column_names_hints_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Path to column name hints file (-c)."
+        },
+        "split_pages": {
+          "anyOf": [{ "type": "integer" }, { "type": "null" }],
+          "default": null,
+          "description": "Max pages per agent call (--split-pages)."
+        },
+        "quiet": {
+          "type": "boolean",
+          "default": false,
+          "description": "Suppress progress output (-q)."
+        }
+      }
+    },
+    "ExtractConfig": {
+      "title": "ExtractConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runs"],
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ExtractRun" },
+          "description": "One or more paper2table extraction passes."
+        },
+        "stats": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tablestats after each run and write output to ${uuid}/stats.txt."
+        },
+        "validate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tablevalidate on each run's output."
+        },
+        "export": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["csv", "html"] },
+          "default": [],
+          "description": "Export formats to produce after each run."
+        }
+      }
+    },
+    "MergeConfig": {
+      "title": "MergeConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agreement_method": {
+          "type": "string",
+          "default": "simple-count",
+          "enum": ["simple-count", "distinct-readers"]
+        },
+        "filter_title_rows": { "type": "boolean", "default": true },
+        "remove_header_rows": { "type": "boolean", "default": false },
+        "jaccard_column_alignment": { "type": "boolean", "default": false },
+        "column_alignment_threshold": { "type": "number", "default": 0.5 },
+        "column_name_semantic_alignment": { "type": "boolean", "default": false },
+        "column_value_semantic_alignment": { "type": "boolean", "default": false },
+        "semantic_language": {
+          "type": "string",
+          "default": "en",
+          "enum": ["en", "es"]
+        },
+        "column_aliases": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "column_aliases_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "column_names_hints": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "column_names_hints_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "hints_column_alignment": {
+          "anyOf": [
+            { "type": "string", "enum": ["safe", "unsafe"] },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "paper_aliases": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "paper_aliases_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null
+        },
+        "fix_reversed_column_values": { "type": "boolean", "default": false },
+        "strip_leading_row_numbers": { "type": "boolean", "default": false },
+        "normalize_punctuation": { "type": "boolean", "default": false },
+        "split_conjunction_columns": { "type": "boolean", "default": false },
+        "transform_tablesfile": {
+          "anyOf": [
+            { "type": "string", "enum": ["explode", "safe-compact", "unsafe-compact"] },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "filter_schema_columns": { "type": "boolean", "default": false },
+        "order_schema_columns": { "type": "boolean", "default": false },
+        "coerce_schema_column_types": { "type": "boolean", "default": false },
+        "filter_semantic_columns": { "type": "boolean", "default": false },
+        "drop_empty_columns": { "type": "boolean", "default": true },
+        "drop_empty_tables": { "type": "boolean", "default": true },
+        "validate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tablevalidate on the merged output."
+        },
+        "stats": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tablestats and write output to merges/stats.txt."
+        },
+        "export": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["csv", "html"] },
+          "default": []
+        }
+      }
+    },
+    "GatherConfig": {
+      "title": "GatherConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "convergence": {
+          "type": "string",
+          "default": "none",
+          "enum": ["none", "rows", "fragments", "tables"]
+        },
+        "key_columns": {
+          "anyOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "null" }
+          ],
+          "default": null,
+          "description": "Column names to sort gathered rows by."
+        },
+        "filter_schema_columns": { "type": "boolean", "default": false },
+        "order_schema_columns": { "type": "boolean", "default": false },
+        "coerce_schema_column_types": { "type": "boolean", "default": false },
+        "filter_semantic_columns": { "type": "boolean", "default": false },
+        "drop_empty_columns": { "type": "boolean", "default": true },
+        "drop_empty_tables": { "type": "boolean", "default": true },
+        "stats": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tablestats and write output to gathers/stats.txt."
+        },
+        "export": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["csv", "html"] },
+          "default": []
+        }
+      }
+    }
+  }
+}
