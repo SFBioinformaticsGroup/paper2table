@@ -94,6 +94,7 @@ def run_normalize(
     if not config.interactive:
         args += ["-y", "-q"]
     args += filenorm_files
+    print("[pipeline] normalize", file=sys.stderr, flush=True)
     run_subprocess(args, step_name="normalize")
 
     if config.inplace:
@@ -157,6 +158,7 @@ def run_extract(
 
     for i, run in enumerate(config.runs):
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
+        print(f"[pipeline] extract (run {i + 1}/{len(config.runs)})", file=sys.stderr, flush=True)
         run_subprocess(
             build_extract_args(run, schema_path, output_path, paper_files),
             step_name=f"extract run {i + 1}",
@@ -249,6 +251,7 @@ def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -
     merges_dir = output_path / "merges"
     merges_dir.mkdir(parents=True, exist_ok=True)
 
+    print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
         build_merge_args(config, output_path, schema_path), step_name="merge"
     )
@@ -298,6 +301,7 @@ def run_gather(
     gathers_dir = output_path / "gathers"
     gathers_dir.mkdir(parents=True, exist_ok=True)
 
+    print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
         build_gather_args(config, output_path, schema_path), step_name="gather"
     )
