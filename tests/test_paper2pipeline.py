@@ -106,6 +106,85 @@ def test_validate_only_prints_valid(tmp_path, capsys):
     assert capsys.readouterr().out == "Pipeline is valid.\n"
 
 
+def test_merge_config_hints_alignment_requires_hints():
+    with pytest.raises(Exception):
+        MergeConfig(hints_column_alignment="safe")
+
+
+def test_merge_config_hints_alignment_accepts_inline_hints():
+    config = MergeConfig(
+        hints_column_alignment="safe", column_names_hints="species family"
+    )
+    assert config.hints_column_alignment == "safe"
+
+
+def test_merge_config_hints_alignment_accepts_hints_path():
+    config = MergeConfig(
+        hints_column_alignment="unsafe", column_names_hints_path="hints.txt"
+    )
+    assert config.hints_column_alignment == "unsafe"
+
+
+def test_merge_order_schema_columns_requires_schema_path():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            merge=MergeConfig(order_schema_columns=True),
+        )
+
+
+def test_gather_order_schema_columns_requires_schema_path():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            gather=GatherConfig(order_schema_columns=True),
+        )
+
+
+def test_order_schema_columns_accepted_with_schema_path():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        schema_path="schema.txt",
+        merge=MergeConfig(order_schema_columns=True),
+        gather=GatherConfig(order_schema_columns=True),
+    )
+    assert pipeline.merge.order_schema_columns is True
+    assert pipeline.gather.order_schema_columns is True
+
+
+def test_merge_coerce_schema_column_types_requires_schema_path():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            merge=MergeConfig(coerce_schema_column_types=True),
+        )
+
+
+def test_gather_coerce_schema_column_types_requires_schema_path():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            gather=GatherConfig(coerce_schema_column_types=True),
+        )
+
+
+def test_coerce_schema_column_types_accepted_with_schema_path():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        schema_path="schema.txt",
+        merge=MergeConfig(coerce_schema_column_types=True),
+        gather=GatherConfig(coerce_schema_column_types=True),
+    )
+    assert pipeline.merge.coerce_schema_column_types is True
+    assert pipeline.gather.coerce_schema_column_types is True
+
+
 def test_pipeline_rejects_unknown_fields(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
     pipeline_file.write_text(

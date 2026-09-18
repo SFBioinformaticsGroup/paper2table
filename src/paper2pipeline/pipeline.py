@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class NormalizeConfig(BaseModel):
@@ -68,6 +68,15 @@ class MergeConfig(BaseModel):
     stats: bool = False
     export: list[str] = []
 
+    @model_validator(mode="after")
+    def hints_alignment_requires_hints(self) -> "MergeConfig":
+        if self.hints_column_alignment is not None:
+            if self.column_names_hints is None and self.column_names_hints_path is None:
+                raise ValueError(
+                    "hints_column_alignment requires column_names_hints or column_names_hints_path"
+                )
+        return self
+
 
 class GatherConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -94,6 +103,20 @@ class Pipeline(BaseModel):
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None
     gather: GatherConfig | None = None
+
+    @model_validator(mode="after")
+    def schema_path_required_features(self) -> "Pipeline":
+        if self.schema_path is not None:
+            return self
+        if self.merge and self.merge.order_schema_columns:
+            raise ValueError("merge.order_schema_columns requires schema_path")
+        if self.gather and self.gather.order_schema_columns:
+            raise ValueError("gather.order_schema_columns requires schema_path")
+        if self.merge and self.merge.coerce_schema_column_types:
+            raise ValueError("merge.coerce_schema_column_types requires schema_path")
+        if self.gather and self.gather.coerce_schema_column_types:
+            raise ValueError("gather.coerce_schema_column_types requires schema_path")
+        return self
 
 
 def load_pipeline(path: str) -> Pipeline:
