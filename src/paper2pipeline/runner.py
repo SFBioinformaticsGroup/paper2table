@@ -67,7 +67,13 @@ def run_export(input_dir: Path, export: list[str], step_name: str) -> None:
         )
     if "html" in export:
         run_subprocess(
-            ["table2html", str(input_dir), "--out", str(input_dir / "viewer.html")],
+            [
+                "table2html",
+                str(input_dir),
+                "--out",
+                str(input_dir / "viewer.html"),
+                "--quiet",
+            ],
             step_name=f"{step_name} html",
         )
 
@@ -122,7 +128,7 @@ def build_extract_args(
         args += ["-z", str(run.model_sleep)]
     if run.hybrid:
         args += ["-H"]
-    if run.force_mapping_generation: # TODO ensure or document where mappings go
+    if run.force_mapping_generation:  # TODO ensure or document where mappings go
         args += ["-F"]
     if run.schema_:
         args += ["-s", run.schema_]
@@ -133,7 +139,7 @@ def build_extract_args(
     if run.split_pages is not None:
         args += ["--split-pages", str(run.split_pages)]
     if run.verbose:
-        args += ["-vv"] # TODO make verbosity global arg
+        args += ["-vv"]  # TODO make verbosity global arg
     if run.quiet:
         args += ["-q"]
     args += paper_files
