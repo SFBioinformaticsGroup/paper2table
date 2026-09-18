@@ -1,3 +1,4 @@
+# pyright: reportCallIssue=false
 import json
 from pathlib import Path
 
@@ -47,7 +48,6 @@ def test_load_pipeline_full():
     assert pipeline.extract == ExtractConfig(
         runs=[
             ExtractRun(
-                
                 reader="agent", model="google-gla:gemini-2.5-flash", model_sleep=10
             )
         ],
