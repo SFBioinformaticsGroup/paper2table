@@ -665,6 +665,21 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `stats` | `bool` | `false` | Run `tablestats` and write to `gathers/stats.txt` |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
 
+#### JSON schema
+
+A JSON schema for the pipeline file format is provided at [schema/pipeline.schema.json](./schema/pipeline.schema.json). To enable inline validation and autocomplete for pipeline files in VS Code, add the following to your workspace or user `settings.json`:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/*.pipeline.json", "**/pipeline.json"],
+    "url": "./schema/pipeline.schema.json"
+  }
+]
+```
+
+This is already configured in the project's `.vscode/settings.json`.
+
 ##  2. <a name='Development'></a>Development
 
 ###  2.1. <a name='Runningtests'></a>Running tests
@@ -735,13 +750,26 @@ The format is informally specified this way:
 Any field on a row ending in `_` is a meta-column rather than extracted data - see
 [Meta-columns convention](#Metacolumnsconvention) below.
 
-You can also find a proper JSON schema definition in [tablesfile.schema.json](./tablesfile.schema.json).
+You can also find a proper JSON schema definition in [tablesfile.schema.json](./schema/tablesfile.schema.json).
+
+To get inline validation and autocomplete for `.tables.json` files in VS Code, add the following to your workspace or user `settings.json`:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/*.tables.json", "**/tables.json"],
+    "url": "./schema/tablesfile.schema.json"
+  }
+]
+```
+
+This is already configured in the project's `.vscode/settings.json`.
 
 ###  3.2. <a name='Metacolumnsconvention'></a>Meta-columns convention
 
 Any `Row` field whose name ends in a trailing underscore (`_`) is a **meta-column**: bookkeeping
 data added by a tool, as opposed to a semantic column holding data extracted from a table. This
-is enforced by [tablesfile.schema.json](./tablesfile.schema.json): the `row` definition's
+is enforced by [tablesfile.schema.json](./schema/tablesfile.schema.json): the `row` definition's
 `patternProperties` only accepts non-underscore-suffixed names as free-form extracted data
 (`^.*[^_]$`), and `additionalProperties: false` means any other trailing-underscore name must be
 explicitly declared there. In code, this list is `tablevalidate.schema._META_COLUMNS`, and
