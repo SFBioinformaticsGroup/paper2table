@@ -1,8 +1,8 @@
 import argparse
-import json
 import webbrowser
 from pathlib import Path
 
+from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
 from tablevalidate.schema import (
     Citation,
@@ -17,16 +17,14 @@ def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, Ta
     metadata: dict = {}
     metadata_file = directory / "tables.metadata.json"
     if metadata_file.exists():
-        with open(metadata_file, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
+        metadata = load_jsonc(metadata_file)
     if metadata.get("reader") == "tablemerge" and "agreement_method" not in metadata:
         metadata = {**metadata, "agreement_method": "simple-count"}
 
     settings: dict = {}
     settings_file = directory / "settings.tablemerge.json"
     if settings_file.exists():
-        with open(settings_file, "r", encoding="utf-8") as f:
-            settings = json.load(f)
+        settings = load_jsonc(settings_file)
     elif isinstance(metadata.get("settings"), dict):
         settings = metadata["settings"]
 

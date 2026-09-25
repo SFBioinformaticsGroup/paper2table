@@ -1,7 +1,8 @@
 # pyright: reportCallIssue=false
 
-import json
 from pathlib import Path
+
+from utils.jsonc import load_jsonc
 
 from tablegather.collect import gather_tablesfiles
 from tablegather.__main__ import (
@@ -716,7 +717,7 @@ def test_write_gather_metadata_creates_file(tmp_path):
     write_gather_metadata(tmp_path, sources, settings)
     metadata_file = tmp_path / "tables.metadata.json"
     assert metadata_file.exists()
-    metadata = json.loads(metadata_file.read_text())
+    metadata = load_jsonc(metadata_file)
     assert metadata["reader"] == "tablegather"
     assert metadata["settings"] == {
         "key_columns": ["species"],

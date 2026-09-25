@@ -5,6 +5,7 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Optional
 
+from utils.jsonc import load_jsonc
 from utils.read_path import read_path
 from utils.column_schema import ColumnSchema
 
@@ -74,7 +75,7 @@ class MergeSettings:
     @classmethod
     def read_file(cls, output_path: Path) -> "MergeSettings":
         settings_file_path = cls.settings_path(output_path)
-        return cls.from_dict(json.loads(settings_file_path.read_text(encoding="utf8")))
+        return cls.from_dict(load_jsonc(settings_file_path))
 
     @staticmethod
     def settings_path(output_path: Path):

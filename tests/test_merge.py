@@ -3,6 +3,7 @@
 import json
 import pytest
 from pathlib import Path
+from utils.jsonc import load_jsonc
 from tablemerge.__main__ import (
     group_tablesfiles,
     filter_groups_by_paper,
@@ -2033,7 +2034,7 @@ def test_merge_writes_output_when_file_does_not_exist(tmp_path):
 
     output_file = output_path / "paper.tables.json"
     assert output_file.exists()
-    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    result = TablesFile.model_validate(load_jsonc(output_file))
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", agreement_level_=1, row_=0)
     ]
@@ -2081,7 +2082,7 @@ def test_merge_overwrites_when_force_update_and_output_has_curations(tmp_path):
 
     run_merge(source_dir, output_path, force_update=True)
 
-    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    result = TablesFile.model_validate(load_jsonc(output_file))
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", agreement_level_=1, row_=0)
     ]
@@ -2101,7 +2102,7 @@ def test_merge_overwrites_when_output_exists_with_no_curations(tmp_path):
 
     run_merge(source_dir, output_path, force_update=False)
 
-    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    result = TablesFile.model_validate(load_jsonc(output_file))
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", agreement_level_=1, row_=0)
     ]
@@ -2127,7 +2128,7 @@ def test_merge_overwrites_when_output_exists_with_empty_curations(tmp_path):
 
     run_merge(source_dir, output_path, force_update=False)
 
-    result = TablesFile.model_validate(json.loads(output_file.read_text()))
+    result = TablesFile.model_validate(load_jsonc(output_file))
     assert result.tables[0].get_table_fragments()[0].rows == [
         Row(family="apiaceae", agreement_level_=1, row_=0)
     ]

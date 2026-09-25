@@ -8,6 +8,7 @@ from uuid import uuid4
 from tablevalidate.schema import TablesFile
 from utils.cli import add_postprocessor_args, build_postprocessors_from_args
 from utils.column_schema import ColumnSchema, try_parse_schema
+from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
 
 from .collect import gather_tablesfiles
@@ -16,10 +17,7 @@ from paper2table import __version__
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
     try:
-        with open(
-            Path(resultset_dir) / "tables.metadata.json", "r", encoding="utf-8"
-        ) as f:
-            return json.load(f)
+        return load_jsonc(Path(resultset_dir) / "tables.metadata.json")
     except FileNotFoundError:
         return {}
 
