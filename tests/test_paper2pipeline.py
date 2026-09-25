@@ -39,7 +39,7 @@ def test_load_pipeline_minimal(tmp_path):
 
 
 def test_load_pipeline_full():
-    demo_pipeline = Path(__file__).parent / "data" / "demo.pipeline.json"
+    demo_pipeline = Path(__file__).parent / "data" / "demo.pipeline.jsonc"
     pipeline = load_pipeline(str(demo_pipeline))
 
     assert pipeline.input_paths == ["tablas"]
