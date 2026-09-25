@@ -1,0 +1,3 @@
+familia:str
+nombre_cientifico:str
+nombre_popular:str

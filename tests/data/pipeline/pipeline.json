@@ -3,6 +3,7 @@
     "tests/data/pipeline/tables"
   ],
   "output_path": "tests/data/pipeline",
+  "schema_path": "tests/data/pipeline/schema.txt",
   "pretty": true,
   "normalize": {
     "interactive": true,
@@ -15,10 +16,16 @@
       },
       {
         "reader": "pymupdf"
+      },
+      {
+        "reader": "agent",
+        "model": "google-gla:gemini-2.5-flash",
+        "model_sleep": 10
       }
     ],
     "stats": true,
     "validate": true,
+    "override": true,
     "export": [
       "csv",
       "html"
@@ -40,13 +47,15 @@
     "export": [
       "csv",
       "html"
-    ]
+    ],
+    "override": true
   },
   "gather": {
     "stats": true,
     "export": [
       "csv",
       "html"
-    ]
+    ],
+    "override": true
   }
 }
