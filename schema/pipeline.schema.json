@@ -20,6 +20,11 @@
       "default": null,
       "description": "Path to a schema file; passed to every tool that accepts -p."
     },
+    "pretty": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indent JSON output from all tools that support --pretty."
+    },
     "normalize": {
       "anyOf": [{ "$ref": "#/$defs/NormalizeConfig" }, { "type": "null" }],
       "default": null

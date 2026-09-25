@@ -103,6 +103,7 @@ class Pipeline(BaseModel):
     input_paths: list[str]
     output_path: str
     schema_path: str | None = None
+    pretty: bool = False
     normalize: NormalizeConfig | None = None
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None

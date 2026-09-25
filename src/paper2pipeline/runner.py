@@ -126,7 +126,7 @@ def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
 
 
 def build_extract_args(
-    run: ExtractRun, schema_path: str | None, output_path: Path, paper_files: list[str]
+    run: ExtractRun, schema_path: str | None, output_path: Path, paper_files: list[str], pretty: bool = True
 ) -> list[str]:
     args = [
         "paper2table",
@@ -156,6 +156,8 @@ def build_extract_args(
         args += ["-vv"]  # TODO make verbosity global arg
     if run.quiet:
         args += ["-q"]
+    if pretty:
+        args += ["--pretty"]
     args += paper_files
     return args
 
@@ -165,6 +167,7 @@ def run_extract(
     output_path: Path,
     paper_files: list[str],
     schema_path: str | None,
+    pretty: bool = True,
 ) -> None:
     tables_dir = output_path / "tables"
     prepare_output_dir(tables_dir, config.override, "extract")
@@ -173,7 +176,7 @@ def run_extract(
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
         print(f"[pipeline] extract (run {i + 1}/{len(config.runs)})", file=sys.stderr, flush=True)
         run_subprocess(
-            build_extract_args(run, schema_path, output_path, paper_files),
+            build_extract_args(run, schema_path, output_path, paper_files, pretty=pretty),
             step_name=f"extract run {i + 1}",
         )
         uuid_dir = find_new_uuid_dir(tables_dir, before)
@@ -189,7 +192,7 @@ def run_extract(
 
 
 def build_merge_args(
-    config: MergeConfig, output_path: Path, schema_path: str | None
+    config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
     tables_dir = output_path / "tables"
     merges_dir = output_path / "merges"
@@ -256,17 +259,19 @@ def build_merge_args(
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
 
+    if pretty:
+        args += ["--pretty"]
     args += input_dirs
     return args
 
 
-def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -> None:
+def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True) -> None:
     merges_dir = output_path / "merges"
     prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
-        build_merge_args(config, output_path, schema_path), step_name="merge"
+        build_merge_args(config, output_path, schema_path, pretty=pretty), step_name="merge"
     )
 
     if config.stats:
@@ -280,7 +285,7 @@ def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -
 
 
 def build_gather_args(
-    config: GatherConfig, output_path: Path, schema_path: str | None
+    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
     merges_dir = output_path / "merges"
     gathers_dir = output_path / "gathers"
@@ -304,19 +309,21 @@ def build_gather_args(
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
 
+    if pretty:
+        args += ["--pretty"]
     args += [str(merges_dir)]
     return args
 
 
 def run_gather(
-    config: GatherConfig, output_path: Path, schema_path: str | None
+    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> None:
     gathers_dir = output_path / "gathers"
     prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
-        build_gather_args(config, output_path, schema_path), step_name="gather"
+        build_gather_args(config, output_path, schema_path, pretty=pretty), step_name="gather"
     )
 
     if config.stats:
@@ -337,13 +344,13 @@ def run_pipeline(pipeline: Pipeline) -> None:
         paper_files = collect_pdfs(pipeline.input_paths)
 
     if pipeline.extract:
-        run_extract(pipeline.extract, output_path, paper_files, pipeline.schema_path)
+        run_extract(pipeline.extract, output_path, paper_files, pipeline.schema_path, pretty=pipeline.pretty)
 
     # TODO validate that: there is at least one extract.
     # Also, if there is more than one extract and gather is present,
     # that there must be one merge
     if pipeline.merge:
-        run_merge(pipeline.merge, output_path, pipeline.schema_path)
+        run_merge(pipeline.merge, output_path, pipeline.schema_path, pretty=pipeline.pretty)
 
     if pipeline.gather:
-        run_gather(pipeline.gather, output_path, pipeline.schema_path)
+        run_gather(pipeline.gather, output_path, pipeline.schema_path, pretty=pipeline.pretty)

@@ -7,7 +7,7 @@ from paper2table.tables_reader import TablesReader
 _logger = logging.getLogger("pape2table")
 
 
-def write_tables(reader: TablesReader, paper_path: str, output_directory: str):
+def write_tables(reader: TablesReader, paper_path: str, output_directory: str, indent: int | None = None):
     tables_path = os.path.join(
         output_directory,
         os.path.basename(paper_path).replace(".pdf", ".tables.json"),
@@ -18,4 +18,4 @@ def write_tables(reader: TablesReader, paper_path: str, output_directory: str):
         return
 
     with open(tables_path, "w", encoding="utf-8") as f:
-        f.write(json.dumps(reader.to_dict(), ensure_ascii=False))
+        f.write(json.dumps(reader.to_dict(), ensure_ascii=False, indent=indent))

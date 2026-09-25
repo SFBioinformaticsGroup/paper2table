@@ -3,6 +3,7 @@
     "tests/data/pipeline/tables"
   ],
   "output_path": "tests/data/pipeline",
+  "pretty": true,
   "normalize": {
     "interactive": true,
     "inplace": true
