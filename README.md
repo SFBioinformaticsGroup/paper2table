@@ -672,7 +672,12 @@ A JSON schema for the pipeline file format is provided at [schema/pipeline.schem
 ```json
 "json.schemas": [
   {
-    "fileMatch": ["**/*.pipeline.json", "**/pipeline.json"],
+    "fileMatch": [
+      "**/*.pipeline.json",
+      "**/pipeline.json",
+      "**/*.pipeline.jsonc",
+      "**/pipeline.jsonc"
+    ],
     "url": "./schema/pipeline.schema.json"
   }
 ]
@@ -757,7 +762,12 @@ To get inline validation and autocomplete for `.tables.json` files in VS Code, a
 ```json
 "json.schemas": [
   {
-    "fileMatch": ["**/*.tables.json", "**/tables.json"],
+    "fileMatch": [
+      "**/*.tables.json",
+      "**/tables.json",
+      "**/*.tables.jsonc",
+      "**/tables.jsonc"
+    ],
     "url": "./schema/tablesfile.schema.json"
   }
 ]
@@ -768,7 +778,7 @@ A JSON schema for `tables.metadata.json` files is provided at [schema/tables.met
 ```json
 "json.schemas": [
   {
-    "fileMatch": ["**/tables.metadata.json"],
+    "fileMatch": ["**/tables.metadata.json", "**/tables.metadata.jsonc"],
     "url": "./schema/tables.metadata.schema.json"
   }
 ]
