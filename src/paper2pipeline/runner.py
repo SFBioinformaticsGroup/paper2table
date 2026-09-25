@@ -78,6 +78,19 @@ def run_export(input_dir: Path, export: list[str], step_name: str) -> None:
         )
 
 
+def prepare_output_dir(path: Path, override: bool, step_name: str) -> None:
+    if path.exists() and any(path.iterdir()):
+        if override:
+            shutil.rmtree(path)
+        else:
+            print(
+                f"[pipeline] warning: {step_name} output directory already has contents "
+                f"({path}); set override=true to wipe it first",
+                file=sys.stderr,
+            )
+    path.mkdir(parents=True, exist_ok=True)
+
+
 def run_normalize(
     config: NormalizeConfig, output_path: Path, input_paths: list[str]
 ) -> list[str]:
@@ -154,7 +167,7 @@ def run_extract(
     schema_path: str | None,
 ) -> None:
     tables_dir = output_path / "tables"
-    tables_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(tables_dir, config.override, "extract")
 
     for i, run in enumerate(config.runs):
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
@@ -249,7 +262,7 @@ def build_merge_args(
 
 def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -> None:
     merges_dir = output_path / "merges"
-    merges_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
@@ -299,7 +312,7 @@ def run_gather(
     config: GatherConfig, output_path: Path, schema_path: str | None
 ) -> None:
     gathers_dir = output_path / "gathers"
-    gathers_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(

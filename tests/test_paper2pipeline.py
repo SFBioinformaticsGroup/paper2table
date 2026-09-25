@@ -97,6 +97,12 @@ def test_gather_config_defaults():
     assert config.export == []
 
 
+def test_override_defaults_to_false():
+    assert ExtractConfig(runs=[ExtractRun()]).override is False
+    assert MergeConfig().override is False
+    assert GatherConfig().override is False
+
+
 def test_validate_only_prints_valid(tmp_path, capsys):
     pipeline_file = tmp_path / "pipeline.json"
     pipeline_file.write_text(

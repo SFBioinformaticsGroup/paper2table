@@ -139,6 +139,11 @@
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": [],
           "description": "Export formats to produce after each run."
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/tables/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -225,6 +230,11 @@
           "type": "array",
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": []
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/merges/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -261,6 +271,11 @@
           "type": "array",
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": []
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/gathers/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     }

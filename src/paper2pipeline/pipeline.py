@@ -34,6 +34,7 @@ class ExtractConfig(BaseModel):
     stats: bool = False
     validate_: bool = Field(False, alias="validate")
     export: list[str] = []
+    override: bool = False
 
 
 class MergeConfig(BaseModel):
@@ -68,6 +69,7 @@ class MergeConfig(BaseModel):
     validate_: bool = Field(False, alias="validate")
     stats: bool = False
     export: list[str] = []
+    override: bool = False
 
     @model_validator(mode="after")
     def hints_alignment_requires_hints(self) -> "MergeConfig":
@@ -92,6 +94,7 @@ class GatherConfig(BaseModel):
     drop_empty_tables: bool = True
     stats: bool = False
     export: list[str] = []
+    override: bool = False
 
 
 class Pipeline(BaseModel):
