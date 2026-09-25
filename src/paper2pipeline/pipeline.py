@@ -110,6 +110,12 @@ class Pipeline(BaseModel):
 
     @model_validator(mode="after")
     def schema_path_required_features(self) -> "Pipeline":
+        if self.extract:
+            for run in self.extract.runs:
+                if run.reader == "agent" and self.schema_path is None and run.schema_ is None:
+                    raise ValueError(
+                        "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
+                    )
         if self.schema_path is not None:
             return self
         if self.merge and self.merge.order_schema_columns:

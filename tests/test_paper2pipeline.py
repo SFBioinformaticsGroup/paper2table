@@ -191,6 +191,34 @@ def test_coerce_schema_column_types_accepted_with_schema_path():
     assert pipeline.gather.coerce_schema_column_types is True
 
 
+def test_agent_reader_requires_schema_path_or_schema():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
+        )
+
+
+def test_agent_reader_accepted_with_schema_path():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        schema_path="schema.txt",
+        extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
+    )
+    assert pipeline.extract.runs[0].reader == "agent"
+
+
+def test_agent_reader_accepted_with_inline_schema():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        extract=ExtractConfig(runs=[ExtractRun(reader="agent", schema="species family")]),
+    )
+    assert pipeline.extract.runs[0].reader == "agent"
+
+
 def test_pipeline_rejects_unknown_fields(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
     pipeline_file.write_text(
