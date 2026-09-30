@@ -14,6 +14,7 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
+from paper2pipeline.runner import build_extract_args
 from paper2table import __version__
 
 
@@ -226,3 +227,27 @@ def test_pipeline_rejects_unknown_fields(tmp_path):
     )
     with pytest.raises(Exception):
         load_pipeline(str(pipeline_file))
+
+
+def test_extract_run_override_mappings_default_is_false():
+    assert ExtractRun().override_mappings is False
+
+
+def test_build_extract_args_hybrid_includes_mappings_path(tmp_path):
+    run = ExtractRun(hybrid=True)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-M" in args
+    mappings_index = args.index("-M")
+    assert args[mappings_index + 1] == str(tmp_path / "mappings")
+
+
+def test_build_extract_args_non_hybrid_omits_mappings_path(tmp_path):
+    run = ExtractRun(hybrid=False)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-M" not in args
+
+
+def test_build_extract_args_override_mappings_passes_flag(tmp_path):
+    run = ExtractRun(hybrid=True, override_mappings=True)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-F" in args

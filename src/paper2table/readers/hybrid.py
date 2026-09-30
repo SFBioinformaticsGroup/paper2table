@@ -71,17 +71,18 @@ def read_tables(
     schema: str,
     mappings_path: Path,
     reader: Callable[[str, TablesMapping], TablesReader],
-    force_mapping_generation: bool = False,
+    override_mappings: bool = False,
+    indent: int | None = None,
 ) -> TablesReader:
     paper_path = Path(path)
     mapping_path = mappings_path / paper_path.name.replace(".pdf", ".mapping.json")
-    if mapping_path.exists() and not force_mapping_generation:
+    if mapping_path.exists() and not override_mappings:
         _logger.debug("Using existing mapping for %s", paper_path)
         mapping = TablesMapping.model_validate_json(
             mapping_path.read_text(encoding="utf-8")
         )
     else:
-        if force_mapping_generation and mapping_path.exists():
+        if override_mappings and mapping_path.exists():
             _logger.debug("Forcing mapping regeneration for %s", paper_path)
         else:
             _logger.debug(
@@ -104,5 +105,5 @@ def read_tables(
             date=datetime.now(timezone.utc).isoformat(),
         )
         mappings_path.mkdir(parents=True, exist_ok=True)
-        mapping_path.write_text(mapping.model_dump_json(), encoding="utf-8")
+        mapping_path.write_text(mapping.model_dump_json(indent=indent), encoding="utf-8")
     return reader(path, mapping)

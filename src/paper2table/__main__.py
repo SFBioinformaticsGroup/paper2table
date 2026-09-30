@@ -71,11 +71,11 @@ def parse_args():
     )
     parser.add_argument(
         "-F",
-        "--force-mapping-generation",
-        dest="force_mapping_generation",
+        "--override-mappings",
+        dest="override_mappings",
         help=(
-            "Force regeneration of the mapping even if one already exists."
-            "Only used in hybrid mode"
+            "Force regeneration of the mapping even if one already exists. "
+            "Only used in hybrid mode."
         ),
         action="store_true",
     )
@@ -315,7 +315,8 @@ def get_tables_reader(args):
                 mappings_path=mappings_path,
                 schema=schema,
                 reader=base_reader,
-                force_mapping_generation=args.force_mapping_generation,
+                override_mappings=args.override_mappings,
+                indent=2 if args.pretty else None,
             )
 
     return read_tables

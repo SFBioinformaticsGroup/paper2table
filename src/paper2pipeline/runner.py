@@ -141,8 +141,8 @@ def build_extract_args(
     if run.model_sleep is not None:
         args += ["-z", str(run.model_sleep)]
     if run.hybrid:
-        args += ["-H"]
-    if run.force_mapping_generation:  # TODO ensure or document where mappings go
+        args += ["-H", "-M", str(output_path / "mappings")]
+    if run.override_mappings:
         args += ["-F"]
     if run.schema_:
         args += ["-s", run.schema_]
