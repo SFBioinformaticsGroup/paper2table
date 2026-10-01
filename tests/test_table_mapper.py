@@ -46,7 +46,7 @@ def test_no_heuristics_selects_and_renames_columns():
         header_mode="none",
         row_mappings=TableRowMappings(first_data_row=0),
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "inclination": "118.9"},
         {"designation": "2005 VX3", "inclination": "112.2"},
@@ -63,7 +63,7 @@ def test_title_removal_drops_matching_row():
         row_mappings=TableRowMappings(first_data_row=0),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "inclination": "118.9"},
         {"designation": "2005 VX3", "inclination": "112.2"},
@@ -78,7 +78,7 @@ def test_title_removal_keeps_unrelated_row():
         row_mappings=TableRowMappings(first_data_row=0),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {
             "designation": "This outer-planet crosser is a damocloid",
@@ -96,7 +96,7 @@ def test_title_removal_ignores_symbols_and_case():
         row_mappings=TableRowMappings(first_data_row=0),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "2010 BK118", "inclination": "143.9"},
     ]
@@ -112,7 +112,7 @@ def test_row_mappings_explicit_header_row_and_first_data_row():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "inclination": "118.9"},
         {"designation": "2005 VX3", "inclination": "112.2"},
@@ -127,7 +127,7 @@ def test_row_mappings_first_data_row_defaults_to_header_row_plus_one():
         row_mappings=TableRowMappings(header_row=0),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "2010 BK118", "inclination": "143.9"},
     ]
@@ -154,7 +154,7 @@ def test_from_column_name_exact_match():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "inclination": "118.9"},
     ]
@@ -183,7 +183,7 @@ def test_from_column_name_single_accumulation():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
         {"designation": "2005 VX3 cont", "inclination": "112.2"},
@@ -212,7 +212,7 @@ def test_from_column_name_multiple_accumulations():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "2002 RP120", "discovery_date": "September 4, 2002"},
     ]
@@ -246,7 +246,7 @@ def test_from_column_name_fallback_when_no_match():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "2002 RP120", "inclination": "118.9"},
     ]
@@ -264,7 +264,7 @@ def test_from_column_name_absent_uses_column_number():
         row_mappings=TableRowMappings(first_data_row=0),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "discovery_date": "September 4, 2002"},
     ]
@@ -275,7 +275,7 @@ def test_combined_title_removal_row_mappings_and_column_accumulation():
     rows = [
         # Title row
         ["Table 1. Minor planets with high inclinations", None, None],
-        # Header row (title_row=0 after title removal)
+        # header_row=0 after Jaccard removal
         ["Minor planet desig", "nation", "Inclination"],
         # Data rows
         ["(65407) 2002 RP120", "suffix", "118.9"],
@@ -297,7 +297,7 @@ def test_combined_title_removal_row_mappings_and_column_accumulation():
         row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
-    result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
         {"designation": "2005 VX3 cont", "inclination": "112.2"},

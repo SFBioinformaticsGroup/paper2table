@@ -28,37 +28,52 @@ class TableMapper:
     def __init__(self, table_mapping: TableMapping) -> None:
         self._mapping = table_mapping
 
-    def map(self, extracted_tables: list[PDFTable], page_number: int) -> pd.DataFrame:
+    def transform(
+        self, extracted_tables: list[PDFTable], page_number: int
+    ) -> pd.DataFrame:
         if not extracted_tables:
             raise ValueError("No tables were extracted")
         row_mappings = self._mapping.row_mappings
         if row_mappings is not None:
-            # Explicit row control: fetch all rows, remove title rows, then split by index.
-            raw_df = extracted_tables[-1].to_dataframe(
-                column_names_hints=[], skip_first_row=False
+            header_row, data_rows = self._transform_with_row_mappings(
+                extracted_tables, row_mappings
             )
-            rows: list[Row] = raw_df.values.tolist()
-            rows = self._remove_title_rows(rows)
-            header_row, data_rows = self._split_by_row_mappings(rows, row_mappings)
         else:
-            # Legacy path: delegate header skipping to the reader (preserves per-reader
-            # semantics — PyMuPDF ignores skip_first_row, pdfplumber uses it).
-            skip_first_row = self._mapping.header_mode == "all_pages" or (
-                self._mapping.header_mode == "first_page_only"
-                and page_number == self._mapping.first_page
+            header_row, data_rows = self._transform_with_header_mode(
+                extracted_tables, page_number
             )
-            raw_df = extracted_tables[-1].to_dataframe(
-                column_names_hints=[], skip_first_row=skip_first_row
-            )
-            rows = raw_df.values.tolist()
-            rows = self._remove_title_rows(rows)
-            header_row, data_rows = [], rows
 
         col_groups = self._resolve_column_groups(header_row)
         data_rows = self._merge_column_groups(data_rows, col_groups)
         column_names = [cm.to_column_name for cm in self._mapping.column_mappings]
-        df = pd.DataFrame(data_rows, columns=pd.Index(column_names) if column_names else None)
+        df = pd.DataFrame(
+            data_rows, columns=pd.Index(column_names) if column_names else None
+        )
         return self._normalize(df)
+
+    def _transform_with_header_mode(self, extracted_tables: list[PDFTable], page_number):
+        skip_first_row = self._mapping.header_mode == "all_pages" or (
+            self._mapping.header_mode == "first_page_only"
+            and page_number == self._mapping.first_page
+        )
+        raw_df = extracted_tables[-1].to_dataframe(
+            column_names_hints=[], skip_first_row=skip_first_row
+        )
+        rows = raw_df.values.tolist()
+        rows = self._remove_title_rows(rows)
+        header_row, data_rows = [], rows
+        return header_row, data_rows
+
+    def _transform_with_row_mappings(self, extracted_tables: list[PDFTable], row_mappings):
+
+        raw_df = extracted_tables[-1].to_dataframe(
+            column_names_hints=[], skip_first_row=False
+        )
+        rows: list[Row] = raw_df.values.tolist()
+
+        rows = self._remove_title_rows(rows)
+        header_row, data_rows = self._split_by_row_mappings(rows, row_mappings)
+        return header_row, data_rows
 
     def _remove_title_rows(self, rows: list[Row]) -> list[Row]:
         title_tokens = _tokenize(self._mapping.title)
@@ -74,46 +89,52 @@ class TableMapper:
     def _split_by_row_mappings(
         self, rows: list[Row], row_mappings
     ) -> tuple[Row, list[Row]]:
-        title_row_idx = row_mappings.title_row
+        header_row_idx = row_mappings.header_row
         if row_mappings.first_data_row is not None:
             first_data_idx = row_mappings.first_data_row
-        elif title_row_idx is not None:
-            first_data_idx = title_row_idx + 1
+        elif header_row_idx is not None:
+            first_data_idx = header_row_idx + 1
         else:
             first_data_idx = 0
-        header_row: Row = rows[title_row_idx] if title_row_idx is not None else []
+        header_row: Row = rows[header_row_idx] if header_row_idx is not None else []
         return header_row, rows[first_data_idx:]
 
     def _resolve_column_groups(
         self, header_row: Row
     ) -> list[tuple[ColumnMapping, list[int]]]:
+        """
+        Determines which columns should be accumulated and
+        treated as a single unit
+        """
         groups: list[tuple[ColumnMapping, list[int]]] = []
-        for cm in self._mapping.column_mappings:
-            if cm.from_column_name is None or not header_row:
-                groups.append((cm, [cm.from_column_number]))
+        for column_mapping in self._mapping.column_mappings:
+            if column_mapping.from_column_name is None or not header_row:
+                groups.append((column_mapping, [column_mapping.from_column_number]))
                 continue
-            start = cm.from_column_number
-            accumulated = (header_row[start] or "").strip() if start < len(header_row) else ""
+            start = column_mapping.from_column_number
+            accumulated = (
+                (header_row[start] or "").strip() if start < len(header_row) else ""
+            )
             indices = [start]
-            if accumulated == cm.from_column_name:
-                groups.append((cm, indices))
+            if accumulated == column_mapping.from_column_name:
+                groups.append((column_mapping, indices))
                 continue
             matched = False
             for attempt in range(1, 6):
                 next_idx = start + attempt
-                if not cm.from_column_name.startswith(accumulated):
+                if not column_mapping.from_column_name.startswith(accumulated):
                     break
                 if next_idx >= len(header_row):
                     break
                 next_val = (header_row[next_idx] or "").strip()
                 accumulated += next_val
                 indices.append(next_idx)
-                if accumulated == cm.from_column_name:
+                if accumulated == column_mapping.from_column_name:
                     matched = True
                     break
             if not matched:
-                indices = [cm.from_column_number]
-            groups.append((cm, indices))
+                indices = [column_mapping.from_column_number]
+            groups.append((column_mapping, indices))
         return groups
 
     def _is_blank(self, value: Optional[str]) -> bool:
@@ -129,19 +150,22 @@ class TableMapper:
             new_row: list[Optional[str]] = []
             for _cm, indices in col_groups:
                 cells = [
-                    row[i] for i in indices if i < len(row) and not self._is_blank(row[i])
+                    row[i]
+                    for i in indices
+                    if i < len(row) and not self._is_blank(row[i])
                 ]
                 new_row.append(" ".join(str(c) for c in cells) if cells else None)
             merged.append(new_row)
         return merged
 
     def _normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df.rename(
-            columns=lambda col: normalize_column_name(str(col)), inplace=True
+        df.rename(columns=lambda col: normalize_column_name(str(col)), inplace=True)
+        df = cast(
+            pd.DataFrame,
+            df.apply(
+                lambda row: [
+                    v.replace("\n", " ") if isinstance(v, str) else v for v in row
+                ]
+            ),
         )
-        df = cast(pd.DataFrame, df.apply(
-            lambda row: [
-                v.replace("\n", " ") if isinstance(v, str) else v for v in row
-            ]
-        ))
         return df

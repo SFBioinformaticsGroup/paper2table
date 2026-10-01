@@ -89,7 +89,7 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
             strategy: str | None = None
             for strategy, extracted_tables in candidates:
                 try:
-                    dataframe = TableMapper(table_mapping).map(
+                    dataframe = TableMapper(table_mapping).transform(
                         extracted_tables, page_number
                     )
                     tables.append(
