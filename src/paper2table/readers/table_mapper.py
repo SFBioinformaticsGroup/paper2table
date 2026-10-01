@@ -139,36 +139,51 @@ class TableMapper:
         Determines which columns should be accumulated and
         treated as a single unit
         """
-        groups: list[tuple[ColumnMapping, list[int]]] = []
-        for column_mapping in self._mapping.column_mappings:
-            if column_mapping.from_column_name is None or not header_row:
-                groups.append((column_mapping, [column_mapping.from_column_number]))
-                continue
-            start = column_mapping.from_column_number
-            accumulated = (
-                (header_row[start] or "").strip() if start < len(header_row) else ""
-            )
-            indices = [start]
-            if accumulated == column_mapping.from_column_name:
-                groups.append((column_mapping, indices))
-                continue
-            matched = False
-            for attempt in range(1, 6):
-                next_idx = start + attempt
-                if not column_mapping.from_column_name.startswith(accumulated):
-                    break
-                if next_idx >= len(header_row):
-                    break
-                next_val = (header_row[next_idx] or "").strip()
-                accumulated += next_val
-                indices.append(next_idx)
-                if accumulated == column_mapping.from_column_name:
-                    matched = True
-                    break
-            if not matched:
-                indices = [column_mapping.from_column_number]
-            groups.append((column_mapping, indices))
-        return groups
+        return [
+            (cm, self._resolve_column_indices(cm, header_row))
+            for cm in self._mapping.column_mappings
+        ]
+
+    def _resolve_column_indices(
+        self, column_mapping: ColumnMapping, header_row: Row
+    ) -> list[int]:
+        if column_mapping.from_column_name is None or not header_row:
+            return [column_mapping.from_column_number]
+        start = self._find_header_start(header_row, column_mapping.from_column_number)
+        indices = self._accumulate_header(header_row, start, column_mapping.from_column_name)
+        if indices is None:
+            return [column_mapping.from_column_number]
+        return indices + self._absorb_trailing_empty(header_row, indices[-1] + 1)
+
+    def _find_header_start(self, header_row: Row, from_column_number: int) -> int:
+        start = from_column_number
+        while start < len(header_row) and self._is_blank(header_row[start]):
+            start += 1
+        return start
+
+    def _accumulate_header(
+        self, header_row: Row, start: int, target: str
+    ) -> list[int] | None:
+        accumulated = (header_row[start] or "").strip() if start < len(header_row) else ""
+        indices = [start]
+        if accumulated == target:
+            return indices
+        for next_idx in range(start + 1, len(header_row)):
+            if not target.startswith(accumulated):
+                return None
+            accumulated += (header_row[next_idx] or "").strip()
+            indices.append(next_idx)
+            if accumulated == target:
+                return indices
+        return None
+
+    def _absorb_trailing_empty(self, header_row: Row, from_idx: int) -> list[int]:
+        absorbed = []
+        idx = from_idx
+        while idx < len(header_row) and self._is_blank(header_row[idx]):
+            absorbed.append(idx)
+            idx += 1
+        return absorbed
 
     def _is_blank(self, value: Optional[str]) -> bool:
         return value is None or (isinstance(value, str) and value.strip() == "")
