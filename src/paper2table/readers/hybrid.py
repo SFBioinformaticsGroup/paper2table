@@ -5,6 +5,8 @@ from typing import Callable
 
 from pydantic_ai import Agent, BinaryContent
 
+from paper2table.readers.errors import ModelUnavailableError
+from paper2table.readers.utils import is_model_unavailable, run_agent_on_pdf
 from utils.column_schema import ColumnSchema
 
 from ..mapping import TablesMapping, TablesMappingMetadata
@@ -93,13 +95,7 @@ def read_tables(
             output_type=TablesMapping,
             instructions=build_instructions(schema),
         )
-        mapping = agent.run_sync(
-            [
-                BinaryContent(
-                    data=paper_path.read_bytes(), media_type="application/pdf"
-                ),
-            ]
-        ).output
+        mapping = run_agent_on_pdf(agent, paper_path)
         mapping.metadata = TablesMappingMetadata(
             model=model,
             date=datetime.now(timezone.utc).isoformat(),

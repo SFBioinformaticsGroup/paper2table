@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from pydantic import create_model
-from pydantic_ai import Agent, BinaryContent
+from pydantic_ai import Agent
 
+from paper2table.readers.utils import  run_agent_on_pdf
 from utils.column_schema import ColumnSchema
 
 from ..tables_reader import TablesReader
 from ..tables_reader.pydantic import TablesModelWrapper
-from .errors import ModelUnavailableError
 
 
 def build_table_model(schema: str):
@@ -65,17 +65,6 @@ instructions = (
 )
 
 
-def is_model_unavailable(e: BaseException) -> bool:
-    try:
-        from google.genai.errors import ServerError
-        if isinstance(e, ServerError) and getattr(e, "status_code", None) == 503:
-            return True
-    except ImportError:
-        pass
-    error_text = str(e).lower()
-    return "503" in error_text and ("unavailable" in error_text or "high demand" in error_text)
-
-
 def read_tables(path: str, model: str, schema: str) -> TablesReader:
     paper_path = Path(path)
     agent = Agent(
@@ -83,17 +72,5 @@ def read_tables(path: str, model: str, schema: str) -> TablesReader:
         output_type=build_tables_model(schema),
         instructions=instructions,
     )
-    try:
-        output = agent.run_sync(
-            [
-                BinaryContent(data=paper_path.read_bytes(), media_type="application/pdf"),
-            ]
-        ).output
-    except BaseException as e:
-        cause = e
-        while cause.__cause__ is not None:
-            cause = cause.__cause__
-        if is_model_unavailable(cause) or is_model_unavailable(e):
-            raise ModelUnavailableError(str(e)) from e
-        raise
+    output = run_agent_on_pdf(agent, paper_path)
     return TablesModelWrapper(output)
