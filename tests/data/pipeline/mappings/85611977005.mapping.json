@@ -1,7 +1,8 @@
 {
   "tables": [
     {
-      "title": "Plantas medicinales utilizadas en las localidades estudiadas. Se incluye familia, nombre científico y popular y dolencia tratada.",
+      "title": "Tabla 2. Plantas medicinales utilizadas en las localidades estudiadas. Se incluye familia, nombre científico y popular y dolencia tratada.",
+      "page_footer": "www.blacpma.org Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas Vol. 8 (5) 2009",
       "header_mode": "all_pages",
       "first_page": 6,
       "last_page": 9,
@@ -28,9 +29,9 @@
       ]
     }
   ],
-  "citation": "Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. *Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas*, *8*(5), 389-401.",
+  "citation": "Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas, 8(5), 389-401.",
   "metadata": {
     "model": "google-gla:gemini-2.5-flash",
-    "date": "2026-10-01T11:51:32.616607+00:00"
+    "date": "2026-10-01T16:38:20.180981+00:00"
   }
 }

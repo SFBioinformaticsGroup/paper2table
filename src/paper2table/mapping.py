@@ -46,9 +46,16 @@ class TableMapping(BaseModel):
     title: str
     """
     Human-readable table title used for display and as a row-removal filter.
-    Any raw extracted row whose concatenated cell text has a token-based Jaccard
-    similarity > 0.8 with this value (case-insensitive, symbols stripped) is
-    dropped before column and row decoding.
+    """
+
+    footer: Optional[str] = None
+    """
+    Human-readable table footer used for display and as a row-removal filter.
+    """
+
+    page_footer: Optional[str] = None
+    """
+    Human-readable page footer used for display and as a row-removal filter.
     """
 
     header_mode: Literal["all_pages", "first_page_only", "none"]

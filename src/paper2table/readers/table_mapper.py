@@ -4,7 +4,7 @@ from typing import Optional, Protocol, cast
 import pandas as pd
 
 from utils.column_names import normalize_column_name
-from utils.jaccard import jaccard
+from Levenshtein import ratio
 
 from ..mapping import ColumnMapping, TableMapping
 
@@ -16,12 +16,6 @@ class PDFTable(Protocol):
     def to_dataframe(
         self, column_names_hints: list[str], skip_first_row: bool
     ) -> pd.DataFrame: ...
-
-
-def _tokenize(text: str) -> set[str]:
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", " ", text)
-    return set(text.split())
 
 
 class TableMapper:
@@ -60,28 +54,36 @@ class TableMapper:
             column_names_hints=[], skip_first_row=skip_first_row
         )
         rows = raw_df.values.tolist()
-        rows = self._remove_title_rows(rows)
+        rows = self._remove_bibliographic_rows(rows)
         header_row, data_rows = [], rows
         return header_row, data_rows
 
     def _transform_with_row_mappings(self, extracted_tables: list[PDFTable], row_mappings):
-
         raw_df = extracted_tables[-1].to_dataframe(
             column_names_hints=[], skip_first_row=False
         )
         rows: list[Row] = raw_df.values.tolist()
-
-        rows = self._remove_title_rows(rows)
+        rows = self._remove_bibliographic_rows(rows)
+        rows = self._remove_blank_rows(rows)
         header_row, data_rows = self._split_by_row_mappings(rows, row_mappings)
         return header_row, data_rows
 
-    def _remove_title_rows(self, rows: list[Row]) -> list[Row]:
-        title_tokens = _tokenize(self._mapping.title)
+    def _remove_blank_rows(self, rows: list[Row]) -> list[Row]:
+        return [row for row in rows if not all(self._is_blank(cell) for cell in row)]
+
+    def _remove_bibliographic_rows(self, rows: list[Row]) -> list[Row]:
+        footer = self._mapping.footer.lower() if self._mapping.footer else None
+        page_footer = self._mapping.page_footer.lower() if self._mapping.page_footer else None
+        title = self._mapping.title.lower()
+
         result = []
         for row in rows:
-            row_text = " ".join(cell for cell in row if cell)
-            row_tokens = _tokenize(row_text)
-            if jaccard(row_tokens, title_tokens) > 0.8:
+            row_text = "".join(cell for cell in row if cell).lower()
+            if footer is not None and ratio(row_text, footer) > 0.8:
+                continue
+            if page_footer is not None and ratio(row_text, page_footer) > 0.8:
+                continue
+            if ratio(row_text, title) > 0.8:
                 continue
             result.append(row)
         return result

@@ -69,6 +69,22 @@ def test_title_removal_drops_matching_row():
         {"designation": "2005 VX3", "inclination": "112.2"},
     ]
 
+def test_title_removal_drops_matching_row_when_it_is_split():
+    rows = [
+        ["Table 1.", "Minor planets", " with high", "inclinations"],
+        ["(65407) 2002 RP120", "118.9", None, None],
+        ["2005 VX3", "112.2", None, None],
+    ]
+    mapping = make_mapping(
+        row_mappings=TableRowMappings(first_data_row=0),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"designation": "(65407) 2002 RP120", "inclination": "118.9"},
+        {"designation": "2005 VX3", "inclination": "112.2"},
+    ]
+
 
 def test_title_removal_keeps_unrelated_row():
     rows = [
@@ -280,6 +296,72 @@ def test_combined_title_removal_row_mappings_and_column_accumulation():
         # Data rows
         ["(65407) 2002 RP120", "suffix", "118.9"],
         ["2005 VX3", "cont", "112.2"],
+    ]
+    mapping = make_mapping(
+        column_mappings=[
+            ColumnMapping(
+                from_column_name="Minor planet designation",
+                from_column_number=0,
+                to_column_name="designation",
+            ),
+            ColumnMapping(
+                from_column_name="Inclination",
+                from_column_number=2,
+                to_column_name="inclination",
+            ),
+        ],
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
+        {"designation": "2005 VX3 cont", "inclination": "112.2"},
+    ]
+
+
+def test_combined_title_removal_row_mappings_and_column_accumulation_with_blank_lines():
+    rows = [
+        ["", "", ""],
+        ["Table 1. Minor planets with", "high", "inclinations"],
+        ["", "", ""],
+        ["Minor planet desig", "nation", "Inclination"],
+        ["", "", ""],
+        ["(65407) 2002 RP120", "suffix", "118.9"],
+        ["", "", ""],
+        ["2005 VX3", "cont", "112.2"],
+        ["", "", ""],
+    ]
+    mapping = make_mapping(
+        column_mappings=[
+            ColumnMapping(
+                from_column_name="Minor planet designation",
+                from_column_number=0,
+                to_column_name="designation",
+            ),
+            ColumnMapping(
+                from_column_name="Inclination",
+                from_column_number=2,
+                to_column_name="inclination",
+            ),
+        ],
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
+        {"designation": "2005 VX3 cont", "inclination": "112.2"},
+    ]
+
+
+
+def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddings():
+    rows = [
+        ["", "Table 1. Minor planets with", "high", "", "inclinations"],
+        ["", "Minor planet desig", "nation", "", "Inclination"],
+        ["", "(65407) 2002 RP120", "suffix", "", "118.9"],
+        ["", "2005 VX3", "cont", "", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
