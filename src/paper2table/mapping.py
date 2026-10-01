@@ -27,16 +27,18 @@ class ColumnMapping(BaseModel):
 
 
 class TableRowMappings(BaseModel):
-    title_row: Optional[int] = None
+    header_row: Optional[int] = None
     """
-    0-based index of the header row within the raw extracted rows (after title-row
-    removal). When absent, header detection falls back to `header_mode` behaviour.
+    0-based index of the row containing column names within the raw extracted rows
+    (after content-based title removal). Used for `from_column_name` matching and
+    physical-column accumulation. When absent, no column-name row is assumed.
     """
 
     first_data_row: Optional[int] = None
     """
-    0-based index of the first data row within the raw extracted rows (after title-row
-    removal). Defaults to `title_row + 1` when `title_row` is set, or `0` otherwise.
+    0-based index of the first data row within the raw extracted rows (after
+    content-based title removal). Defaults to `header_row + 1` when `header_row`
+    is set, or `0` otherwise.
     """
 
 

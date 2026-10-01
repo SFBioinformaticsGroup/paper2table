@@ -102,14 +102,14 @@ def test_title_removal_ignores_symbols_and_case():
     ]
 
 
-def test_row_mappings_explicit_title_row_and_first_data_row():
+def test_row_mappings_explicit_header_row_and_first_data_row():
     rows = [
         ["Minor planet designation", "Inclination"],
         ["(65407) 2002 RP120", "118.9"],
         ["2005 VX3", "112.2"],
     ]
     mapping = make_mapping(
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -118,13 +118,13 @@ def test_row_mappings_explicit_title_row_and_first_data_row():
         {"designation": "2005 VX3", "inclination": "112.2"},
     ]
 
-def test_row_mappings_first_data_row_defaults_to_title_row_plus_one():
+def test_row_mappings_first_data_row_defaults_to_header_row_plus_one():
     rows = [
         ["Minor planet designation", "Inclination"],
         ["2010 BK118", "143.9"],
     ]
     mapping = make_mapping(
-        row_mappings=TableRowMappings(title_row=0),
+        row_mappings=TableRowMappings(header_row=0),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -151,7 +151,7 @@ def test_from_column_name_exact_match():
                 to_column_name="inclination",
             ),
         ],
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -180,7 +180,7 @@ def test_from_column_name_single_accumulation():
                 to_column_name="inclination",
             ),
         ],
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -209,7 +209,7 @@ def test_from_column_name_multiple_accumulations():
                 to_column_name="discovery_date",
             ),
         ],
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -243,7 +243,7 @@ def test_from_column_name_fallback_when_no_match():
                 to_column_name="inclination",
             ),
         ],
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)
@@ -294,7 +294,7 @@ def test_combined_title_removal_row_mappings_and_column_accumulation():
                 to_column_name="inclination",
             ),
         ],
-        row_mappings=TableRowMappings(title_row=0, first_data_row=1),
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
         header_mode="none",
     )
     result = TableMapper(mapping).map([FakePDFTable(rows)], page_number=1)

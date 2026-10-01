@@ -50,8 +50,9 @@ def build_instructions(schema):
         "   * all_pages: The table includes headers on every page.",
         "   * first_page_only: The table includes headers only on the first page.",
         "   * none: The table has no headers.",
-        " * column_mappings: determine which column number (0-based)"
+        " * column_mappings: determine which column number (0-based) and column name"
         " best matches which column from COLUMN STRUCTURE",
+        " * row_mappings: determine explicit indexes where data starts (first_data_row) and optionally which is header row"
         " * citation: When possible, include the paper's citation in APA format"
         " from which the table was extracted.",
         "",
