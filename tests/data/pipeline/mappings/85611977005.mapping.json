@@ -1,0 +1,36 @@
+{
+  "tables": [
+    {
+      "title": "Plantas medicinales utilizadas en las localidades estudiadas. Se incluye familia, nombre científico y popular y dolencia tratada.",
+      "header_mode": "all_pages",
+      "first_page": 6,
+      "last_page": 9,
+      "row_mappings": {
+        "header_row": 0,
+        "first_data_row": 1
+      },
+      "column_mappings": [
+        {
+          "from_column_name": "FAMILIA",
+          "from_column_number": 0,
+          "to_column_name": "familia"
+        },
+        {
+          "from_column_name": "NOMBRE CIENTÍFICO",
+          "from_column_number": 1,
+          "to_column_name": "nombre_cientifico"
+        },
+        {
+          "from_column_name": "NOMBRE POPULAR",
+          "from_column_number": 2,
+          "to_column_name": "nombre_popular"
+        }
+      ]
+    }
+  ],
+  "citation": "Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. *Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas*, *8*(5), 389-401.",
+  "metadata": {
+    "model": "google-gla:gemini-2.5-flash",
+    "date": "2026-10-01T11:51:32.616607+00:00"
+  }
+}
