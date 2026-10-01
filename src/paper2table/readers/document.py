@@ -4,7 +4,7 @@ pdf document
 """
 
 import logging
-from typing import Callable, cast, Optional, Protocol, Generator
+from typing import Callable, cast, Optional, Generator
 
 import pandas as pd
 
@@ -14,12 +14,7 @@ from ..hints import parse_column_names_hints
 from ..mapping import TableMapping, TablesMapping
 from ..tables_reader import TablesReader
 from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
-
-
-class PDFTable(Protocol):
-    def to_dataframe(
-        self, column_names_hints: list[str], skip_first_row: bool
-    ) -> pd.DataFrame: ...
+from .table_mapper import PDFTable, TableMapper
 
 
 class PDFPage:
@@ -94,8 +89,8 @@ def read_mapped_tables(pdf_path: str, mapping: TablesMapping, document: PDFDocum
             strategy: str | None = None
             for strategy, extracted_tables in candidates:
                 try:
-                    dataframe = read_page_as_dataframe(
-                        extracted_tables, table_mapping, page_number
+                    dataframe = TableMapper(table_mapping).map(
+                        extracted_tables, page_number
                     )
                     tables.append(
                         DataFrameTableReader(

@@ -19,7 +19,7 @@ class PyMuPDFTable:
         self.table = table
 
     def to_dataframe(
-        self, _column_names_hints: list[str], _skip_first_row: bool
+        self, column_names_hints: list[str], skip_first_row: bool
     ) -> pd.DataFrame:
         return self.table.to_pandas()
 
