@@ -63,13 +63,44 @@ class TableMapper:
             column_names_hints=[], skip_first_row=False
         )
         rows: list[Row] = raw_df.values.tolist()
+        pprint("initial")
+        pprint(rows[0:5])
         rows = self._remove_bibliographic_rows(rows)
         rows = self._remove_blank_rows(rows)
+        rows = self._remove_empty_columns(rows)
+        rows = self._skip_to_header(rows)
+        pprint("preprocessed")
+        pprint(rows[0:5])
         header_row, data_rows = self._split_by_row_mappings(rows, row_mappings)
         return header_row, data_rows
 
     def _remove_blank_rows(self, rows: list[Row]) -> list[Row]:
         return [row for row in rows if not all(self._is_blank(cell) for cell in row)]
+
+    def _skip_to_header(self, rows: list[Row]) -> list[Row]:
+        from_names = [
+            cm.from_column_name
+            for cm in self._mapping.column_mappings
+            if cm.from_column_name
+        ]
+        if not from_names:
+            return rows
+        for i, row in enumerate(rows):
+            for cell in row:
+                cell_text = (cell or "").strip()
+                if cell_text and any(name == cell_text for name in from_names):
+                    return rows[i:]
+        return rows
+
+    def _remove_empty_columns(self, rows: list[Row]) -> list[Row]:
+        if not rows:
+            return rows
+        col_count = max(len(row) for row in rows)
+        non_empty = [
+            col for col in range(col_count)
+            if any(not self._is_blank(row[col] if col < len(row) else None) for row in rows)
+        ]
+        return [[row[col] if col < len(row) else None for col in non_empty] for row in rows]
 
     def _remove_bibliographic_rows(self, rows: list[Row]) -> list[Row]:
         footer = self._mapping.footer.lower() if self._mapping.footer else None
