@@ -69,6 +69,7 @@ def test_title_removal_drops_matching_row():
         {"designation": "2005 VX3", "inclination": "112.2"},
     ]
 
+
 def test_title_removal_drops_matching_row_when_it_is_split():
     rows = [
         ["Table 1.", "Minor planets", " with high", "inclinations"],
@@ -134,6 +135,7 @@ def test_row_mappings_explicit_header_row_and_first_data_row():
         {"designation": "2005 VX3", "inclination": "112.2"},
     ]
 
+
 def test_row_mappings_first_data_row_defaults_to_header_row_plus_one():
     rows = [
         ["Minor planet designation", "Inclination"],
@@ -176,7 +178,6 @@ def test_from_column_name_exact_match():
     ]
 
 
-
 def test_from_column_name_single_accumulation():
     rows = [
         ["Minor planet desig", "nation", "Inclination"],
@@ -206,7 +207,6 @@ def test_from_column_name_single_accumulation():
     ]
 
 
-
 def test_from_column_name_multiple_accumulations():
     rows = [
         ["Designation", "First obse", "rved/Discove", "ry date"],
@@ -232,6 +232,65 @@ def test_from_column_name_multiple_accumulations():
     assert result.to_dict(orient="records") == [
         {"designation": "2002 RP120", "discovery_date": "September 4, 2002"},
     ]
+
+
+def test_from_column_name_multiple_accumulations_handling_spaces_in_header():
+    rows = [
+        ["Designation", "First observed", "/Discovery", "date"],
+        ["2002 RP120", "September 4, 2002", "", ""],
+    ]
+    mapping = make_mapping(
+        column_mappings=[
+            ColumnMapping(
+                from_column_name="Designation",
+                from_column_number=0,
+                to_column_name="designation",
+            ),
+            ColumnMapping(
+                from_column_name="First observed/Discovery date",
+                from_column_number=1,
+                to_column_name="discovery_date",
+            ),
+        ],
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"designation": "2002 RP120", "discovery_date": "September 4, 2002"},
+    ]
+
+def test_from_column_name_multiple_accumulations_in_multiple_columns():
+    rows = [
+        ["Designation", "First observed", "/Disco", "very date", "REF", "ERENCE"],
+        ["2002 RP120", "September 4, 2002", "", "", "1", "-1"],
+    ]
+    mapping = make_mapping(
+        column_mappings=[
+            ColumnMapping(
+                from_column_name="Designation",
+                from_column_number=0,
+                to_column_name="designation",
+            ),
+            ColumnMapping(
+                from_column_name="First observed/Discovery date",
+                from_column_number=1,
+                to_column_name="discovery_date",
+            ),
+            ColumnMapping(
+                from_column_name="REFERENCE",
+                from_column_number=2,
+                to_column_name="reference",
+            ),
+        ],
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"designation": "2002 RP120", "discovery_date": "September 4, 2002", "reference": "1-1"},
+    ]
+
 
 
 def test_from_column_name_fallback_when_no_match():
@@ -284,7 +343,6 @@ def test_from_column_name_absent_uses_column_number():
     assert result.to_dict(orient="records") == [
         {"designation": "(65407) 2002 RP120", "discovery_date": "September 4, 2002"},
     ]
-
 
 
 def test_combined_title_removal_row_mappings_and_column_accumulation():
@@ -353,7 +411,6 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_blank_
         {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
         {"designation": "2005 VX3 cont", "inclination": "112.2"},
     ]
-
 
 
 def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddings():
@@ -444,7 +501,6 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddin
         {"designation": "(65407) 2002 RP120 suffix", "inclination": "118.9"},
         {"designation": "2005 VX3 cont", "inclination": "112.2"},
     ]
-
 
 
 def test_combined_row_mappings_and_column_accumulation_with_noisy_trailing_lines():

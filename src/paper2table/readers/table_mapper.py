@@ -63,14 +63,10 @@ class TableMapper:
             column_names_hints=[], skip_first_row=False
         )
         rows: list[Row] = raw_df.values.tolist()
-        pprint("initial")
-        pprint(rows[0:5])
         rows = self._remove_bibliographic_rows(rows)
         rows = self._remove_blank_rows(rows)
         rows = self._remove_empty_columns(rows)
         rows = self._skip_to_header(rows)
-        pprint("preprocessed")
-        pprint(rows[0:5])
         header_row, data_rows = self._split_by_row_mappings(rows, row_mappings)
         return header_row, data_rows
 
@@ -139,17 +135,21 @@ class TableMapper:
         Determines which columns should be accumulated and
         treated as a single unit
         """
-        return [
-            (cm, self._resolve_column_indices(cm, header_row))
-            for cm in self._mapping.column_mappings
-        ]
+        groups: list[tuple[ColumnMapping, list[int]]] = []
+        next_start = 0
+        for cm in self._mapping.column_mappings:
+            indices = self._resolve_column_indices(cm, header_row, next_start)
+            groups.append((cm, indices))
+            next_start = indices[-1] + 1
+        return groups
 
     def _resolve_column_indices(
-        self, column_mapping: ColumnMapping, header_row: Row
+        self, column_mapping: ColumnMapping, header_row: Row, next_start: int = 0
     ) -> list[int]:
         if column_mapping.from_column_name is None or not header_row:
             return [column_mapping.from_column_number]
-        start = self._find_header_start(header_row, column_mapping.from_column_number)
+        effective_start = max(column_mapping.from_column_number, next_start)
+        start = self._find_header_start(header_row, effective_start)
         indices = self._accumulate_header(header_row, start, column_mapping.from_column_name)
         if indices is None:
             return [column_mapping.from_column_number]
