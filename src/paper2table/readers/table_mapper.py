@@ -124,36 +124,39 @@ class TableMapper:
         elif header_row_idx is not None:
             first_data_idx = header_row_idx + 1
         else:
-            first_data_idx = 0
+            first_data_idx = 0 # TODO fallback to header mode?
         header_row: Row = rows[header_row_idx] if header_row_idx is not None else []
         return header_row, rows[first_data_idx:]
 
     def _resolve_column_groups(
         self, header_row: Row
-    ) -> list[tuple[ColumnMapping, list[int]]]:
+    ) -> list[tuple[ColumnMapping, list[int], list[str]]]:
         """
         Determines which columns should be accumulated and
-        treated as a single unit
+        treated as a single unit, along with the separator to use
+        between each pair of adjacent data cells.
         """
-        groups: list[tuple[ColumnMapping, list[int]]] = []
+        groups: list[tuple[ColumnMapping, list[int], list[str]]] = []
         next_start = 0
         for cm in self._mapping.column_mappings:
-            indices = self._resolve_column_indices(cm, header_row, next_start)
-            groups.append((cm, indices))
+            indices, separators = self._resolve_column_indices(cm, header_row, next_start)
+            groups.append((cm, indices, separators))
             next_start = indices[-1] + 1
         return groups
 
     def _resolve_column_indices(
         self, column_mapping: ColumnMapping, header_row: Row, next_start: int = 0
-    ) -> list[int]:
+    ) -> tuple[list[int], list[str]]:
         if column_mapping.from_column_name is None or not header_row:
-            return [column_mapping.from_column_number]
+            return ([column_mapping.from_column_number], [])
         effective_start = max(column_mapping.from_column_number, next_start)
         start = self._find_header_start(header_row, effective_start)
-        indices = self._accumulate_header(header_row, start, column_mapping.from_column_name)
-        if indices is None:
-            return [column_mapping.from_column_number]
-        return indices + self._absorb_trailing_empty(header_row, indices[-1] + 1)
+        result = self._accumulate_header(header_row, start, column_mapping.from_column_name)
+        if result is None:
+            return ([column_mapping.from_column_number], [])
+        indices, separators = result
+        trail_indices, trail_seps = self._absorb_trailing_empty(header_row, indices[-1] + 1)
+        return (indices + trail_indices, separators + trail_seps)
 
     def _find_header_start(self, header_row: Row, from_column_number: int) -> int:
         start = from_column_number
@@ -163,27 +166,40 @@ class TableMapper:
 
     def _accumulate_header(
         self, header_row: Row, start: int, target: str
-    ) -> list[int] | None:
+    ) -> tuple[list[int], list[str]] | None:
         accumulated = (header_row[start] or "").strip() if start < len(header_row) else ""
         indices = [start]
+        separators: list[str] = []
         if accumulated == target:
-            return indices
+            return (indices, separators)
         for next_idx in range(start + 1, len(header_row)):
             if not target.startswith(accumulated):
                 return None
-            accumulated += (header_row[next_idx] or "").strip()
+            next_val = (header_row[next_idx] or "").strip()
+            if target.startswith(accumulated + next_val):
+                sep = ""
+            elif target.startswith(accumulated + " " + next_val):
+                sep = " "
+            else:
+                return None
+            accumulated += sep + next_val
+            separators.append(sep)
             indices.append(next_idx)
             if accumulated == target:
-                return indices
+                return (indices, separators)
         return None
 
-    def _absorb_trailing_empty(self, header_row: Row, from_idx: int) -> list[int]:
-        absorbed = []
+    def _absorb_trailing_empty(
+        self, header_row: Row, from_idx: int
+    ) -> tuple[list[int], list[str]]:
+        absorbed_indices: list[int] = []
+        absorbed_seps: list[str] = []
         idx = from_idx
         while idx < len(header_row) and self._is_blank(header_row[idx]):
-            absorbed.append(idx)
+            absorbed_indices.append(idx)
+            absorbed_seps.append("")
             idx += 1
-        return absorbed
+        return (absorbed_indices, absorbed_seps)
 
     def _is_blank(self, value: Optional[str]) -> bool:
         return value is None or (isinstance(value, str) and value.strip() == "")
@@ -191,20 +207,25 @@ class TableMapper:
     def _merge_column_groups(
         self,
         data_rows: list[Row],
-        col_groups: list[tuple[ColumnMapping, list[int]]],
+        col_groups: list[tuple[ColumnMapping, list[int], list[str]]],
     ) -> list[list[Optional[str]]]:
         merged = []
         for row in data_rows:
             new_row: list[Optional[str]] = []
-            for _cm, indices in col_groups:
-                cells = [
-                    row[i]
-                    for i in indices
-                    if i < len(row) and not self._is_blank(row[i])
-                ]
-                new_row.append(" ".join(str(c) for c in cells) if cells else None)
+            for _cm, indices, separators in col_groups:
+                new_row.append(self._merge_cells(row, indices, separators))
             merged.append(new_row)
         return merged
+
+    def _merge_cells(
+        self, row: Row, indices: list[int], separators: list[str]
+    ) -> Optional[str]:
+        parts: list[str] = []
+        for i, idx in enumerate(indices):
+            if idx < len(row) and not self._is_blank(row[idx]):
+                sep = separators[i - 1] if parts and i > 0 else ""
+                parts.append(sep + str(row[idx]))
+        return "".join(parts) if parts else None
 
     def _normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         df.rename(columns=lambda col: normalize_column_name(str(col)), inplace=True)
