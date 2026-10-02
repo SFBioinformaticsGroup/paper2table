@@ -181,8 +181,8 @@ def test_from_column_name_exact_match():
 def test_from_column_name_single_accumulation():
     rows = [
         ["Minor planet desig", "nation", "Inclination"],
-        ["(65407) 2002 RP120", "suffix", "118.9"],
-        ["2005 VX3", "cont", "112.2"],
+        ["(65407) 2002 RP120", " suffix", "118.9"],
+        ["2005 VX3", " cont", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
@@ -230,7 +230,7 @@ def test_from_column_name_multiple_accumulations():
     )
     result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
     assert result.to_dict(orient="records") == [
-        {"designation": "2002 RP120", "discovery_date": "September 4, 2002"},
+        {"designation": "2002 RP120", "discovery_date": "September 4,2002"},
     ]
 
 
@@ -352,8 +352,8 @@ def test_combined_title_removal_row_mappings_and_column_accumulation():
         # header_row=0 after Jaccard removal
         ["Minor planet desig", "nation", "Inclination"],
         # Data rows
-        ["(65407) 2002 RP120", "suffix", "118.9"],
-        ["2005 VX3", "cont", "112.2"],
+        ["(65407) 2002 RP120", " suffix", "118.9"],
+        ["2005 VX3", " cont", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
@@ -385,9 +385,9 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_blank_
         ["", "", ""],
         ["Minor planet desig", "nation", "Inclination"],
         ["", "", ""],
-        ["(65407) 2002 RP120", "suffix", "118.9"],
+        ["(65407) 2002 RP120", " suffix", "118.9"],
         ["", "", ""],
-        ["2005 VX3", "cont", "112.2"],
+        ["2005 VX3 c", "ont", "112.2"],
         ["", "", ""],
     ]
     mapping = make_mapping(
@@ -417,8 +417,8 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddin
     rows = [
         ["", "Table 1. Minor planets with", "high", "", "inclinations"],
         ["", "Minor planet desig", "nation", "", "Inclination"],
-        ["", "(65407) 2002 RP120", "suffix", "", "118.9"],
-        ["", "2005 VX3", "cont", "", "112.2"],
+        ["", "(65407) 2002 RP120", " suffix", "", "118.9"],
+        ["", "2005 VX3 c", "ont", "", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
@@ -447,8 +447,8 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddin
     rows = [
         ["", "Table 1. Minor planets with", "high", "", "inclinations"],
         ["", "Minor planet desig", "nation", "", "Inclination"],
-        ["", "(65407) 2002", "RP120", "suffix", "118.9"],
-        ["", "2005 VX3", "cont", "", "112.2"],
+        ["", "(65407) 2002", " RP120", " suffix", "118.9"],
+        ["", "2005 VX3", " cont", "", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
@@ -477,8 +477,8 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddin
     rows = [
         ["Table 1. Minor planets with", "high", "", "inclinations"],
         ["", "Minor planet desig", "nation", "", "Inclination"],
-        ["", "(65407) 2002 RP120", "suffix", "", "118.9"],
-        ["", "2005 VX3", "cont", "", "112.2"],
+        ["", "(65407) 2002 RP120", " suffix", "", "118.9"],
+        ["", "2005 VX3", " cont", "", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
@@ -503,6 +503,37 @@ def test_combined_title_removal_row_mappings_and_column_accumulation_with_paddin
     ]
 
 
+def test_from_column_name_data_separator_matches_column_name_boundary():
+    rows = [
+        # "First" | "Observed" requires a space to form "First Observed"
+        # "Fir" | "st Observed" requires no space (concatenation gives "First Observed")
+        ["First", "Observed", "Fir", "st Observed"],
+        ["John", "Smith", "Val", "ue"],
+        ["Jane", "Doe", "Par", "tial"],
+    ]
+    mapping = make_mapping(
+        column_mappings=[
+            ColumnMapping(
+                from_column_name="First Observed",
+                from_column_number=0,
+                to_column_name="with_space",
+            ),
+            ColumnMapping(
+                from_column_name="First Observed",
+                from_column_number=2,
+                to_column_name="without_space",
+            ),
+        ],
+        row_mappings=TableRowMappings(header_row=0, first_data_row=1),
+        header_mode="none",
+    )
+    result = TableMapper(mapping).transform([FakePDFTable(rows)], page_number=1)
+    assert result.to_dict(orient="records") == [
+        {"with_space": "John Smith", "without_space": "Value"},
+        {"with_space": "Jane Doe", "without_space": "Partial"},
+    ]
+
+
 def test_combined_row_mappings_and_column_accumulation_with_noisy_trailing_lines():
     rows = [
         # Noisy rows at start before rows with column names
@@ -512,8 +543,8 @@ def test_combined_row_mappings_and_column_accumulation_with_noisy_trailing_lines
         ["Copyright", "2001", None],
         ["Some more", "random", "text"],
         ["Minor planet desig", "nation", "Inclination"],
-        ["(65407) 2002 RP120", "suffix", "118.9"],
-        ["2005 VX3", "cont", "112.2"],
+        ["(65407) 2002 RP120", " suffix", "118.9"],
+        ["2005 VX3", " cont", "112.2"],
     ]
     mapping = make_mapping(
         column_mappings=[
