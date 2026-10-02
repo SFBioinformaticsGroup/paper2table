@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
+from utils.jsonc import load_jsonc
 from utils.read_path import read_path
 from tablevalidate.schema import TablesFile
 from utils.handle_sigint import handle_sigint
@@ -65,18 +66,14 @@ TRANSFORMER_MAP = {
 
 def output_file_has_curations(output_file: Path) -> bool:
     try:
-        with open(output_file, "r", encoding="utf-8") as f:
-            return TablesFile.model_validate(json.load(f)).has_curations()
+        return TablesFile.model_validate(load_jsonc(output_file)).has_curations()
     except (FileNotFoundError, json.JSONDecodeError):
         return False
 
 
 def read_resultset_metadata(resultset_dir: str) -> dict:
     try:
-        with open(
-            Path(resultset_dir) / "tables.metadata.json", "r", encoding="utf-8"
-        ) as f:
-            return json.load(f)
+        return load_jsonc(Path(resultset_dir) / "tables.metadata.json")
     except FileNotFoundError:
         return {}
 

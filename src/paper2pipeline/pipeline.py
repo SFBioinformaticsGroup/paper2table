@@ -1,7 +1,8 @@
-import json
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from utils.jsonc import load_jsonc
 
 
 class NormalizeConfig(BaseModel):
@@ -120,6 +121,4 @@ class Pipeline(BaseModel):
 
 
 def load_pipeline(path: str) -> Pipeline:
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return Pipeline.model_validate(data)
+    return Pipeline.model_validate(load_jsonc(Path(path)))

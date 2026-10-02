@@ -5,6 +5,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from tablevalidate.schema import ColumnValue, TablesFile
+from utils.jsonc import load_jsonc
 from .stats import GlobalStats, PaperStats, update_papers_stats
 from paper2table import __version__
 
@@ -12,8 +13,7 @@ VALID_SORT_KEYS = {"tables-count", "tables-convergence", "curations-count"}
 
 
 def read_paper(paper_path: Path) -> TablesFile:
-    with open(paper_path, "r", encoding="utf-8") as f:
-        return TablesFile.model_validate(json.load(f))
+    return TablesFile.model_validate(load_jsonc(paper_path))
 
 
 def compute_papers_stats(path: str) -> GlobalStats:

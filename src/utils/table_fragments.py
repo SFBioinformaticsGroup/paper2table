@@ -1,7 +1,8 @@
-import json
 from pathlib import Path
 
 from tablevalidate.schema import TablesFile
+
+from .jsonc import load_jsonc
 
 
 def load_papers(directory: Path) -> dict[str, TablesFile]:
@@ -9,6 +10,5 @@ def load_papers(directory: Path) -> dict[str, TablesFile]:
     for paper_file in directory.glob("*.tables.json"):
         if paper_file.name == "tables.metadata.json":
             continue
-        with open(paper_file, "r", encoding="utf-8") as f:
-            papers[paper_file.name] = TablesFile.model_validate(json.load(f))
+        papers[paper_file.name] = TablesFile.model_validate(load_jsonc(paper_file))
     return papers

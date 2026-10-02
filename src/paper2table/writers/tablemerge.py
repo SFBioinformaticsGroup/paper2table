@@ -1,10 +1,12 @@
 import json
 import os
+from pathlib import Path
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 from datetime import datetime as dt
 
 from paper2table.tables_reader import TablesReader
+from utils.jsonc import load_jsonc
 
 from . import file
 
@@ -50,8 +52,7 @@ def load_metadata(output_directory: str, uuid: str) -> dict:
     path = os.path.join(output_directory, uuid, "tables.metadata.json")
     if not os.path.exists(path):
         raise FileNotFoundError(f"No resultset found at {path}")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return load_jsonc(Path(path))
 
 
 def write_tables(

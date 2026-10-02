@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import ValidationError
 
 from .schema import TablesFile
+from utils.jsonc import load_jsonc
 
 
 class MalformedJsonError(ValueError):
@@ -15,11 +16,10 @@ class MalformedJsonError(ValueError):
 
 def validate_file(path: Path) -> Optional[Exception]:
     try:
-        with path.open("r", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError as e:
-                return MalformedJsonError(e)
+        try:
+            data = load_jsonc(path)
+        except json.JSONDecodeError as e:
+            return MalformedJsonError(e)
     except FileNotFoundError:
         return FileNotFoundError(f"No such file: {path}")
     try:

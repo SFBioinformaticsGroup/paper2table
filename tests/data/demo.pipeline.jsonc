@@ -1,0 +1,55 @@
+{
+  "input_paths": [
+    // directories from which papers will be read
+    "tablas"
+  ],
+  // directory where tables, merges and gathers will be stored
+  "output_path": "out",
+  // optional, when present, will be used in all tools that accept it
+  "schema_path": "schema.txt",
+  "normalize": {
+    // filenorm -y
+    "interactive": false,
+    // if true, copy files in input_path first to ${output_path}/papers, then normalize with filenorm
+    "inplace": true
+  },
+  "extract": {
+    // pipeline can execute paper2table 1 or more times with different args
+    // output of each run is ${output_path}/tables/${uuid}
+    "runs": [
+      {
+        // args for paper2table
+        "reader": "agent",
+        "model": "google-gla:gemini-2.5-flash",
+        "model_sleep": 10
+      }
+    ],
+    // if present and true, run tablestats after run and redirect it to ${output_path}/tables/${uuid}/stats.txt
+    "stats": true,
+    // if present and true, run tablevalidate after run
+    "validate": true,
+    // if present, will run table2csv, table2html as needed after run
+    "export": ["csv", "html"]
+  },
+  // if present and non empty, previous paper2table runs with -t
+  "merge": {
+    "agreement_method": "distinct-readers",
+    "jaccard_column_alignment": true,
+    "semantic_language": "es",
+    // if present and true, run tablestats after run and redirect it to ${output_path}/merges/stats.txt
+    "stats": true,
+    // if present, will run table2csv, table2html as needed after run
+    "export": ["html"]
+    // when this pipeline is used, --settings / --export-settings are never ignored
+  },
+  "gather": {
+    "convergence": "rows",
+    "key_columns": ["species", "family"],
+    // ...
+    // output is ${output_path}/gathers
+    // if present and true, run tablestats after run and redirect it to ${output_path}/gathers/stats.txt
+    "stats": true,
+    // if present, will run table2csv, table2html as needed after run
+    "export": ["csv"]
+  }
+}
