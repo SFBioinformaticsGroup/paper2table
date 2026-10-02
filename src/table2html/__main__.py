@@ -464,6 +464,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--out", default="viewer.html", help="Output HTML file (default: viewer.html)"
     )
+    parser.add_argument(
+        "--quiet", action="store_true", help="Write the file without opening a browser"
+    )
     return parser.parse_args()
 
 
@@ -475,7 +478,8 @@ def main():
     save_html(html, Path(args.out))
 
     print(f"Viewer generated: {args.out}")
-    webbrowser.open_new_tab(str(Path(args.out).absolute()))
+    if not args.quiet:
+        webbrowser.open_new_tab(str(Path(args.out).absolute()))
 
 
 if __name__ == "__main__":

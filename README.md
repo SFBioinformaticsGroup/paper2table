@@ -8,6 +8,7 @@
 `paper2table` is a toolchain for extracting tabular information from scientific papers. It is composed of various command-line programs:
 
 - `paper2table`: the main command, which is used to extract data
+- `paper2pipeline`: a command for running a declarative pipeline of paper2table tools
 - `filenorm`: a command for preparing papers
 - `tablemerge`: a command for merging result of multiple `paper2table` runs
 - `tablestats`: a command for querying `paper2table` and `tablemerge` resultsets
@@ -37,6 +38,7 @@
 		* 1.7.2. [Meta-columns](#Metacolumnsintablegather)
 		* 1.7.3. [Convergence filter](#Convergencefilter)
 		* 1.7.4. [Metadata](#Metadata)
+	* 1.8. [Running a pipeline](#Runningapipeline)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -490,6 +492,194 @@ output, following the same format used by `paper2table` and `tablemerge`:
 ```
 
 
+###  1.8. <a name='Runningapipeline'></a>Running a pipeline
+
+`paper2pipeline` runs a sequence of paper2table tools from a single declarative JSON file, replacing ad-hoc shell scripts with a reproducible, single-command workflow.
+
+```bash
+paper2pipeline pipeline.json
+```
+
+The pipeline runs four optional steps in order — **normalize → extract → merge → gather** — and skips any section that is absent from the file.
+
+#### Output directory layout
+
+```
+${output_path}/
+  papers/          # only when normalize.inplace = true
+  tables/
+    ${uuid}/       # one per extract run
+      *.tables.json
+      stats.txt    # if extract.stats = true
+      csv/         # if "csv" in extract.export
+      viewer.html  # if "html" in extract.export
+  merges/
+    *.tables.json
+    stats.txt      # if merge.stats = true
+    csv/           # if "csv" in merge.export
+    viewer.html    # if "html" in merge.export
+  gathers/
+    gathered.tables.json
+    stats.txt      # if gather.stats = true
+    csv/           # if "csv" in gather.export
+    viewer.html    # if "html" in gather.export
+```
+
+#### Pipeline file format
+
+```json
+{
+  "input_paths": ["tablas"],
+  "output_path": "out",
+  "schema_path": "schema.txt",
+
+  "normalize": {
+    "interactive": true,
+    "inplace": false
+  },
+
+  "extract": {
+    "runs": [
+      {
+        "reader": "agent",
+        "model": "google-gla:gemini-2.5-flash",
+        "model_sleep": 10,
+        "verbose": false
+      },
+      {
+        "reader": "pdfplumber"
+      }
+    ],
+    "stats": true,
+    "validate": true,
+    "export": ["csv", "html"]
+  },
+
+  "merge": {
+    "agreement_method": "distinct-readers",
+    "jaccard_column_alignment": true,
+    "semantic_language": "es",
+    "validate": true,
+    "stats": true,
+    "export": ["csv", "html"]
+  },
+
+  "gather": {
+    "convergence": "rows",
+    "key_columns": ["species"],
+    "stats": true,
+    "export": ["csv", "html"]
+  }
+}
+```
+
+#### Top-level fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input_paths` | `list[str]` | Directories (or files) containing the source PDFs |
+| `output_path` | `str` | Root directory for all pipeline output |
+| `schema_path` | `str` | Path to a schema file; passed to every tool that accepts `-p` |
+| `normalize` | object | Optional. Run `filenorm` on the input PDFs |
+| `extract` | object | Optional. Run one or more `paper2table` extraction passes |
+| `merge` | object | Optional. Run `tablemerge` across all extract runs |
+| `gather` | object | Optional. Run `tablegather` on the merge output |
+
+#### `normalize` fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `interactive` | `bool` | `true` | `true` = prompt for each change; `false` = auto-confirm silently (`-y -q`) |
+| `inplace` | `bool` | `false` | `true` = copy PDFs from `input_paths` into `${output_path}/papers/` first, then normalize there |
+
+#### `extract.runs` fields (each run maps to one `paper2table` invocation)
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `reader` | `str` | `"pdfplumber"` | Extraction backend: `pdfplumber`, `camelot`, `agent`, `hybrid`, `pymupdf`, `img2table` |
+| `model` | `str` | — | Language model (`-m`) |
+| `model_sleep` | `int` | — | Seconds between model calls (`-z`) |
+| `verbose` | `bool` | `false` | Enable verbose logging (`-vv`) |
+| `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`) |
+| `force_mapping_generation` | `bool` | `false` | Regenerate mapping even if cached (`-F`) |
+| `schema` | `str` | — | Inline schema string (overrides top-level `schema_path` for this run) |
+| `column_names_hints_path` | `str` | — | Path to column name hints file (`-c`) |
+| `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
+| `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
+
+The `stats`, `validate`, and `export` fields apply after **every** run:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `stats` | `bool` | `false` | Run `tablestats` and write output to `${uuid}/stats.txt` |
+| `validate` | `bool` | `false` | Run `tablevalidate` on the extracted tables |
+| `export` | `list[str]` | `[]` | Export formats: `"csv"` → `table2csv`, `"html"` → `table2html` |
+
+#### `merge` fields
+
+All `tablemerge` settings are supported. Below are the most commonly used:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `agreement_method` | `str` | `"simple-count"` | `"simple-count"` or `"distinct-readers"` |
+| `filter_title_rows` | `bool` | `true` | Remove rows that duplicate column names |
+| `jaccard_column_alignment` | `bool` | `false` | Align numeric columns by Jaccard value similarity |
+| `column_alignment_threshold` | `float` | `0.5` | Minimum Jaccard similarity score |
+| `column_name_semantic_alignment` | `bool` | `false` | Load-time NLP column alignment |
+| `column_value_semantic_alignment` | `bool` | `false` | Merge-time NLP column alignment |
+| `semantic_language` | `str` | `"en"` | spaCy language: `"en"` or `"es"` |
+| `hints_column_alignment` | `str` | — | `"safe"` or `"unsafe"` |
+| `fix_reversed_column_values` | `bool` | `false` | Detect and correct reversed cell values |
+| `strip_leading_row_numbers` | `bool` | `false` | Strip leading sequential numbers from cells |
+| `normalize_punctuation` | `bool` | `false` | Normalize punctuation in cell values |
+| `split_conjunction_columns` | `bool` | `false` | Split conjunction columns |
+| `transform_tablesfile` | `str` | — | `"explode"`, `"safe-compact"`, or `"unsafe-compact"` |
+| `filter_schema_columns` | `bool` | `false` | Drop tables with no schema columns |
+| `order_schema_columns` | `bool` | `false` | Reorder columns by schema order |
+| `coerce_schema_column_types` | `bool` | `false` | Normalize cell types to schema types |
+| `filter_semantic_columns` | `bool` | `false` | Remove numeric-named columns |
+| `drop_empty_columns` | `bool` | `true` | Drop entirely empty columns |
+| `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
+| `column_aliases` | `str` | — | Inline alias map (e.g. `"familia:family"`) |
+| `column_aliases_path` | `str` | — | Path to alias map file |
+| `column_names_hints` | `str` | — | Inline column name hints |
+| `column_names_hints_path` | `str` | — | Path to hints file |
+| `paper_aliases` | `str` | — | Inline paper alias map |
+| `paper_aliases_path` | `str` | — | Path to paper alias map file |
+| `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
+| `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
+| `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
+
+#### `gather` fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `convergence` | `str` | `"none"` | `"none"`, `"rows"`, `"fragments"`, or `"tables"` |
+| `key_columns` | `list[str]` | — | Column names to sort gathered rows by |
+| `filter_schema_columns` | `bool` | `false` | Drop tables with no schema columns |
+| `order_schema_columns` | `bool` | `false` | Reorder columns by schema order |
+| `coerce_schema_column_types` | `bool` | `false` | Normalize cell types to schema types |
+| `filter_semantic_columns` | `bool` | `false` | Remove numeric-named columns |
+| `drop_empty_columns` | `bool` | `true` | Drop entirely empty columns |
+| `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
+| `stats` | `bool` | `false` | Run `tablestats` and write to `gathers/stats.txt` |
+| `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
+
+#### JSON schema
+
+A JSON schema for the pipeline file format is provided at [schema/pipeline.schema.json](./schema/pipeline.schema.json). To enable inline validation and autocomplete for pipeline files in VS Code, add the following to your workspace or user `settings.json`:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/*.pipeline.json", "**/pipeline.json"],
+    "url": "./schema/pipeline.schema.json"
+  }
+]
+```
+
+This is already configured in the project's `.vscode/settings.json`.
+
 ##  2. <a name='Development'></a>Development
 
 ###  2.1. <a name='Runningtests'></a>Running tests
@@ -560,13 +750,37 @@ The format is informally specified this way:
 Any field on a row ending in `_` is a meta-column rather than extracted data - see
 [Meta-columns convention](#Metacolumnsconvention) below.
 
-You can also find a proper JSON schema definition in [tablesfile.schema.json](./tablesfile.schema.json).
+You can also find a proper JSON schema definition in [tablesfile.schema.json](./schema/tablesfile.schema.json).
+
+To get inline validation and autocomplete for `.tables.json` files in VS Code, add the following to your workspace or user `settings.json`:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/*.tables.json", "**/tables.json"],
+    "url": "./schema/tablesfile.schema.json"
+  }
+]
+```
+
+A JSON schema for `tables.metadata.json` files is provided at [schema/tables.metadata.schema.json](./schema/tables.metadata.schema.json). The schema uses `if/then/else` to validate the three variants by `reader` value: extraction runs (any reader name, only `reader`/`uuid`/`datetime`), merge runs (`"tablemerge"`, adds `sources`), and gather runs (`"tablegather"`, adds `sources` and `settings`). To enable VS Code validation for metadata files:
+
+```json
+"json.schemas": [
+  {
+    "fileMatch": ["**/tables.metadata.json"],
+    "url": "./schema/tables.metadata.schema.json"
+  }
+]
+```
+
+All three schemas are already configured in the project's `.vscode/settings.json`.
 
 ###  3.2. <a name='Metacolumnsconvention'></a>Meta-columns convention
 
 Any `Row` field whose name ends in a trailing underscore (`_`) is a **meta-column**: bookkeeping
 data added by a tool, as opposed to a semantic column holding data extracted from a table. This
-is enforced by [tablesfile.schema.json](./tablesfile.schema.json): the `row` definition's
+is enforced by [tablesfile.schema.json](./schema/tablesfile.schema.json): the `row` definition's
 `patternProperties` only accepts non-underscore-suffixed names as free-form extracted data
 (`^.*[^_]$`), and `additionalProperties: false` means any other trailing-underscore name must be
 explicitly declared there. In code, this list is `tablevalidate.schema._META_COLUMNS`, and

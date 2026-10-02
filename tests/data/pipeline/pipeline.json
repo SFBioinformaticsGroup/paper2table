@@ -1,0 +1,51 @@
+{
+  "input_paths": [
+    "tests/data/pipeline/tables"
+  ],
+  "output_path": "tests/data/pipeline",
+  "normalize": {
+    "interactive": true,
+    "inplace": true
+  },
+  "extract": {
+    "runs": [
+      {
+        "reader": "pdfplumber"
+      },
+      {
+        "reader": "pymupdf"
+      }
+    ],
+    "stats": true,
+    "validate": true,
+    "export": [
+      "csv",
+      "html"
+    ]
+  },
+  "merge": {
+    "agreement_method": "distinct-readers",
+    "filter_title_rows": true,
+    "fix_reversed_column_values": true,
+    "jaccard_column_alignment": true,
+    "normalize_punctuation": true,
+    "filter_semantic_columns": false,
+    "semantic_language": "es",
+    "split_conjunction_columns": false,
+    "strip_leading_row_numbers": true,
+    "transform_tablesfile": "unsafe-compact",
+    "validate": true,
+    "stats": true,
+    "export": [
+      "csv",
+      "html"
+    ]
+  },
+  "gather": {
+    "stats": true,
+    "export": [
+      "csv",
+      "html"
+    ]
+  }
+}
