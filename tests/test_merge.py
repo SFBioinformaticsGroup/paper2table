@@ -194,6 +194,63 @@ def test_two_tables_with_different_values():
     ]
 
 
+def test_two_tables_with_extra_left_value():
+    table_1 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Apiaceae", scientific_name="X"),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+    table_2 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(family="apiaceae", scientific_name="x", agreement_level_=1, row_=1),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+    ]
+
+def test_two_tables_with_extra_right_value():
+    table_1 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+    table_2 = [
+        Row(family="Apiaceae", scientific_name="Ammi majus L."),
+        Row(family="Apiaceae", scientific_name="X"),
+        Row(family="Rosaceae", scientific_name="Rosa canina L."),
+    ]
+
+    result = merge_tablesfiles([wrap(table_1), wrap(table_2)])
+    assert result.tables[0].get_table_fragments()[0].rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            row_=0,
+        ),
+        Row(family="apiaceae", scientific_name="x", agreement_level_=1, row_=1),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=2,
+            row_=1,
+        ),
+    ]
+
+
 def test_two_tablesfiles_with_different_pages():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [
@@ -262,8 +319,14 @@ def test_fragment_with_no_counterpart_page_stays_solo():
         tables=[
             TableWithFragments(
                 table_fragments=[
-                    TableFragment(rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1),
-                    TableFragment(rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=2),
+                    TableFragment(
+                        rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")],
+                        page=1,
+                    ),
+                    TableFragment(
+                        rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")],
+                        page=2,
+                    ),
                 ]
             )
         ],
@@ -294,6 +357,7 @@ def test_fragment_with_no_counterpart_page_stays_solo():
         )
     ]
 
+
 def test_two_fragments_on_same_page_stay_separate():
     # Paper A has two fragments both on page 1; paper B has one fragment on page 1.
     # Same-paper fragments on the same page are never merged together: fragment 0 of
@@ -303,8 +367,14 @@ def test_two_fragments_on_same_page_stay_separate():
         tables=[
             TableWithFragments(
                 table_fragments=[
-                    TableFragment(rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")], page=1),
-                    TableFragment(rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")], page=1),
+                    TableFragment(
+                        rows=[Row(family="Apiaceae", scientific_name="Ammi majus L.")],
+                        page=1,
+                    ),
+                    TableFragment(
+                        rows=[Row(family="Rosaceae", scientific_name="Rosa canina L.")],
+                        page=1,
+                    ),
                 ]
             )
         ],
@@ -1490,10 +1560,24 @@ def test_alias_applies_to_left_only_page_in_multi_file_merge():
 
 def test_alias_matches_by_normalized_column_name():
     loader = TablesFileLoader(
-        analyzers=[AliasLoadTimeAnalyzer({"nombre_local": "nombre_vulgar", "part_used": "parte_usada"})]
+        analyzers=[
+            AliasLoadTimeAnalyzer(
+                {"nombre_local": "nombre_vulgar", "part_used": "parte_usada"}
+            )
+        ]
     )
     tablesfile = loader.align_tablesfile(
-        wrap([Row(**{"Nombre local": "Menta", "PART USED": "leaves", "scientific_name": "Mentha x piperita"})])
+        wrap(
+            [
+                Row(
+                    **{
+                        "Nombre local": "Menta",
+                        "PART USED": "leaves",
+                        "scientific_name": "Mentha x piperita",
+                    }
+                )
+            ]
+        )
     )
     result = merge_tablesfiles([tablesfile])
     rows = result.tables[0].get_table_fragments()[0].rows
@@ -1978,7 +2062,9 @@ def test_output_file_has_curations_false_when_curations_empty(tmp_path):
     output_file = tmp_path / "paper.tables.json"
     write_tablesfile_json(
         output_file,
-        TablesFile(tables=[], citation="", metadata=Metadata(filename=None, curations=[])),
+        TablesFile(
+            tables=[], citation="", metadata=Metadata(filename=None, curations=[])
+        ),
     )
     assert output_file_has_curations(output_file) is False
 
