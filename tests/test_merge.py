@@ -218,9 +218,10 @@ def test_two_tables_with_extra_left_value():
             family="rosaceae",
             scientific_name="rosa canina l.",
             agreement_level_=2,
-            row_=1,
+            row_=2,
         ),
     ]
+
 
 def test_two_tables_with_extra_right_value():
     table_1 = [
@@ -246,7 +247,7 @@ def test_two_tables_with_extra_right_value():
             family="rosaceae",
             scientific_name="rosa canina l.",
             agreement_level_=2,
-            row_=1,
+            row_=2,
         ),
     ]
 
@@ -804,16 +805,7 @@ def test_sources_right_uuid_on_skipped_row():
         [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")]
     )
     rows = result.tables[0].get_table_fragments()[0].rows
-    # With position-aware merge: left Apiaceae is at row_=0, right Rosaceae is at row_=0 (no match),
-    # right Apiaceae is at row_=1 (different position from left row_=0, so no merge either).
     assert rows == [
-        Row(
-            family="apiaceae",
-            scientific_name="ammi majus l.",
-            agreement_level_=1,
-            sources_=["uuid-a"],
-            row_=0,
-        ),
         Row(
             family="rosaceae",
             scientific_name="rosa canina l.",
@@ -824,8 +816,8 @@ def test_sources_right_uuid_on_skipped_row():
         Row(
             family="apiaceae",
             scientific_name="ammi majus l.",
-            agreement_level_=1,
-            sources_=["uuid-b"],
+            agreement_level_=2,
+            sources_=["uuid-a", "uuid-b"],
             row_=1,
         ),
     ]

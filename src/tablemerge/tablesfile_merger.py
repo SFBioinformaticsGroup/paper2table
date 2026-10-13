@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import zip_longest
+from typing import cast
 from unidecode import unidecode
 
 from tablevalidate.schema import (
@@ -70,9 +71,9 @@ def make_fragments_clusters(
             adjusted_page = fragment.page + offset
             position = page_counts.get(adjusted_page, 0)
             page_counts[adjusted_page] = position + 1
-            fragments_clusters.setdefault(FragmentClusterKey(adjusted_page, position), []).append(
-                (fragment, tablesfile)
-            )
+            fragments_clusters.setdefault(
+                FragmentClusterKey(adjusted_page, position), []
+            ).append((fragment, tablesfile))
     return fragments_clusters
 
 
@@ -87,7 +88,9 @@ class TablesFileMerger:
         self.column_agreement = column_agreement
         self.analyzers = analyzers
 
-    def merge(self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None) -> TablesFile:
+    def merge(
+        self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None
+    ) -> TablesFile:
         """Merge multiple TablesFiles into one.
 
         Two-level pairing: tables by index (zip_longest pairs table N across all papers),
@@ -106,7 +109,9 @@ class TablesFileMerger:
         tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
         for tables_cluster in tables_clusters:
             merged_fragments: list[TableFragment] = []
-            fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles, page_offsets)
+            fragments_clusters = make_fragments_clusters(
+                tables_cluster, tablesfiles, page_offsets
+            )
 
             for _page, merge_targets in sorted(fragments_clusters.items()):
                 # TODO sort first so longest cluster is the first one
@@ -143,30 +148,54 @@ class TablesFileMerger:
                     ]
                     left_rows = table_fragment_builder.next_left_rows()
                     right_idx = 0
+                    left_idx = 0
 
-                    for left_row in left_rows:
+                    while left_idx < len(left_rows):
+                        left_row = left_rows[left_idx]
                         while right_idx < len(right_rows) and (
-                            right_rows[right_idx].row_ or 0
-                        ) < (left_row.row_ or 0):
+                            cast(int, right_rows[right_idx].row_)
+                        ) < cast(int, left_row.row_):
                             table_fragment_builder.append_skipped(
                                 [right_rows[right_idx]], right_uuid
                             )
                             right_idx += 1
 
-                        if (
-                            right_idx < len(right_rows)
-                            and right_rows[right_idx].row_ == left_row.row_
-                            and same_row(left_row, right_rows[right_idx])
+                        if right_idx < len(right_rows) and same_row(
+                            left_row, right_rows[right_idx]
                         ):
+                            # same row
                             right_row = right_rows[right_idx].model_copy(
                                 update={
                                     "sources_": [right_uuid] if right_uuid else None
                                 }
                             )
-                            table_fragment_builder.merge_and_append(left_row, right_row)
+                            table_fragment_builder.merge_and_append(
+                                right_idx, left_row, right_row
+                            )
                             right_idx += 1
+                        elif right_idx + 1 < len(right_rows) and same_row(
+                            left_row, right_rows[right_idx + 1]
+                        ):
+                            # lookahead of 1 and same row
+                            right_row = right_rows[right_idx].model_copy(
+                                update={
+                                    "sources_": [right_uuid] if right_uuid else None
+                                }
+                            )
+                            next_row = right_rows[right_idx + 1].model_copy(
+                                update={
+                                    "sources_": [right_uuid] if right_uuid else None
+                                }
+                            )
+                            table_fragment_builder.append_unmatched(right_row)
+                            table_fragment_builder.merge_and_append(
+                                right_idx + 1, left_row, next_row
+                            )
+                            right_idx += 2
                         else:
                             table_fragment_builder.append_unmatched(left_row)
+
+                        left_idx += 1
 
                     table_fragment_builder.append_skipped(
                         right_rows[right_idx:], right_uuid

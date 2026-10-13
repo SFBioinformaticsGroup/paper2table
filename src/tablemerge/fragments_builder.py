@@ -1,3 +1,5 @@
+from typing import Optional
+
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
 
@@ -42,6 +44,7 @@ def merge_rows(
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
+    row_: Optional[int] = None,
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
@@ -61,7 +64,7 @@ def merge_rows(
         path_=None,
         agreement_level_=agreement_level,
         sources_=sources,
-        row_=left.row_,
+        row_=row_ if row_ else left.row_,
         **columns
     )
 
@@ -107,11 +110,12 @@ class TableFragmentBuilder:
     def append_unmatched(self, row: Row):
         self._append(row)
 
-    def merge_and_append(self, left: Row, right: Row):
+    def merge_and_append(self, row_: int, left: Row, right: Row):
         self._append(
             merge_rows(
                 left,
                 right,
+                row_=row_,
                 agreement=self.agreement,
                 column_agreement=self.column_agreement,
             )
