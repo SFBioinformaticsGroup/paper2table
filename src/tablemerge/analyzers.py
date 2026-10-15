@@ -8,6 +8,7 @@ from tablevalidate.schema import ColumnValue, Row
 from tablemerge.spacy_utils import load_spacy_model
 from utils.column_names import normalize_column_name
 from utils.column_schema import ColumnSchema
+from utils.jaccard import jaccard
 
 REMOVE_COLUMN = "<remove>"
 
@@ -351,8 +352,7 @@ class JaccardMergeTimeAnalyzer:
         return result
 
     def jaccard(self, a: set[str], b: set[str]) -> float:
-        union = len(a | b)
-        return len(a & b) / union if union else 0.0
+        return jaccard(a, b)
 
 
 class ColumnValueSemanticMergeTimeAnalyzer:

@@ -20,6 +20,11 @@
       "default": null,
       "description": "Path to a schema file; passed to every tool that accepts -p."
     },
+    "pretty": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indent JSON output from all tools that support --pretty."
+    },
     "normalize": {
       "anyOf": [{ "$ref": "#/$defs/NormalizeConfig" }, { "type": "null" }],
       "default": null
@@ -86,10 +91,10 @@
           "default": false,
           "description": "Enable hybrid mode (-H)."
         },
-        "force_mapping_generation": {
+        "override_mappings": {
           "type": "boolean",
           "default": false,
-          "description": "Regenerate mapping even if cached (-F)."
+          "description": "Regenerate mapping even if cached (--override-mappings / -F). This is not influenced by override; override only wipes tables/, never mappings/."
         },
         "schema": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -139,6 +144,11 @@
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": [],
           "description": "Export formats to produce after each run."
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/tables/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -225,6 +235,11 @@
           "type": "array",
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": []
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/merges/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -261,6 +276,11 @@
           "type": "array",
           "items": { "type": "string", "enum": ["csv", "html"] },
           "default": []
+        },
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wipe ${output_path}/gathers/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     }

@@ -166,11 +166,11 @@ GEMINI_API_KEY=... paper2table -H -m google-gla:gemini-2.5-flash \
     tests/data/demo_table.pdf
 ```
 
-The generated mapping is cached in the mappings directory (`<paper_name>.mapping.json`). On subsequent runs for the same PDF the agent step is skipped automatically. Use `-F` to force regeneration of the mapping:
+The generated mapping is cached in the mappings directory (`<paper_name>.mapping.json`). On subsequent runs for the same PDF the agent step is skipped automatically. Use `--override-mappings` (`-F`) to force regeneration of the mapping:
 
 ```bash
 # regenerate the mapping even if one already exists
-GEMINI_API_KEY=... paper2table -H -F -m google-gla:gemini-2.5-flash \
+GEMINI_API_KEY=... paper2table -H --override-mappings -m google-gla:gemini-2.5-flash \
     -p tests/data/demo_schema.txt \
     tests/data/demo_table.pdf
 ```
@@ -600,20 +600,21 @@ ${output_path}/
 | `model` | `str` | — | Language model (`-m`) |
 | `model_sleep` | `int` | — | Seconds between model calls (`-z`) |
 | `verbose` | `bool` | `false` | Enable verbose logging (`-vv`) |
-| `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`) |
-| `force_mapping_generation` | `bool` | `false` | Regenerate mapping even if cached (`-F`) |
+| `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`); mappings are stored in `${output_path}/mappings/` |
+| `override_mappings` | `bool` | `false` | Regenerate mapping even if cached (`--override-mappings` / `-F`). Does not affect `override`; `override` only wipes `tables/`, never `mappings/`. |
 | `schema` | `str` | — | Inline schema string (overrides top-level `schema_path` for this run) |
 | `column_names_hints_path` | `str` | — | Path to column name hints file (`-c`) |
 | `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
 | `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
 
-The `stats`, `validate`, and `export` fields apply after **every** run:
+The `stats`, `validate`, `export`, and `override` fields apply to the extract step as a whole:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `stats` | `bool` | `false` | Run `tablestats` and write output to `${uuid}/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the extracted tables |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` → `table2csv`, `"html"` → `table2html` |
+| `override` | `bool` | `false` | Wipe `${output_path}/tables/` before running. Does **not** delete `${output_path}/mappings/`; set `override_mappings: true` on a run to force mapping regeneration instead. |
 
 #### `merge` fields
 
@@ -649,6 +650,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
+| `override` | `bool` | `false` | Wipe `${output_path}/merges/` before running |
 
 #### `gather` fields
 
@@ -664,6 +666,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
 | `stats` | `bool` | `false` | Run `tablestats` and write to `gathers/stats.txt` |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
+| `override` | `bool` | `false` | Wipe `${output_path}/gathers/` before running |
 
 #### JSON schema
 

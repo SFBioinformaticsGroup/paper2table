@@ -20,7 +20,7 @@ class ExtractRun(BaseModel):
     model_sleep: int | None = None
     verbose: bool = False
     hybrid: bool = False
-    force_mapping_generation: bool = False
+    override_mappings: bool = False
     schema_: str | None = Field(None, alias="schema")
     column_names_hints_path: str | None = None
     split_pages: int | None = None
@@ -34,6 +34,7 @@ class ExtractConfig(BaseModel):
     stats: bool = False
     validate_: bool = Field(False, alias="validate")
     export: list[str] = []
+    override: bool = False
 
 
 class MergeConfig(BaseModel):
@@ -68,6 +69,7 @@ class MergeConfig(BaseModel):
     validate_: bool = Field(False, alias="validate")
     stats: bool = False
     export: list[str] = []
+    override: bool = False
 
     @model_validator(mode="after")
     def hints_alignment_requires_hints(self) -> "MergeConfig":
@@ -92,6 +94,7 @@ class GatherConfig(BaseModel):
     drop_empty_tables: bool = True
     stats: bool = False
     export: list[str] = []
+    override: bool = False
 
 
 class Pipeline(BaseModel):
@@ -100,6 +103,7 @@ class Pipeline(BaseModel):
     input_paths: list[str]
     output_path: str
     schema_path: str | None = None
+    pretty: bool = False
     normalize: NormalizeConfig | None = None
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None
@@ -107,6 +111,12 @@ class Pipeline(BaseModel):
 
     @model_validator(mode="after")
     def schema_path_required_features(self) -> "Pipeline":
+        if self.extract:
+            for run in self.extract.runs:
+                if run.reader == "agent" and self.schema_path is None and run.schema_ is None:
+                    raise ValueError(
+                        "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
+                    )
         if self.schema_path is not None:
             return self
         if self.merge and self.merge.order_schema_columns:

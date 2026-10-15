@@ -5,6 +5,8 @@ from typing import Callable
 
 from pydantic_ai import Agent, BinaryContent
 
+from paper2table.readers.errors import ModelUnavailableError
+from paper2table.readers.utils import is_model_unavailable, run_agent_on_pdf
 from utils.column_schema import ColumnSchema
 
 from ..mapping import TablesMapping, TablesMappingMetadata
@@ -48,8 +50,9 @@ def build_instructions(schema):
         "   * all_pages: The table includes headers on every page.",
         "   * first_page_only: The table includes headers only on the first page.",
         "   * none: The table has no headers.",
-        " * column_mappings: determine which column number (0-based)"
+        " * column_mappings: determine which column number (0-based) and column name"
         " best matches which column from COLUMN STRUCTURE",
+        " * row_mappings: determine explicit indexes where data starts (first_data_row) and optionally which is header row"
         " * citation: When possible, include the paper's citation in APA format"
         " from which the table was extracted.",
         "",
@@ -71,17 +74,18 @@ def read_tables(
     schema: str,
     mappings_path: Path,
     reader: Callable[[str, TablesMapping], TablesReader],
-    force_mapping_generation: bool = False,
+    override_mappings: bool = False,
+    indent: int | None = None,
 ) -> TablesReader:
     paper_path = Path(path)
     mapping_path = mappings_path / paper_path.name.replace(".pdf", ".mapping.json")
-    if mapping_path.exists() and not force_mapping_generation:
+    if mapping_path.exists() and not override_mappings:
         _logger.debug("Using existing mapping for %s", paper_path)
         mapping = TablesMapping.model_validate_json(
             mapping_path.read_text(encoding="utf-8")
         )
     else:
-        if force_mapping_generation and mapping_path.exists():
+        if override_mappings and mapping_path.exists():
             _logger.debug("Forcing mapping regeneration for %s", paper_path)
         else:
             _logger.debug(
@@ -92,17 +96,11 @@ def read_tables(
             output_type=TablesMapping,
             instructions=build_instructions(schema),
         )
-        mapping = agent.run_sync(
-            [
-                BinaryContent(
-                    data=paper_path.read_bytes(), media_type="application/pdf"
-                ),
-            ]
-        ).output
+        mapping = run_agent_on_pdf(agent, paper_path)
         mapping.metadata = TablesMappingMetadata(
             model=model,
             date=datetime.now(timezone.utc).isoformat(),
         )
         mappings_path.mkdir(parents=True, exist_ok=True)
-        mapping_path.write_text(mapping.model_dump_json(), encoding="utf-8")
+        mapping_path.write_text(mapping.model_dump_json(indent=indent), encoding="utf-8")
     return reader(path, mapping)

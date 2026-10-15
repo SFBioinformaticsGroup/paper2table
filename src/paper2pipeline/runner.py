@@ -78,6 +78,19 @@ def run_export(input_dir: Path, export: list[str], step_name: str) -> None:
         )
 
 
+def prepare_output_dir(path: Path, override: bool, step_name: str) -> None:
+    if path.exists() and any(path.iterdir()):
+        if override:
+            shutil.rmtree(path)
+        else:
+            print(
+                f"[pipeline] warning: {step_name} output directory already has contents "
+                f"({path}); set override=true to wipe it first",
+                file=sys.stderr,
+            )
+    path.mkdir(parents=True, exist_ok=True)
+
+
 def run_normalize(
     config: NormalizeConfig, output_path: Path, input_paths: list[str]
 ) -> list[str]:
@@ -113,7 +126,7 @@ def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
 
 
 def build_extract_args(
-    run: ExtractRun, schema_path: str | None, output_path: Path, paper_files: list[str]
+    run: ExtractRun, schema_path: str | None, output_path: Path, paper_files: list[str], pretty: bool = True
 ) -> list[str]:
     args = [
         "paper2table",
@@ -128,8 +141,8 @@ def build_extract_args(
     if run.model_sleep is not None:
         args += ["-z", str(run.model_sleep)]
     if run.hybrid:
-        args += ["-H"]
-    if run.force_mapping_generation:  # TODO ensure or document where mappings go
+        args += ["-H", "-M", str(output_path / "mappings")]
+    if run.override_mappings:
         args += ["-F"]
     if run.schema_:
         args += ["-s", run.schema_]
@@ -143,6 +156,8 @@ def build_extract_args(
         args += ["-vv"]  # TODO make verbosity global arg
     if run.quiet:
         args += ["-q"]
+    if pretty:
+        args += ["--pretty"]
     args += paper_files
     return args
 
@@ -152,15 +167,16 @@ def run_extract(
     output_path: Path,
     paper_files: list[str],
     schema_path: str | None,
+    pretty: bool = True,
 ) -> None:
     tables_dir = output_path / "tables"
-    tables_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(tables_dir, config.override, "extract")
 
     for i, run in enumerate(config.runs):
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
         print(f"[pipeline] extract (run {i + 1}/{len(config.runs)})", file=sys.stderr, flush=True)
         run_subprocess(
-            build_extract_args(run, schema_path, output_path, paper_files),
+            build_extract_args(run, schema_path, output_path, paper_files, pretty=pretty),
             step_name=f"extract run {i + 1}",
         )
         uuid_dir = find_new_uuid_dir(tables_dir, before)
@@ -176,7 +192,7 @@ def run_extract(
 
 
 def build_merge_args(
-    config: MergeConfig, output_path: Path, schema_path: str | None
+    config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
     tables_dir = output_path / "tables"
     merges_dir = output_path / "merges"
@@ -243,17 +259,19 @@ def build_merge_args(
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
 
+    if pretty:
+        args += ["--pretty"]
     args += input_dirs
     return args
 
 
-def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -> None:
+def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True) -> None:
     merges_dir = output_path / "merges"
-    merges_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
-        build_merge_args(config, output_path, schema_path), step_name="merge"
+        build_merge_args(config, output_path, schema_path, pretty=pretty), step_name="merge"
     )
 
     if config.stats:
@@ -267,7 +285,7 @@ def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None) -
 
 
 def build_gather_args(
-    config: GatherConfig, output_path: Path, schema_path: str | None
+    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
     merges_dir = output_path / "merges"
     gathers_dir = output_path / "gathers"
@@ -291,19 +309,21 @@ def build_gather_args(
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
 
+    if pretty:
+        args += ["--pretty"]
     args += [str(merges_dir)]
     return args
 
 
 def run_gather(
-    config: GatherConfig, output_path: Path, schema_path: str | None
+    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
 ) -> None:
     gathers_dir = output_path / "gathers"
-    gathers_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
-        build_gather_args(config, output_path, schema_path), step_name="gather"
+        build_gather_args(config, output_path, schema_path, pretty=pretty), step_name="gather"
     )
 
     if config.stats:
@@ -324,13 +344,13 @@ def run_pipeline(pipeline: Pipeline) -> None:
         paper_files = collect_pdfs(pipeline.input_paths)
 
     if pipeline.extract:
-        run_extract(pipeline.extract, output_path, paper_files, pipeline.schema_path)
+        run_extract(pipeline.extract, output_path, paper_files, pipeline.schema_path, pretty=pipeline.pretty)
 
     # TODO validate that: there is at least one extract.
     # Also, if there is more than one extract and gather is present,
     # that there must be one merge
     if pipeline.merge:
-        run_merge(pipeline.merge, output_path, pipeline.schema_path)
+        run_merge(pipeline.merge, output_path, pipeline.schema_path, pretty=pipeline.pretty)
 
     if pipeline.gather:
-        run_gather(pipeline.gather, output_path, pipeline.schema_path)
+        run_gather(pipeline.gather, output_path, pipeline.schema_path, pretty=pipeline.pretty)

@@ -71,11 +71,11 @@ def parse_args():
     )
     parser.add_argument(
         "-F",
-        "--force-mapping-generation",
-        dest="force_mapping_generation",
+        "--override-mappings",
+        dest="override_mappings",
         help=(
-            "Force regeneration of the mapping even if one already exists."
-            "Only used in hybrid mode"
+            "Force regeneration of the mapping even if one already exists. "
+            "Only used in hybrid mode."
         ),
         action="store_true",
     )
@@ -149,6 +149,11 @@ def parse_args():
             "Page ranges (PATH:FROM:TO) work regardless of this flag. "
             "Only supported with -r agent (without -H)."
         ),
+    )
+    parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Indent JSON output",
     )
     parser.add_argument(
         "-vv",
@@ -310,7 +315,8 @@ def get_tables_reader(args):
                 mappings_path=mappings_path,
                 schema=schema,
                 reader=base_reader,
-                force_mapping_generation=args.force_mapping_generation,
+                override_mappings=args.override_mappings,
+                indent=2 if args.pretty else None,
             )
 
     return read_tables
@@ -347,6 +353,8 @@ def get_table_writer(args):
         print("--append requires --tablemerge and --output-directory")
         sys.exit(1)
 
+    indent = 2 if args.pretty else None
+
     if args.tablemerge:
         if args.append:
             validate_existing_resultset(args)
@@ -364,19 +372,20 @@ def get_table_writer(args):
                 paper_path,
                 output_directory=args.output_directory,
                 metadata=metadata,
+                indent=indent,
             )
 
     elif args.output_directory:
 
         def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
             file.write_tables(
-                result, paper_path, output_directory=args.output_directory
+                result, paper_path, output_directory=args.output_directory, indent=indent
             )
 
     else:
 
         def write_tables(result: TablesReader, _paper_path: str):
-            stdout.write_tables(result)
+            stdout.write_tables(result, indent=indent)
 
     return write_tables
 

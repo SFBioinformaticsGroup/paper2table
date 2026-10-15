@@ -60,6 +60,7 @@ def write_tables(
     paper_path: str,
     output_directory: str,
     metadata: TablemergeMetadata,
+    indent: int | None = None,
 ):
     tablemerge_path = os.path.join(output_directory, str(metadata.uuid))
     metadata_path = os.path.join(tablemerge_path, "tables.metadata.json")
@@ -70,4 +71,4 @@ def write_tables(
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata.to_dict(), f, ensure_ascii=False)
 
-    file.write_tables(tables, paper_path, tablemerge_path)
+    file.write_tables(tables, paper_path, tablemerge_path, indent=indent)

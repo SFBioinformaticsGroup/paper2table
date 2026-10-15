@@ -14,6 +14,7 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
+from paper2pipeline.runner import build_extract_args
 from paper2table import __version__
 
 
@@ -95,6 +96,12 @@ def test_gather_config_defaults():
     assert config.key_columns is None
     assert config.stats is False
     assert config.export == []
+
+
+def test_override_defaults_to_false():
+    assert ExtractConfig(runs=[ExtractRun()]).override is False
+    assert MergeConfig().override is False
+    assert GatherConfig().override is False
 
 
 def test_validate_only_prints_valid(tmp_path, capsys):
@@ -185,6 +192,34 @@ def test_coerce_schema_column_types_accepted_with_schema_path():
     assert pipeline.gather.coerce_schema_column_types is True
 
 
+def test_agent_reader_requires_schema_path_or_schema():
+    with pytest.raises(Exception):
+        Pipeline(
+            input_paths=["x"],
+            output_path="y",
+            extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
+        )
+
+
+def test_agent_reader_accepted_with_schema_path():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        schema_path="schema.txt",
+        extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
+    )
+    assert pipeline.extract.runs[0].reader == "agent"
+
+
+def test_agent_reader_accepted_with_inline_schema():
+    pipeline = Pipeline(
+        input_paths=["x"],
+        output_path="y",
+        extract=ExtractConfig(runs=[ExtractRun(reader="agent", schema="species family")]),
+    )
+    assert pipeline.extract.runs[0].reader == "agent"
+
+
 def test_pipeline_rejects_unknown_fields(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
     pipeline_file.write_text(
@@ -192,3 +227,27 @@ def test_pipeline_rejects_unknown_fields(tmp_path):
     )
     with pytest.raises(Exception):
         load_pipeline(str(pipeline_file))
+
+
+def test_extract_run_override_mappings_default_is_false():
+    assert ExtractRun().override_mappings is False
+
+
+def test_build_extract_args_hybrid_includes_mappings_path(tmp_path):
+    run = ExtractRun(hybrid=True)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-M" in args
+    mappings_index = args.index("-M")
+    assert args[mappings_index + 1] == str(tmp_path / "mappings")
+
+
+def test_build_extract_args_non_hybrid_omits_mappings_path(tmp_path):
+    run = ExtractRun(hybrid=False)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-M" not in args
+
+
+def test_build_extract_args_override_mappings_passes_flag(tmp_path):
+    run = ExtractRun(hybrid=True, override_mappings=True)
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "-F" in args
