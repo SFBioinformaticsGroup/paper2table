@@ -247,7 +247,7 @@ def build_data_row(
         else:
             cell = col_values.get(col, "")
             if isinstance(cell, list):
-                if len(cell) == 1 and cell[0].agreement_level != len(cell):
+                if len(cell) == 1 and cell[0].agreement_level == len(cell):
                     val = cell[0].value
                 else:
                     val = " ".join(f"<span class=\"choice\">{v.value}<sub>{v.agreement_level}</sub></span>" for v in cell)

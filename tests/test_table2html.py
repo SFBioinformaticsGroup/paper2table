@@ -128,7 +128,9 @@ def test_fragment_list_value_joined():
         ],
     )
     out = joined(build_fragment_html(1, fragment))
-    assert "<td>a, b, c</td>" in out
+    assert '<span class="choice">a<sub>1</sub></span>' in out
+    assert '<span class="choice">b<sub>1</sub></span>' in out
+    assert '<span class="choice">c<sub>1</sub></span>' in out
 
 
 def test_fragment_agreement_css_low():
@@ -270,16 +272,28 @@ def test_build_data_row_readers_column():
     assert "camelot" in out
 
 
-def test_build_data_row_list_value():
+def test_build_data_row_list_value_multiple_elements():
     row = Row(
         tags=[
             ValueWithAgreement(value="a", agreement_level=1),
-            ValueWithAgreement(value="b", agreement_level=1),
+            ValueWithAgreement(value="b", agreement_level=2),
             ValueWithAgreement(value="c", agreement_level=1),
         ]
     )
     out = joined(build_data_row(row, ["tags"]))
-    assert "<td>a, b, c</td>" in out
+    assert '<span class="choice">a<sub>1</sub></span>' in out
+    assert '<span class="choice">b<sub>2</sub></span>' in out
+    assert '<span class="choice">c<sub>1</sub></span>' in out
+
+
+def test_build_data_row_list_value_single_element():
+    row = Row(
+        tags=[
+            ValueWithAgreement(value="a", agreement_level=1),
+        ]
+    )
+    out = joined(build_data_row(row, ["tags"]))
+    assert "<td>a</td>" in out
 
 
 def test_build_css_contains_body_rule():
@@ -366,7 +380,10 @@ def test_build_fragment_html_merges_shared_column_value():
 
 
 def test_compute_rowspans_never_merges_agreement_level_column():
-    rows = [Row(family="Apiaceae", agreement_level_=2, row_=0), Row(family="Apiaceae", agreement_level_=2, row_=0)]
+    rows = [
+        Row(family="Apiaceae", agreement_level_=2, row_=0),
+        Row(family="Apiaceae", agreement_level_=2, row_=0),
+    ]
     assert compute_rowspans(rows, ["agreement_level_", "family"]) == [
         {"agreement_level_": 1, "family": 2},
         {"agreement_level_": 1, "family": 0},
