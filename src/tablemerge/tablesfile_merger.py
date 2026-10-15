@@ -126,7 +126,7 @@ class TablesFileMerger:
                 )
                 right_idx = tmp_right_idx + 1
             else:
-                builder.append_from_left([left_rows[left_idx]])
+                builder.append_from_left(left_rows[left_idx])
 
             left_idx += 1
 
@@ -175,11 +175,15 @@ class TablesFileMerger:
                     page=left_fragment.page,
                 )
 
+                row_agreement = self.agreement is not None
                 table_fragment_builder = TableFragmentBuilder(
-                    left_fragment,
-                    left_tablesfile.uuid,
-                    self.agreement,
-                    self.column_agreement,
+                    initial_rows=(
+                        row.normalize(row_agreement) for row in left_fragment.rows
+                    ),
+                    initial_uuid=left_tablesfile.uuid,
+                    page=left_fragment.page,
+                    agreement=self.agreement,
+                    column_agreement=self.column_agreement,
                 )
 
                 for right_fragment, right_tablesfile in merge_targets[1:]:
@@ -187,7 +191,8 @@ class TablesFileMerger:
                         break
 
                     right_rows = [
-                        merge_aligner.rename_row(row) for row in right_fragment.rows
+                        merge_aligner.rename_row(row.normalize(row_agreement))
+                        for row in right_fragment.rows
                     ]
                     left_rows = table_fragment_builder.prepare_next_left_rows()
                     self.merge_fragment(
