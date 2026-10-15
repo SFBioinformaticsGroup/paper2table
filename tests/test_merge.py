@@ -842,6 +842,32 @@ def test_sources_none_when_no_uuid_on_tablesfiles():
     assert rows[0].sources_ is None
 
 
+def test_sources_preserved_on_unmatched_left_row_on_second_round():
+    table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    table_2 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
+    table_3 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
+    result = merge_tablesfiles(
+        [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b"), wrap(table_3, uuid="uuid-c")]
+    )
+    rows = result.tables[0].get_table_fragments()[0].rows
+    assert rows == [
+        Row(
+            family="apiaceae",
+            scientific_name="ammi majus l.",
+            agreement_level_=2,
+            sources_=["uuid-a", "uuid-b"],
+            row_=0,
+        ),
+        Row(
+            family="rosaceae",
+            scientific_name="rosa canina l.",
+            agreement_level_=1,
+            sources_=["uuid-c"],
+            row_=1,
+        ),
+    ]
+
+
 def test_merge_different_rows_that_already_have_agreement_with_column_agreement():
     assert merge_rows(
         Row(

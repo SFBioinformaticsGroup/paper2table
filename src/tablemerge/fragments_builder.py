@@ -1,4 +1,4 @@
-from typing import Literal, Optional, cast
+from typing import Optional
 
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
@@ -86,6 +86,7 @@ class TableFragmentBuilder:
         self.page = initial_fragment.page
 
         self.rows = []
+        self.row_ = 0
         self._append_initial(initial_fragment.rows, initial_uuid)
 
     def prepare_next_left_rows(self):
