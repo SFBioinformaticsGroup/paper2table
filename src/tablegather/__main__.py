@@ -124,3 +124,7 @@ def main():
     else:
         sys.stdout.write(output)
         sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()
