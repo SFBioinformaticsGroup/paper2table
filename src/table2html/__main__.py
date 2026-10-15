@@ -247,7 +247,10 @@ def build_data_row(
         else:
             cell = col_values.get(col, "")
             if isinstance(cell, list):
-                val = ", ".join(v.value for v in cell)
+                if len(cell) == 1 and cell[0].agreement_level == len(cell):
+                    val = cell[0].value
+                else:
+                    val = " ".join(f"<span class=\"choice\">{v.value}<sub>{v.agreement_level}</sub></span>" for v in cell)
             else:
                 val = cell or ""
             html.append(f"<td{rowspan_attr}>{val}</td>")
@@ -395,6 +398,7 @@ def build_css() -> list[str]:
         ".row-2 { background-color: #f9e79f; }",
         ".row-3 { background-color: #f5cba7; }",
         ".row-4 { background-color: #d7bde2; }",
+        ".choice { background: #80808047; padding: 10px; margin: 4px;  border-radius: 5px; display: block; }"
     ]
 
 
