@@ -22,6 +22,8 @@ from tablemerge.fragments_builder import TableFragmentBuilder
 
 MergeTarget = tuple[TableFragment, TablesFile]
 
+from Levenshtein import ratio
+
 
 @dataclass(frozen=True, order=True)
 class FragmentClusterKey:
@@ -49,12 +51,25 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 
 def same_row(left: Row, right: Row) -> bool:
-    # TODO compare using a broader similarity criteria
     left_columns = left.normalize().get_columns()
     right_columns = right.normalize().get_columns()
-    return {k: transliterate_value(v) for k, v in left_columns.items()} == {
-        k: transliterate_value(v) for k, v in right_columns.items()
-    }
+
+    sorted_column_keys = sorted(left_columns.keys())
+
+    return (
+        ratio(
+            get_contents(left_columns, sorted_column_keys),
+            get_contents(right_columns, sorted_column_keys),
+        )
+        > 0.6
+    )
+
+
+def get_contents(left_columns, sorted_column_keys: list[str]):
+    # TODO won't work with multiple values
+    return "".join(
+        str(transliterate_value(left_columns.get(k, ""))) for k in sorted_column_keys
+    )
 
 
 def make_fragments_clusters(
