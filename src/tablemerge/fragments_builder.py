@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional, cast
 
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
@@ -44,7 +44,6 @@ def merge_rows(
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
     column_agreement: bool = False,
-    row_: Optional[int] = None,
 ) -> Row:
     agreement_level = agreement.calculate_level(left, right)
 
@@ -64,7 +63,7 @@ def merge_rows(
         path_=None,
         agreement_level_=agreement_level,
         sources_=sources,
-        row_=row_ if row_ else left.row_,
+        row_=left.row_,
         **columns
     )
 
@@ -85,46 +84,58 @@ class TableFragmentBuilder:
         self.agreement = agreement
         self.column_agreement = column_agreement
         self.page = initial_fragment.page
-        do_agreement = agreement is not None
-        self.rows = [
-            row.model_copy(
-                update={"sources_": [initial_uuid] if initial_uuid else None, "row_": i}
-            )
-            for i, row in enumerate(
-                map(lambda r: r.normalize(do_agreement), initial_fragment.rows)
-            )
-        ]
 
-    def next_left_rows(self):
+        self.rows = []
+        self._append_initial(initial_fragment.rows, initial_uuid)
+
+    def prepare_next_left_rows(self):
         rows = self.rows
         self.rows = []
+        self.row_ = 0
         return list(rows)
 
-    def append_skipped(self, rows: list[Row], source_uuid: str | None):
-        for skipped_row in rows:
-            stamped = skipped_row.model_copy(
-                update={"sources_": [source_uuid] if source_uuid else None}
-            )
-            self._append(stamped)
+    def append_from_right(self, rows: list[Row], right_source: str | None):
+        self._append_aside(rows, right_source)
 
-    def append_unmatched(self, row: Row):
-        self._append(row)
+    def append_from_left(self, rows: list[Row]):
+        self._append_aside(rows)
 
-    def merge_and_append(self, row_: int, left: Row, right: Row):
+    def append_from_both(self, left: Row, right: Row, right_source: str | None):
+
         self._append(
+            # TODO stamping code could be simplified
             merge_rows(
-                left,
-                right,
-                row_=row_,
+                self._stamp(left, self.row_),
+                self._stamp(right, self.row_, right_source),
                 agreement=self.agreement,
                 column_agreement=self.column_agreement,
             )
         )
 
+        self.row_ += 1
+
     def build(self):
         return TableFragment(
-            rows=[r for r in self.rows if not r.is_empty()], page=self.page
+            rows=[r for r in self.rows if not r.is_empty()],
+            page=self.page,
         )
+
+    def _append_initial(self, rows: list[Row], right_source: str | None = None):
+        for idx, row in enumerate(rows):
+            self._append(self._stamp(row, idx, right_source))
+
+    def _append_aside(self, rows: list[Row], right_source: str | None = None):
+        for row in rows:
+            self._append(self._stamp(row, self.row_, right_source))
+            self.row_ += 1
 
     def _append(self, row: Row):
         self.rows.append(row.normalize(self.agreement is not None))
+
+    def _stamp(self, row: Row, row_: int, source_uuid: str | None = None):
+        return row.model_copy(
+            update={
+                "sources_": [source_uuid] if source_uuid else row.sources_,
+                "row_": row_,
+            }
+        )

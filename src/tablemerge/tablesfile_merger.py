@@ -88,6 +88,50 @@ class TablesFileMerger:
         self.column_agreement = column_agreement
         self.analyzers = analyzers
 
+    def merge_fragment(
+        self,
+        builder: TableFragmentBuilder,
+        left_rows: list[Row],
+        right_rows: list[Row],
+        right_source: str | None,
+    ):
+        """
+        Merges rows from two different fragments
+        This algorithm will try to pair each left row with each right row,
+        preserving relative order.
+
+        This algorithm grants that every row from both lists are
+        included in final result.
+
+        It uses a TableFragmentBuilder in order to accumulate results.
+        """
+        left_idx = 0
+        right_idx = 0
+
+        while left_idx < len(left_rows):
+            tmp_right_idx = right_idx
+            found = False
+            while tmp_right_idx < len(right_rows) and not found:
+                if same_row(left_rows[left_idx], right_rows[tmp_right_idx]):
+                    found = True
+                else:
+                    tmp_right_idx += 1
+
+            if found:
+                builder.append_from_right(
+                    right_rows[right_idx:tmp_right_idx], right_source
+                )
+                builder.append_from_both(
+                    left_rows[left_idx], right_rows[tmp_right_idx], right_source
+                )
+                right_idx = tmp_right_idx + 1
+            else:
+                builder.append_from_left([left_rows[left_idx]])
+
+            left_idx += 1
+
+        builder.append_from_right(right_rows[right_idx:], right_source)
+
     def merge(
         self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None
     ) -> TablesFile:
@@ -125,6 +169,7 @@ class TablesFileMerger:
                 merge_aligner = MergeTimeColumnAligner(
                     left_fragment, first_right, self.analyzers
                 )
+                # TODO no initial rename? no initial normalize?
                 left_fragment = TableFragment(
                     rows=[merge_aligner.rename_row(r) for r in left_fragment.rows],
                     page=left_fragment.page,
@@ -141,64 +186,15 @@ class TablesFileMerger:
                     if not right_fragment:
                         break
 
-                    right_uuid = right_tablesfile.uuid
                     right_rows = [
-                        merge_aligner.rename_row(r).model_copy(update={"row_": i})
-                        for i, r in enumerate(right_fragment.rows)
+                        merge_aligner.rename_row(row) for row in right_fragment.rows
                     ]
-                    left_rows = table_fragment_builder.next_left_rows()
-                    right_idx = 0
-                    left_idx = 0
-
-                    while left_idx < len(left_rows):
-                        left_row = left_rows[left_idx]
-                        while right_idx < len(right_rows) and (
-                            cast(int, right_rows[right_idx].row_)
-                        ) < cast(int, left_row.row_):
-                            table_fragment_builder.append_skipped(
-                                [right_rows[right_idx]], right_uuid
-                            )
-                            right_idx += 1
-
-                        if right_idx < len(right_rows) and same_row(
-                            left_row, right_rows[right_idx]
-                        ):
-                            # same row
-                            right_row = right_rows[right_idx].model_copy(
-                                update={
-                                    "sources_": [right_uuid] if right_uuid else None
-                                }
-                            )
-                            table_fragment_builder.merge_and_append(
-                                right_idx, left_row, right_row
-                            )
-                            right_idx += 1
-                        elif right_idx + 1 < len(right_rows) and same_row(
-                            left_row, right_rows[right_idx + 1]
-                        ):
-                            # lookahead of 1 and same row
-                            right_row = right_rows[right_idx].model_copy(
-                                update={
-                                    "sources_": [right_uuid] if right_uuid else None
-                                }
-                            )
-                            next_row = right_rows[right_idx + 1].model_copy(
-                                update={
-                                    "sources_": [right_uuid] if right_uuid else None
-                                }
-                            )
-                            table_fragment_builder.append_unmatched(right_row)
-                            table_fragment_builder.merge_and_append(
-                                right_idx + 1, left_row, next_row
-                            )
-                            right_idx += 2
-                        else:
-                            table_fragment_builder.append_unmatched(left_row)
-
-                        left_idx += 1
-
-                    table_fragment_builder.append_skipped(
-                        right_rows[right_idx:], right_uuid
+                    left_rows = table_fragment_builder.prepare_next_left_rows()
+                    self.merge_fragment(
+                        table_fragment_builder,
+                        left_rows,
+                        right_rows,
+                        right_tablesfile.uuid,
                     )
 
                 merged_fragments.append(table_fragment_builder.build())
