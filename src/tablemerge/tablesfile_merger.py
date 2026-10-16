@@ -39,15 +39,21 @@ class FragmentClusterKey:
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
-        return unidecode(value)
+        return transliterate_scalar(value)
     if isinstance(value, list):
-        return [
-            ValueWithAgreement(
-                value=unidecode(v.value), agreement_level=v.agreement_level
-            )
-            for v in value
-        ]
+        return transliterate_multivalued(value)
     return value
+
+
+def transliterate_scalar(value: str):
+    return unidecode(value)
+
+
+def transliterate_multivalued(value: List[ValueWithAgreement]):
+    return [
+        ValueWithAgreement(value=unidecode(v.value), agreement_level=v.agreement_level)
+        for v in value
+    ]
 
 
 def same_row(left: Row, right: Row) -> bool:
@@ -58,18 +64,26 @@ def same_row(left: Row, right: Row) -> bool:
 
     return (
         ratio(
-            get_contents(left_columns, sorted_column_keys),
-            get_contents(right_columns, sorted_column_keys),
+            get_text(left_columns, sorted_column_keys),
+            get_text(right_columns, sorted_column_keys),
         )
         > 0.6
     )
 
-
-def get_contents(left_columns, sorted_column_keys: list[str]):
-    # TODO won't work with multiple values
+def get_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
+    # TODO we could also zip columns and try different combinations
     return "".join(
-        str(transliterate_value(left_columns.get(k, ""))) for k in sorted_column_keys
+        transliterate_scalar(get_scalar(columns.get(k, "")))
+        for k in sorted_column_keys
     )
+
+
+def get_scalar(value: ColumnValue):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return value[0].value
+    return ""
 
 
 def make_fragments_clusters(
