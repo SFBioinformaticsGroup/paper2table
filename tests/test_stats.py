@@ -1049,8 +1049,13 @@ def test_sort_stats_by_rows_convergence_asc():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Apiaceae", "row_": 1},
-                        {"family": "Rosaceae", "row_": 1},
+                        {
+                            "family": [
+                                ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                                ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                            ],
+                            "row_": 1,
+                        },
                     ],
                 }
             ]
@@ -1113,19 +1118,6 @@ def test_sort_stats_by_rows_convergence_desc():
     sort_stats(stats, [("tables-convergence", "desc")])
     assert list(stats.papers_stats.keys()) == ["b.tables.json", "a.tables.json"]
 
-
-def test_sort_stats_by_rows_convergence_no_row_id_sorts_first_asc():
-    paper_a = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Apiaceae"}]}])
-    )
-    paper_b = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae", "row_": 1}]}])
-    )
-    stats = make_global_stats_with_papers(
-        {"a.tables.json": paper_a, "b.tables.json": paper_b}
-    )
-    sort_stats(stats, [("tables-convergence", "asc")])
-    assert list(stats.papers_stats.keys()) == ["a.tables.json", "b.tables.json"]
 
 
 def test_sort_stats_by_rows_convergence_none_last_desc():

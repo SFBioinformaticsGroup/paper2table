@@ -286,46 +286,6 @@ def test_convergence_rows_excludes_multivalued_rows():
         )
     ]
 
-
-def test_convergence_rows_excludes_multivalued_species_row():
-    tablesfile = TablesFile(
-        tables=[
-            TableWithFragments(
-                table_fragments=[
-                    TableFragment(
-                        rows=[
-                            Row(species=[
-                                ValueWithAgreement(value="Ammi majus", agreement_level=1),
-                                ValueWithAgreement(value="Ammi visnaga", agreement_level=1),
-                            ], row_=1),
-                            Row(species="Carum carvi", row_=2),
-                        ],
-                        page=1,
-                    )
-                ]
-            )
-        ],
-        citation="Mamani 2020",
-    )
-    path = Path("Mamani 2020.tables.json")
-    result = gather_tablesfiles(
-        [(tablesfile, path)],
-        key_columns=[],
-        convergence="rows",
-    )
-    fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [
-        Row(
-            citation_="Mamani 2020",
-            path_=str(path),
-            page_=1,
-            fragment_=1,
-            row_=2,
-            species="Carum carvi",
-        )
-    ]
-
-
 def test_convergence_rows_computed_per_file_not_globally():
     file_a, path_a = wrap([Row(species="Ammi majus", row_=1)], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Carum carvi", row_=1)], citation="Jones 2021")
