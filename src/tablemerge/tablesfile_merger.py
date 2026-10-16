@@ -70,11 +70,11 @@ def same_row(left: Row, right: Row) -> bool:
         > 0.6
     )
 
+
 def get_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
     return "".join(
-        transliterate_scalar(get_scalar(columns.get(k, "")))
-        for k in sorted_column_keys
+        transliterate_scalar(get_scalar(columns.get(k, ""))) for k in sorted_column_keys
     )
 
 
@@ -204,10 +204,10 @@ class TablesFileMerger:
                     page=left_fragment.page,
                 )
 
-                calculate_agreement = self.agreement is not None
                 table_fragment_builder = TableFragmentBuilder(
                     initial_rows=(
-                        row.normalize(calculate_agreement) for row in left_fragment.rows
+                        row.normalize(calculate_agreement=True)
+                        for row in left_fragment.rows
                     ),
                     initial_uuid=left_tablesfile.uuid,
                     page=left_fragment.page,
@@ -220,7 +220,9 @@ class TablesFileMerger:
                         break
 
                     right_rows = [
-                        merge_aligner.rename_row(row.normalize(calculate_agreement))
+                        merge_aligner.rename_row(
+                            row.normalize(calculate_agreement=True)
+                        )
                         for row in right_fragment.rows
                     ]
                     left_rows = table_fragment_builder.prepare_next_left_rows()
