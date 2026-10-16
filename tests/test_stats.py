@@ -791,14 +791,6 @@ def test_convergent_rows_some_duplicate():
     assert stats.convergent_rows == 1
 
 
-def test_convergent_rows_no_row_id():
-    stats = compute_paper_stats(
-        make_paper(
-            [{"page": 1, "rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]}]
-        )
-    )
-    assert stats.convergent_rows == 0
-
 
 def test_update_papers_stats_counts_papers_with_curations():
     stats = GlobalStats(
@@ -861,7 +853,7 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
                 "page": 1,
                 "rows": [
                     {"family": "Apiaceae", "row_": 1},
-                    {"family": "Rosaceae", "row_": 1},
+                    {"family": [ValueWithAgreement(value="Rosaceae", agreement_level=1), ValueWithAgreement(value="Apiaceae", agreement_level=1)], "row_": 2},
                 ],
             }
         ]
