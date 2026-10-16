@@ -35,7 +35,7 @@ from .analyzers import (
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
-from .tablesfile_merger import TablesFileMerger
+from .tablesfile_merger import TablesFileMerger, merge_tablesfiles
 from utils.postprocessor import PostProcessor
 from utils.cli import add_postprocessor_args, build_postprocessors_from_args
 from .fragment_transformer import (
@@ -219,10 +219,13 @@ def merge_tablesfiles_paths(
         return
 
     try:
-        merged_tablesfile: TablesFile = TablesFileMerger(
+        merged_tablesfile: TablesFile = merge_tablesfiles(
+            tablesfiles,
             agreement=agreement,
             analyzers=merge_analyzers,
-        ).merge(tablesfiles, page_offsets=page_offsets)
+            page_offsets=page_offsets,
+            multivalued=True,
+        )
         for postprocessor in postprocessors:
             merged_tablesfile = postprocessor.postprocess(merged_tablesfile)
         print(
@@ -313,7 +316,9 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Merge JSON tables from multiple directories."
     )
-    parser.add_argument("--version", action="version", version=f"tablemerge {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"tablemerge {__version__}"
+    )
     parser.add_argument(
         "-o",
         "--output-directory",
@@ -638,9 +643,6 @@ def try_parse_hints(args):
     if hints_str:
         return [normalize_column_name(h) for h in tokenize_schema(hints_str)]
     return []
-
-
-
 
 
 if __name__ == "__main__":

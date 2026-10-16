@@ -1,3 +1,5 @@
+from typing import Iterable, Optional
+
 from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
 
@@ -10,17 +12,17 @@ def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreeme
     return column_value
 
 
-def merge_columns_without_agreement(left: Row, right: Row):
+def _merge_scalar_columns(left: Row, right: Row):
     return {
-        **right.normalize().get_columns(),
-        **left.normalize().get_columns(),
+        **right.get_columns(),
+        **left.get_columns(),
     }
 
 
-def merge_columns_with_agreement(left: Row, right: Row):
+def _merge_multivalued_columns(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
-        for column_name, column_value in row.normalize().get_columns().items():
+        for column_name, column_value in row.get_columns().items():
             values = column_values.setdefault(column_name, {})
             for value_with_agreement in to_values_with_agreement(column_value):
                 value = value_with_agreement.value
@@ -41,14 +43,17 @@ def merge_rows(
     left: Row,
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
-    column_agreement: bool = False,
+    multivalued: bool = False,
 ) -> Row:
+    """
+    Merges already normalized columns
+    """
     agreement_level = agreement.calculate_level(left, right)
 
-    if column_agreement:
-        columns = merge_columns_with_agreement(left, right)
+    if multivalued:
+        columns = _merge_multivalued_columns(left, right)
     else:
-        columns = merge_columns_without_agreement(left, right)
+        columns = _merge_scalar_columns(left, right)
 
     left_sources = left.sources_ or []
     right_sources = right.sources_ or []
@@ -70,57 +75,72 @@ class TableFragmentBuilder:
     rows: list[Row]
     page: int
     agreement: Agreement
-    column_agreement: bool
+    multivalued: bool
 
     def __init__(
         self,
-        initial_fragment: TableFragment,
-        initial_uuid: str | None,
+        page: int,
+        initial_rows: Iterable[Row],
+        initial_uuid: Optional[str],
         agreement: Agreement,
-        column_agreement: bool,
+        multivalued: bool,
     ):
         self.agreement = agreement
-        self.column_agreement = column_agreement
-        self.page = initial_fragment.page
-        do_agreement = agreement is not None
-        self.rows = [
-            row.model_copy(
-                update={"sources_": [initial_uuid] if initial_uuid else None, "row_": i}
-            )
-            for i, row in enumerate(
-                map(lambda r: r.normalize(do_agreement), initial_fragment.rows)
-            )
-        ]
+        self.multivalued = multivalued
+        self.page = page
 
-    def next_left_rows(self):
+        self.rows = []
+        self.row_ = 0
+        self._append_initial(initial_rows, initial_uuid)
+
+    def prepare_next_left_rows(self):
         rows = self.rows
         self.rows = []
+        self.row_ = 0
         return list(rows)
 
-    def append_skipped(self, rows: list[Row], source_uuid: str | None):
-        for skipped_row in rows:
-            stamped = skipped_row.model_copy(
-                update={"sources_": [source_uuid] if source_uuid else None}
-            )
-            self._append(stamped)
+    def append_from_right(self, rows: list[Row], right_source: Optional[str]):
+        self._append_aside(rows, right_source)
 
-    def append_unmatched(self, row: Row):
-        self._append(row)
+    def append_from_left(self, row: Row):
+        self._append_aside([row])
 
-    def merge_and_append(self, left: Row, right: Row):
+    def append_from_both(self, left: Row, right: Row, right_source: Optional[str]):
+
         self._append(
+            # TODO stamping code could be simplified
             merge_rows(
-                left,
-                right,
+                self._stamp(left, self.row_),
+                self._stamp(right, self.row_, right_source),
                 agreement=self.agreement,
-                column_agreement=self.column_agreement,
+                multivalued=self.multivalued,
             )
         )
+
+        self.row_ += 1
 
     def build(self):
         return TableFragment(
-            rows=[r for r in self.rows if not r.is_empty()], page=self.page
+            rows=[r for r in self.rows if not r.is_empty()],
+            page=self.page,
         )
 
+    def _append_initial(self, rows: Iterable[Row], right_source: Optional[str] = None):
+        for idx, row in enumerate(rows):
+            self._append(self._stamp(row, idx, right_source))
+
+    def _append_aside(self, rows: Iterable[Row], right_source: Optional[str] = None):
+        for row in rows:
+            self._append(self._stamp(row, self.row_, right_source))
+            self.row_ += 1
+
     def _append(self, row: Row):
-        self.rows.append(row.normalize(self.agreement is not None))
+        self.rows.append(row)
+
+    def _stamp(self, row: Row, row_: int, source_uuid: Optional[str] = None):
+        return row.model_copy(
+            update={
+                "sources_": [source_uuid] if source_uuid else row.sources_,
+                "row_": row_,
+            }
+        )
