@@ -58,6 +58,9 @@ class Row(BaseModel):
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {k: v for k, v in self if k not in _META_COLUMNS}
 
+    def get_column_values(self):
+        return self.get_columns().values()
+
     def get_meta_columns(self) -> Dict[str, Any]:
         return {k: v for k, v in self if k in _META_COLUMNS}
 
@@ -75,7 +78,7 @@ class Row(BaseModel):
         }
 
     def is_empty(self) -> bool:
-        return all(Row.is_empty_value(v) for v in self.get_columns().values())
+        return all(Row.is_empty_value(v) for v in self.get_column_values())
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
@@ -137,7 +140,16 @@ class Row(BaseModel):
         return all(not normalize_column_value(v.value) for v in value)
 
     @staticmethod
+    def is_convergent(value: ColumnValue) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return True
+        return len(value) == 1
+
+    @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
+        # TODO isn't this already in other place?
         if value is None:
             return None
 
@@ -167,20 +179,13 @@ class TableFragment(BaseModel):
     def is_empty(self) -> bool:
         return all(row.is_empty() for row in self.rows)
 
-    def get_row_groups(self) -> Dict[int, List[Row]]:
-        if self._groups is None:
-            groups: Dict[int, List[Row]] = {}
-            for row in self.rows:
-                if row.row_ is not None:
-                    groups.setdefault(row.row_, []).append(row)
-            self._groups = groups
-        return self._groups
-
     def get_convergent_rows(self) -> List[Row]:
-        convergent_ids = frozenset(
-            rid for rid, group in self.get_row_groups().items() if len(group) == 1
-        )
-        return [row for row in self.rows if row.row_ in convergent_ids]
+        """Return rows that have a single unique value"""
+        return [
+            row
+            for row in self.rows
+            if all([Row.is_convergent(v) for v in row.get_column_values()])
+        ]
 
 
 class Table(ABC):
