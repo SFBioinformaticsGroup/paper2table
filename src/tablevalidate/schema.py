@@ -82,7 +82,7 @@ class Row(BaseModel):
 
     def normalize(
         self,
-        row_agreement: bool = False,
+        calculate_agreement: bool = False,
     ):
         return self.clone(
             columns={
@@ -90,7 +90,7 @@ class Row(BaseModel):
                 for column, value in self.get_columns().items()
             },
             agreement_level=(
-                self.get_agreement_level() if row_agreement else self.agreement_level_
+                self.get_agreement_level() if calculate_agreement else self.agreement_level_
             ),
         )
 

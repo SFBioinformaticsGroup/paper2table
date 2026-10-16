@@ -12,14 +12,14 @@ def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreeme
     return column_value
 
 
-def _merge_columns_without_agreement(left: Row, right: Row):
+def _merge_scalar_columns(left: Row, right: Row):
     return {
         **right.get_columns(),
         **left.get_columns(),
     }
 
 
-def _merge_columns_with_agreement(left: Row, right: Row):
+def _merge_multivalued_columns(left: Row, right: Row):
     column_values: dict[str, dict[str, int]] = {}
     for row in [left, right]:
         for column_name, column_value in row.get_columns().items():
@@ -43,17 +43,17 @@ def merge_rows(
     left: Row,
     right: Row,
     agreement: Agreement = SimpleCountAgreement(),
-    column_agreement: bool = False,
+    multivalued: bool = False,
 ) -> Row:
     """
     Merges already normalized columns
     """
     agreement_level = agreement.calculate_level(left, right)
 
-    if column_agreement:
-        columns = _merge_columns_with_agreement(left, right)
+    if multivalued:
+        columns = _merge_multivalued_columns(left, right)
     else:
-        columns = _merge_columns_without_agreement(left, right)
+        columns = _merge_scalar_columns(left, right)
 
     left_sources = left.sources_ or []
     right_sources = right.sources_ or []
@@ -75,7 +75,7 @@ class TableFragmentBuilder:
     rows: list[Row]
     page: int
     agreement: Agreement
-    column_agreement: bool
+    multivalued: bool
 
     def __init__(
         self,
@@ -83,10 +83,10 @@ class TableFragmentBuilder:
         initial_rows: Iterable[Row],
         initial_uuid: Optional[str],
         agreement: Agreement,
-        column_agreement: bool,
+        multivalued: bool,
     ):
         self.agreement = agreement
-        self.column_agreement = column_agreement
+        self.multivalued = multivalued
         self.page = page
 
         self.rows = []
@@ -113,7 +113,7 @@ class TableFragmentBuilder:
                 self._stamp(left, self.row_),
                 self._stamp(right, self.row_, right_source),
                 agreement=self.agreement,
-                column_agreement=self.column_agreement,
+                multivalued=self.multivalued,
             )
         )
 
