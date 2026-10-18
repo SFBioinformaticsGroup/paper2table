@@ -18,9 +18,11 @@ def first_row_is_table_header(rows: list[Row], column_names_hints: list[str]):
 
 def is_model_unavailable(e: BaseException) -> bool:
     try:
-        from google.genai.errors import ServerError
+        # warning: genai import might not be available
+        # unless you install it explicitly, hence the following ignores
+        from google.genai.errors import ServerError  # type: ignore[import-not-found]
         if isinstance(e, ServerError) and (
-            e.code == 503 or "currently experiencing high demand" in str(e.message)
+            e.code == 503 or "currently experiencing high demand" in str(e.message)  # type: ignore[attr-defined]
         ):
             return True
     except ImportError:
