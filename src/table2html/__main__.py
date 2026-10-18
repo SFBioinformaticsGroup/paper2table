@@ -9,6 +9,7 @@ from tablevalidate.schema import (
     Row,
     TablesFile,
     TableFragment,
+    ValueWithAgreement,
 )
 from paper2table import __version__
 
@@ -162,13 +163,11 @@ def build_data_rows(
     uuid_to_reader: dict[str, str] | None = None,
 ) -> list[str]:
     col_values = row.get_columns()
-    multivalued: dict[str, list] = {
-        col: col_values[col]
-        for col in columns
-        if col in col_values
-        and isinstance(col_values[col], list)
-        and len(col_values[col]) > 1
-    }
+    multivalued: dict[str, list[ValueWithAgreement]] = {}
+    for col in columns:
+        value = col_values.get(col)
+        if isinstance(value, list) and len(value) > 1:
+            multivalued[col] = value
     span = max((len(v) for v in multivalued.values()), default=1)
     html = []
     for i in range(span):
