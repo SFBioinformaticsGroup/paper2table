@@ -56,7 +56,7 @@ def transliterate_multivalued(value: List[ValueWithAgreement]):
     ]
 
 
-def same_row(left: Row, right: Row) -> bool:
+def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
     left_columns = left.normalize().get_columns()
     right_columns = right.normalize().get_columns()
 
@@ -67,7 +67,7 @@ def same_row(left: Row, right: Row) -> bool:
             get_text(left_columns, sorted_column_keys),
             get_text(right_columns, sorted_column_keys),
         )
-        > 0.6
+        >= similarity_threshold
     )
 
 
@@ -112,10 +112,12 @@ class TablesFileMerger:
         agreement: Agreement = SimpleCountAgreement(),
         multivalued: bool = False,
         analyzers: list[MergeTimeAnalyzer] = [],
+        row_similarity_threshold: float = 0.6,
     ):
         self.agreement = agreement
         self.multivalued = multivalued
         self.analyzers = analyzers
+        self.row_similarity_threshold = row_similarity_threshold
 
     def merge_fragment(
         self,
@@ -141,7 +143,11 @@ class TablesFileMerger:
             tmp_right_idx = right_idx
             found = False
             while tmp_right_idx < len(right_rows) and not found:
-                if same_row(left_rows[left_idx], right_rows[tmp_right_idx]):
+                if same_row(
+                    left_rows[left_idx],
+                    right_rows[tmp_right_idx],
+                    similarity_threshold=self.row_similarity_threshold,
+                ):
                     found = True
                 else:
                     tmp_right_idx += 1
@@ -249,9 +255,11 @@ def merge_tablesfiles(
     multivalued: bool = False,
     analyzers: list[MergeTimeAnalyzer] = [],
     page_offsets: list[int] | None = None,
+    row_similarity_threshold: float = 0.6,
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
         multivalued=multivalued,
         analyzers=analyzers,
+        row_similarity_threshold=row_similarity_threshold,
     ).merge(tablesfiles, page_offsets=page_offsets)
