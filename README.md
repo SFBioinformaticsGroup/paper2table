@@ -62,6 +62,9 @@
 
 ```bash
 # install base dependencies
+pip install paper2table
+
+# install from source (development)
 pip install -e .
 
 # install testing dependencies
@@ -71,12 +74,41 @@ pip install -e .[testing]
 pip install tox
 ```
 
+#### LLM provider packages
+
+The base install uses [`pydantic-ai-slim`](https://ai.pydantic.dev/) but doesn't assume any specific provider. In order to use **agent** (`-r agent`) or **hybrid** (`-H`) readers, you'll need to install them manually...
+
+```bash
+# e.g.
+pip install google-genai
+```
+...or using optional dependencies:
+
+```bash
+pip install 'paper2table[gemini]'
+pip install 'paper2table[openai]'
+pip install 'paper2table[anthropic]'
+```
+
 #### Docker
 
-Build the image once from the repository root:
+Build the image once from the repository root. The default image includes Gemini support:
 
 ```bash
 docker build -f docker/Dockerfile -t paper2table .
+```
+
+To build with a different provider:
+
+```bash
+# OpenAI instead of Gemini
+docker build --build-arg EXTRA_PACKAGES="openai" -f docker/Dockerfile -t paper2table .
+
+# Both Gemini and OpenAI
+docker build --build-arg EXTRA_PACKAGES="google-genai openai" -f docker/Dockerfile -t paper2table .
+
+# Base only, no LLM provider
+docker build --build-arg EXTRA_PACKAGES="" -f docker/Dockerfile -t paper2table .
 ```
 
 All commands below have Docker equivalents. Mount the directory containing your PDFs or result files to `/data` inside the container — the working directory is `/data`, so paths starting with `/data/` work naturally.
