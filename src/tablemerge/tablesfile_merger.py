@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import zip_longest
+from typing import Dict, List, cast
 from unidecode import unidecode
 
 from tablevalidate.schema import (
@@ -21,6 +22,8 @@ from tablemerge.fragments_builder import TableFragmentBuilder
 
 MergeTarget = tuple[TableFragment, TablesFile]
 
+from Levenshtein import ratio
+
 
 @dataclass(frozen=True, order=True)
 class FragmentClusterKey:
@@ -36,24 +39,51 @@ class FragmentClusterKey:
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
     if isinstance(value, str):
-        return unidecode(value)
+        return transliterate_scalar(value)
     if isinstance(value, list):
-        return [
-            ValueWithAgreement(
-                value=unidecode(v.value), agreement_level=v.agreement_level
-            )
-            for v in value
-        ]
+        return transliterate_multivalued(value)
     return value
 
 
-def same_row(left: Row, right: Row) -> bool:
-    # TODO compare using a broader similarity criteria
+def transliterate_scalar(value: str):
+    return unidecode(value)
+
+
+def transliterate_multivalued(value: List[ValueWithAgreement]):
+    return [
+        ValueWithAgreement(value=unidecode(v.value), agreement_level=v.agreement_level)
+        for v in value
+    ]
+
+
+def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
     left_columns = left.normalize().get_columns()
     right_columns = right.normalize().get_columns()
-    return {k: transliterate_value(v) for k, v in left_columns.items()} == {
-        k: transliterate_value(v) for k, v in right_columns.items()
-    }
+
+    sorted_column_keys = sorted(left_columns.keys())
+
+    return (
+        ratio(
+            get_text(left_columns, sorted_column_keys),
+            get_text(right_columns, sorted_column_keys),
+        )
+        >= similarity_threshold
+    )
+
+
+def get_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
+    # TODO we could also zip columns and try different combinations
+    return "".join(
+        transliterate_scalar(get_scalar(columns.get(k, ""))) for k in sorted_column_keys
+    )
+
+
+def get_scalar(value: ColumnValue):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return value[0].value
+    return ""
 
 
 def make_fragments_clusters(
@@ -70,9 +100,9 @@ def make_fragments_clusters(
             adjusted_page = fragment.page + offset
             position = page_counts.get(adjusted_page, 0)
             page_counts[adjusted_page] = position + 1
-            fragments_clusters.setdefault(FragmentClusterKey(adjusted_page, position), []).append(
-                (fragment, tablesfile)
-            )
+            fragments_clusters.setdefault(
+                FragmentClusterKey(adjusted_page, position), []
+            ).append((fragment, tablesfile))
     return fragments_clusters
 
 
@@ -80,14 +110,66 @@ class TablesFileMerger:
     def __init__(
         self,
         agreement: Agreement = SimpleCountAgreement(),
-        column_agreement: bool = False,
+        multivalued: bool = False,
         analyzers: list[MergeTimeAnalyzer] = [],
+        row_similarity_threshold: float = 0.6,
     ):
         self.agreement = agreement
-        self.column_agreement = column_agreement
+        self.multivalued = multivalued
         self.analyzers = analyzers
+        self.row_similarity_threshold = row_similarity_threshold
 
-    def merge(self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None) -> TablesFile:
+    def merge_fragment(
+        self,
+        builder: TableFragmentBuilder,
+        left_rows: list[Row],
+        right_rows: list[Row],
+        right_source: str | None,
+    ):
+        """
+        Merges rows from two different fragments
+        This algorithm will try to pair each left row with each right row,
+        preserving relative order.
+
+        This algorithm grants that every row from both lists are
+        included in final result.
+
+        It uses a TableFragmentBuilder in order to accumulate results.
+        """
+        left_idx = 0
+        right_idx = 0
+
+        while left_idx < len(left_rows):
+            tmp_right_idx = right_idx
+            found = False
+            while tmp_right_idx < len(right_rows) and not found:
+                if same_row(
+                    left_rows[left_idx],
+                    right_rows[tmp_right_idx],
+                    similarity_threshold=self.row_similarity_threshold,
+                ):
+                    found = True
+                else:
+                    tmp_right_idx += 1
+
+            if found:
+                builder.append_from_right(
+                    right_rows[right_idx:tmp_right_idx], right_source
+                )
+                builder.append_from_both(
+                    left_rows[left_idx], right_rows[tmp_right_idx], right_source
+                )
+                right_idx = tmp_right_idx + 1
+            else:
+                builder.append_from_left(left_rows[left_idx])
+
+            left_idx += 1
+
+        builder.append_from_right(right_rows[right_idx:], right_source)
+
+    def merge(
+        self, tablesfiles: list[TablesFile], page_offsets: list[int] | None = None
+    ) -> TablesFile:
         """Merge multiple TablesFiles into one.
 
         Two-level pairing: tables by index (zip_longest pairs table N across all papers),
@@ -106,7 +188,9 @@ class TablesFileMerger:
         tables_clusters = list(zip_longest(*map(lambda t: t.tables, tablesfiles)))
         for tables_cluster in tables_clusters:
             merged_fragments: list[TableFragment] = []
-            fragments_clusters = make_fragments_clusters(tables_cluster, tablesfiles, page_offsets)
+            fragments_clusters = make_fragments_clusters(
+                tables_cluster, tablesfiles, page_offsets
+            )
 
             for _page, merge_targets in sorted(fragments_clusters.items()):
                 # TODO sort first so longest cluster is the first one
@@ -120,56 +204,39 @@ class TablesFileMerger:
                 merge_aligner = MergeTimeColumnAligner(
                     left_fragment, first_right, self.analyzers
                 )
+
                 left_fragment = TableFragment(
                     rows=[merge_aligner.rename_row(r) for r in left_fragment.rows],
                     page=left_fragment.page,
                 )
 
                 table_fragment_builder = TableFragmentBuilder(
-                    left_fragment,
-                    left_tablesfile.uuid,
-                    self.agreement,
-                    self.column_agreement,
+                    initial_rows=(
+                        row.normalize(calculate_agreement=True)
+                        for row in left_fragment.rows
+                    ),
+                    initial_uuid=left_tablesfile.uuid,
+                    page=left_fragment.page,
+                    agreement=self.agreement,
+                    multivalued=self.multivalued,
                 )
 
                 for right_fragment, right_tablesfile in merge_targets[1:]:
                     if not right_fragment:
                         break
 
-                    right_uuid = right_tablesfile.uuid
                     right_rows = [
-                        merge_aligner.rename_row(r).model_copy(update={"row_": i})
-                        for i, r in enumerate(right_fragment.rows)
+                        merge_aligner.rename_row(
+                            row.normalize(calculate_agreement=True)
+                        )
+                        for row in right_fragment.rows
                     ]
-                    left_rows = table_fragment_builder.next_left_rows()
-                    right_idx = 0
-
-                    for left_row in left_rows:
-                        while right_idx < len(right_rows) and (
-                            right_rows[right_idx].row_ or 0
-                        ) < (left_row.row_ or 0):
-                            table_fragment_builder.append_skipped(
-                                [right_rows[right_idx]], right_uuid
-                            )
-                            right_idx += 1
-
-                        if (
-                            right_idx < len(right_rows)
-                            and right_rows[right_idx].row_ == left_row.row_
-                            and same_row(left_row, right_rows[right_idx])
-                        ):
-                            right_row = right_rows[right_idx].model_copy(
-                                update={
-                                    "sources_": [right_uuid] if right_uuid else None
-                                }
-                            )
-                            table_fragment_builder.merge_and_append(left_row, right_row)
-                            right_idx += 1
-                        else:
-                            table_fragment_builder.append_unmatched(left_row)
-
-                    table_fragment_builder.append_skipped(
-                        right_rows[right_idx:], right_uuid
+                    left_rows = table_fragment_builder.prepare_next_left_rows()
+                    self.merge_fragment(
+                        table_fragment_builder,
+                        left_rows,
+                        right_rows,
+                        right_tablesfile.uuid,
                     )
 
                 merged_fragments.append(table_fragment_builder.build())
@@ -185,12 +252,14 @@ class TablesFileMerger:
 def merge_tablesfiles(
     tablesfiles: list[TablesFile],
     agreement: Agreement = SimpleCountAgreement(),
-    column_agreement: bool = False,
+    multivalued: bool = False,
     analyzers: list[MergeTimeAnalyzer] = [],
     page_offsets: list[int] | None = None,
+    row_similarity_threshold: float = 0.6,
 ) -> TablesFile:
     return TablesFileMerger(
         agreement=agreement,
-        column_agreement=column_agreement,
+        multivalued=multivalued,
         analyzers=analyzers,
+        row_similarity_threshold=row_similarity_threshold,
     ).merge(tablesfiles, page_offsets=page_offsets)

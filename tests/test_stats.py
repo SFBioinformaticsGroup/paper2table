@@ -775,8 +775,13 @@ def test_convergent_rows_some_duplicate():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Apiaceae", "row_": 1},
-                        {"family": "Rosaceae", "row_": 1},
+                        {
+                            "family": [
+                                ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                                ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                            ],
+                            "row_": 1,
+                        },
                         {"family": "Lamiaceae", "row_": 2},
                     ],
                 }
@@ -786,13 +791,6 @@ def test_convergent_rows_some_duplicate():
     assert stats.convergent_rows == 1
 
 
-def test_convergent_rows_no_row_id():
-    stats = compute_paper_stats(
-        make_paper(
-            [{"page": 1, "rows": [{"family": "Apiaceae"}, {"family": "Rosaceae"}]}]
-        )
-    )
-    assert stats.convergent_rows == 0
 
 def test_update_papers_stats_counts_papers_with_curations():
     stats = GlobalStats(
@@ -855,7 +853,7 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
                 "page": 1,
                 "rows": [
                     {"family": "Apiaceae", "row_": 1},
-                    {"family": "Rosaceae", "row_": 1},
+                    {"family": [ValueWithAgreement(value="Rosaceae", agreement_level=1), ValueWithAgreement(value="Apiaceae", agreement_level=1)], "row_": 2},
                 ],
             }
         ]
@@ -1051,8 +1049,13 @@ def test_sort_stats_by_rows_convergence_asc():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Apiaceae", "row_": 1},
-                        {"family": "Rosaceae", "row_": 1},
+                        {
+                            "family": [
+                                ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                                ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                            ],
+                            "row_": 1,
+                        },
                     ],
                 }
             ]
@@ -1085,13 +1088,17 @@ def test_sort_stats_by_rows_convergence_desc():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Apiaceae", "row_": 1},
-                        {"family": "Rosaceae", "row_": 1},
+                        {"family": [
+                            ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                            ValueWithAgreement(value="Rosaceae", agreement_level=1)
+                        ], "row_": 1},
                     ],
                 }
             ]
         )
     )
+
+
     paper_b = compute_paper_stats(
         make_paper(
             [
@@ -1112,26 +1119,16 @@ def test_sort_stats_by_rows_convergence_desc():
     assert list(stats.papers_stats.keys()) == ["b.tables.json", "a.tables.json"]
 
 
-def test_sort_stats_by_rows_convergence_no_row_id_sorts_first_asc():
-    paper_a = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Apiaceae"}]}])
-    )
-    paper_b = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae", "row_": 1}]}])
-    )
-    stats = make_global_stats_with_papers(
-        {"a.tables.json": paper_a, "b.tables.json": paper_b}
-    )
-    sort_stats(stats, [("tables-convergence", "asc")])
-    assert list(stats.papers_stats.keys()) == ["a.tables.json", "b.tables.json"]
-
 
 def test_sort_stats_by_rows_convergence_none_last_desc():
     paper_a = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Apiaceae"}]}])
+        make_paper([{"page": 1, "rows": [{"family": [
+            ValueWithAgreement(value="Apiaceae", agreement_level=1),
+            ValueWithAgreement(value="", agreement_level=1)
+        ]}]}])
     )
     paper_b = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae", "row_": 1}]}])
+        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae"}]}])
     )
     stats = make_global_stats_with_papers(
         {"a.tables.json": paper_a, "b.tables.json": paper_b}

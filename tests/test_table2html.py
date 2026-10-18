@@ -2,11 +2,10 @@
 from table2html.__main__ import (
     agreement_css_class,
     build_css,
-    build_data_row,
+    build_data_rows,
     build_fragment_html,
     build_html,
     build_metadata_html,
-    compute_rowspans,
     render_citation,
 )
 from tablevalidate.schema import Row, TableFragment, TablesFile, ValueWithAgreement
@@ -114,23 +113,24 @@ def test_fragment_readers_column_deduplicates():
     assert "<td>pdfplumber</td>" in out
 
 
-def test_fragment_list_value_joined():
+def test_fragment_multivalued_expands_to_rows():
     fragment = TableFragment(
         page=1,
         rows=[
             Row(
-                tags=[
-                    ValueWithAgreement(value="a", agreement_level=1),
-                    ValueWithAgreement(value="b", agreement_level=1),
-                    ValueWithAgreement(value="c", agreement_level=1),
-                ]
+                family="Apiaceae",
+                species=[
+                    ValueWithAgreement(value="Ammi majus", agreement_level=1),
+                    ValueWithAgreement(value="Carum carvi", agreement_level=1),
+                ],
             )
         ],
     )
     out = joined(build_fragment_html(1, fragment))
-    assert '<span class="choice">a<sub>1</sub></span>' in out
-    assert '<span class="choice">b<sub>1</sub></span>' in out
-    assert '<span class="choice">c<sub>1</sub></span>' in out
+    assert "rowspan='2'" in out
+    assert "<td rowspan='2'>Apiaceae</td>" in out
+    assert "Ammi majus" in out
+    assert "Carum carvi" in out
 
 
 def test_fragment_agreement_css_low():
@@ -251,48 +251,57 @@ def test_agreement_css_class_high():
     assert agreement_css_class(3) == "high"
 
 
-def test_build_data_row_simple():
+def test_build_data_rows_simple():
     row = Row(species="Rosa", family="Rosaceae")
-    out = joined(build_data_row(row, ["species", "family"]))
+    out = joined(build_data_rows(row, ["species", "family"]))
     assert "<td>Rosa</td>" in out
     assert "<td>Rosaceae</td>" in out
 
 
-def test_build_data_row_applies_css_class():
+def test_build_data_rows_applies_css_class():
     row = Row(x="v", agreement_level_=2)
-    out = joined(build_data_row(row, ["x", "agreement_level_"]))
+    out = joined(build_data_rows(row, ["x", "agreement_level_"]))
     assert "class='medium'" in out
 
 
-def test_build_data_row_readers_column():
+def test_build_data_rows_readers_column():
     row = Row(species="Rosa", sources_=["s1", "s2"])
     uuid_to_reader = {"s1": "pdfplumber", "s2": "camelot"}
-    out = joined(build_data_row(row, ["species", "readers_"], uuid_to_reader))
+    out = joined(build_data_rows(row, ["species", "readers_"], uuid_to_reader))
     assert "pdfplumber" in out
     assert "camelot" in out
 
 
-def test_build_data_row_list_value_multiple_elements():
+def test_build_data_rows_multivalued_expands():
     row = Row(
-        tags=[
-            ValueWithAgreement(value="a", agreement_level=1),
-            ValueWithAgreement(value="b", agreement_level=2),
-            ValueWithAgreement(value="c", agreement_level=1),
-        ]
+        family="Apiaceae",
+        species=[
+            ValueWithAgreement(value="Ammi majus", agreement_level=1),
+            ValueWithAgreement(value="Carum carvi", agreement_level=2),
+        ],
     )
-    out = joined(build_data_row(row, ["tags"]))
-    assert '<span class="choice">a<sub>1</sub></span>' in out
-    assert '<span class="choice">b<sub>2</sub></span>' in out
-    assert '<span class="choice">c<sub>1</sub></span>' in out
+    out = joined(build_data_rows(row, ["family", "species"]))
+    assert "rowspan='2'" in out
+    assert "<td rowspan='2'>Apiaceae</td>" in out
+    assert "Ammi majus" in out
+    assert "Carum carvi" in out
 
 
-def test_build_data_row_list_value_single_element():
+def test_build_data_rows_multivalued_agreement_css():
     row = Row(
-        tags=[
-            ValueWithAgreement(value="a", agreement_level=1),
+        species=[
+            ValueWithAgreement(value="Ammi majus", agreement_level=1),
+            ValueWithAgreement(value="Carum carvi", agreement_level=2),
         ]
     )
-    out = joined(build_data_row(row, ["tags"]))
+    out = joined(build_data_rows(row, ["species"]))
+    assert "class='low'" in out
+    assert "class='medium'" in out
+
+
+def test_build_data_rows_list_value_single_element():
+    row = Row(tags=[ValueWithAgreement(value="a", agreement_level=1)])
+    out = joined(build_data_rows(row, ["tags"]))
     assert "<td>a</td>" in out
 
 
@@ -324,73 +333,7 @@ def test_render_citation_list():
     assert render_citation(citation) == "Smith 2020, Smith et al."
 
 
-def test_compute_rowspans_no_row_numbers():
-    rows = [Row(family="Apiaceae"), Row(family="Apiaceae")]
-    assert compute_rowspans(rows, ["family"]) == [{"family": 1}, {"family": 1}]
-
-
-def test_compute_rowspans_different_row_numbers():
-    rows = [Row(family="Apiaceae", row_=0), Row(family="Apiaceae", row_=1)]
-    assert compute_rowspans(rows, ["family"]) == [{"family": 1}, {"family": 1}]
-
-
-def test_compute_rowspans_same_row_same_value():
-    rows = [Row(family="Apiaceae", row_=0), Row(family="Apiaceae", row_=0)]
-    assert compute_rowspans(rows, ["family"]) == [{"family": 2}, {"family": 0}]
-
-
-def test_compute_rowspans_same_row_different_values_per_column():
-    rows = [
-        Row(family="Apiaceae", species="Ammi majus", row_=0),
-        Row(family="Apiaceae", species="Carum carvi", row_=0),
-    ]
-    assert compute_rowspans(rows, ["family", "species"]) == [
-        {"family": 2, "species": 1},
-        {"family": 0, "species": 1},
-    ]
-
-
-def test_compute_rowspans_three_rows_same_row_number():
-    rows = [
-        Row(family="Apiaceae", row_=0),
-        Row(family="Apiaceae", row_=0),
-        Row(family="Apiaceae", row_=0),
-    ]
-    assert compute_rowspans(rows, ["family"]) == [
-        {"family": 3},
-        {"family": 0},
-        {"family": 0},
-    ]
-
-
-def test_build_fragment_html_merges_shared_column_value():
-    fragment = TableFragment(
-        page=1,
-        rows=[
-            Row(family="Apiaceae", species="Ammi majus", row_=0),
-            Row(family="Apiaceae", species="Carum carvi", row_=0),
-        ],
-    )
-    out = joined(build_fragment_html(1, fragment))
-    assert "rowspan='2'" in out
-    assert "<td>Apiaceae</td>" not in out
-    assert "<td rowspan='2'>Apiaceae</td>" in out
-    assert "<td>Ammi majus</td>" in out
-    assert "<td>Carum carvi</td>" in out
-
-
-def test_compute_rowspans_never_merges_agreement_level_column():
-    rows = [
-        Row(family="Apiaceae", agreement_level_=2, row_=0),
-        Row(family="Apiaceae", agreement_level_=2, row_=0),
-    ]
-    assert compute_rowspans(rows, ["agreement_level_", "family"]) == [
-        {"agreement_level_": 1, "family": 2},
-        {"agreement_level_": 1, "family": 0},
-    ]
-
-
-def test_build_fragment_html_no_merge_without_row_numbers():
+def test_build_fragment_html_no_rowspan_without_multivalued():
     fragment = TableFragment(
         page=1,
         rows=[

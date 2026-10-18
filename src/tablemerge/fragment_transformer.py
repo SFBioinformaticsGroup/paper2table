@@ -330,7 +330,7 @@ class FragmentValuesReverser:
 
     def _row_score(self, row: Row) -> int:
         total = 0
-        for value in row.get_columns().values():
+        for value in row.get_column_values():
             if isinstance(value, str):
                 total += self._count_known_words(value)
             elif isinstance(value, list):

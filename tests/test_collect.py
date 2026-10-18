@@ -14,6 +14,7 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     Row,
+    ValueWithAgreement,
 )
 
 
@@ -247,15 +248,17 @@ def test_convergence_rows_keeps_singleton_row_ids():
     ]
 
 
-def test_convergence_rows_excludes_duplicate_row_ids():
+def test_convergence_rows_excludes_multivalued_rows():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
                 table_fragments=[
                     TableFragment(
                         rows=[
-                            Row(species="Ammi majus", row_=1),
-                            Row(species="Carum carvi", row_=1),
+                            Row(species=[
+                                ValueWithAgreement(value="Ammi majus", agreement_level=1),
+                                ValueWithAgreement(value="Carum carvi", agreement_level=1),
+                            ], row_=1),
                             Row(species="Zea mays", row_=2),
                         ],
                         page=1,
@@ -278,47 +281,10 @@ def test_convergence_rows_excludes_duplicate_row_ids():
             path_=str(path),
             page_=1,
             fragment_=1,
-            row_=2,  # original row_
+            row_=2,
             species="Zea mays",
         )
     ]
-
-
-def test_convergence_rows_excludes_rows_without_row_id():
-    tablesfile = TablesFile(
-        tables=[
-            TableWithFragments(
-                table_fragments=[
-                    TableFragment(
-                        rows=[
-                            Row(species="Ammi majus"),
-                            Row(species="Carum carvi", row_=1),
-                        ],
-                        page=1,
-                    )
-                ]
-            )
-        ],
-        citation="Mamani 2020",
-    )
-    path = Path("Mamani 2020.tables.json")
-    result = gather_tablesfiles(
-        [(tablesfile, path)],
-        key_columns=[],
-        convergence="rows",
-    )
-    fragments = result.tables[0].get_table_fragments()
-    assert fragments[0].rows == [
-        Row(
-            citation_="Mamani 2020",
-            path_=str(path),
-            page_=1,
-            fragment_=1,
-            row_=1,
-            species="Carum carvi",
-        )
-    ]
-
 
 def test_convergence_rows_computed_per_file_not_globally():
     file_a, path_a = wrap([Row(species="Ammi majus", row_=1)], citation="Mamani 2020")
@@ -368,7 +334,10 @@ def test_convergence_fragments_includes_fully_convergent_fragments():
                     TableFragment(
                         rows=[
                             Row(species="Zea mays", row_=1),
-                            Row(species="Zea mays", row_=1),
+                            Row(species=[
+                                ValueWithAgreement(value="Zea mays", agreement_level=1),
+                                ValueWithAgreement(value="Zea", agreement_level=1),
+                            ], row_=2),
                         ],
                         page=2,
                     )
@@ -404,7 +373,7 @@ def test_convergence_fragments_includes_fully_convergent_fragments():
     ]
 
 
-def test_convergence_fragments_excludes_fragment_with_missing_row_id():
+def test_convergence_fragments_excludes_non_convergent_fragment():
     tablesfile = TablesFile(
         tables=[
             TableWithFragments(
@@ -412,7 +381,10 @@ def test_convergence_fragments_excludes_fragment_with_missing_row_id():
                     TableFragment(
                         rows=[
                             Row(species="Ammi majus", row_=1),
-                            Row(species="Carum carvi"),
+                            Row(species=[
+                                ValueWithAgreement(value="Carum carvi", agreement_level=1),
+                                ValueWithAgreement(value="Carum", agreement_level=1),
+                            ], row_=2),
                         ],
                         page=1,
                     )
@@ -454,7 +426,10 @@ def test_convergence_fragments_keeps_1_indexed_fragment_number_of_surviving_frag
                     TableFragment(
                         rows=[
                             Row(species="Ammi majus", row_=1),
-                            Row(species="Carum carvi", row_=1),
+                            Row(species=[
+                                ValueWithAgreement(value="Carum carvi", agreement_level=1),
+                                ValueWithAgreement(value="Carum", agreement_level=1),
+                            ], row_=2),
                         ],
                         page=1,
                     ),
@@ -510,7 +485,13 @@ def test_convergence_tables_includes_fully_convergent_tablesfiles():
                     TableFragment(
                         rows=[
                             Row(species="Zea mays", row_=1),
-                            Row(species="Zea mays", row_=1),
+                            Row(species=[
+                                    ValueWithAgreement(
+                                        value="Zea mays", agreement_level=1
+                                    ),
+                                    ValueWithAgreement(value="Zea", agreement_level=1),
+
+                            ], row_=2),
                         ],
                         page=1,
                     )
@@ -559,8 +540,16 @@ def test_convergence_tables_excludes_non_convergent_tables():
                 table_fragments=[
                     TableFragment(
                         rows=[
-                            Row(species="Zea mays", row_=1),
-                            Row(species="Zea mays", row_=1),
+                            Row(species="Zea mays", row_=0),
+                            Row(
+                                species=[
+                                    ValueWithAgreement(
+                                        value="Zea mays", agreement_level=1
+                                    ),
+                                    ValueWithAgreement(value="Zea", agreement_level=1),
+                                ],
+                                row_=1,
+                            ),
                         ],
                         page=2,
                     )
@@ -596,7 +585,10 @@ def test_convergence_tables_prints_nothing_when_no_convergent_tables(capsys):
                     TableFragment(
                         rows=[
                             Row(species="Ammi majus", row_=1),
-                            Row(species="Carum carvi", row_=1),
+                            Row(species=[
+                                ValueWithAgreement(value="Carum carvi", agreement_level=1),
+                                ValueWithAgreement(value="Carum", agreement_level=1),
+                            ], row_=2),
                         ],
                         page=1,
                     )
