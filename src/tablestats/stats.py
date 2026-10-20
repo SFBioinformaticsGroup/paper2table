@@ -93,6 +93,8 @@ def row_value_strings(row: Row) -> frozenset:
             normalized = value.strip()
             if normalized:
                 result.add((col, normalized))
+        elif not isinstance(value, list):
+            result.add((col, str(value)))
         else:
             for v in value:
                 normalized = v.value.strip()

@@ -205,11 +205,13 @@ def build_data_rows(
                 elif col == "sources_":
                     html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
                 else:
-                    cell = col_values.get(col, "")
+                    cell = col_values.get(col)
                     if isinstance(cell, list):
                         val = cell[0].value if cell else ""
+                    elif cell is not None:
+                        val = str(cell)
                     else:
-                        val = cell or ""
+                        val = ""
                     html.append(f"<td{rowspan_attr}>{val}</td>")
         html.append("</tr>")
     return html
