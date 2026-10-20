@@ -74,6 +74,15 @@ pip install -e .[testing]
 pip install tox
 ```
 
+#### spaCy language models
+
+`--column-value-semantic-alignment` and `--column-name-semantic-alignment` in `tablemerge` require a spaCy language model. Download the one matching your language before running those flags:
+
+```bash
+python -m spacy download en_core_web_md   # English (default)
+python -m spacy download es_core_news_md  # Spanish
+```
+
 #### LLM provider packages
 
 The base install uses [`pydantic-ai-slim`](https://ai.pydantic.dev/) but doesn't assume any specific provider. In order to use **agent** (`-r agent`) or **hybrid** (`-H`) readers, you'll need to install them manually...
@@ -109,6 +118,16 @@ docker build --build-arg EXTRA_PACKAGES="google-genai openai" -f docker/Dockerfi
 
 # Base only, no LLM provider
 docker build --build-arg EXTRA_PACKAGES="" -f docker/Dockerfile -t paper2table .
+```
+
+The default image also downloads the `en_core_web_md` and `es_core_news_md` spaCy models (used by `--column-value-semantic-alignment` and `--column-name-semantic-alignment`). Use `SPACY_MODELS` to change this:
+
+```bash
+# English only
+docker build --build-arg SPACY_MODELS="en_core_web_md" -f docker/Dockerfile -t paper2table .
+
+# No spaCy models (if semantic alignment is not needed)
+docker build --build-arg SPACY_MODELS="" -f docker/Dockerfile -t paper2table .
 ```
 
 All commands below have Docker equivalents. Mount the directory containing your PDFs or result files to `/data` inside the container — the working directory is `/data`, so paths starting with `/data/` work naturally.
