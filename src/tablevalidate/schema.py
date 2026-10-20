@@ -175,7 +175,9 @@ class Row(BaseModel):
         return value
 
     @staticmethod
-    def map_text(value: ColumnValue, fn: Callable[[str], "str | int | float | bool"]) -> ColumnValue:
+    def map_text(
+        value: ColumnValue, fn: Callable[[str], "str | int | float | bool"]
+    ) -> ColumnValue:
         """Transforms cell's string values"""
         if isinstance(value, str):
             return fn(value)
@@ -335,7 +337,8 @@ class TablesFile(BaseModel):
             return normalize_str(citation)
         return [
             ValueWithAgreement(
-                value=normalize_str(v.value), agreement_level=v.agreement_level
+                value=normalize_str(v.value) if isinstance(v.value, str) else v.value,
+                agreement_level=v.agreement_level,
             )
             for v in citation
         ]

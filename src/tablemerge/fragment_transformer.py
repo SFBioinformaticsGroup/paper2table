@@ -216,6 +216,8 @@ class SplitColumnTransformer:
             return self.split_cell_value(
                 column_value, left_header_doc, right_header_doc
             )
+        if not isinstance(column_value, list):
+            return (column_value, column_value)
         left_list = []
         right_list = []
         for entry in column_value:

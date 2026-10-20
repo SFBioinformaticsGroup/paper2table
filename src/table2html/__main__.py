@@ -1,6 +1,7 @@
 import argparse
 import webbrowser
 from pathlib import Path
+from typing import cast
 
 from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
@@ -163,7 +164,7 @@ def build_data_rows(
     for col in columns:
         value = col_values.get(col)
         if not Row.is_convergent(value):
-            multivalued[col] = value
+            multivalued[col] = cast(list[ValueWithAgreement], value)
     span = max((len(v) for v in multivalued.values()), default=1)
     html = []
     for i in range(span):

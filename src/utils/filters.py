@@ -17,7 +17,7 @@ def value_matches_header(column_name: str, value: ColumnValue) -> bool:
     if not isinstance(value, list):
         return False  # int, float, bool can't match a header name
 
-    non_empty = [v.value for v in value if v.value.strip()]
+    non_empty = [v.value for v in value if isinstance(v.value, str) and v.value.strip()]
     return bool(non_empty) and all(
         normalize_column_name(v) == normalized_name for v in non_empty
     )
@@ -34,7 +34,7 @@ def value_matches_hints(value: ColumnValue, hints_set: set[str]) -> bool:
     return any(
         normalize_column_name(v.value.strip()) in hints_set
         for v in value
-        if v.value.strip()
+        if isinstance(v.value, str) and v.value.strip()
     )
 
 
