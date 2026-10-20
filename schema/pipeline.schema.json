@@ -4,21 +4,11 @@
   "description": "Declarative pipeline for paper2table tools.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["input_paths", "output_path"],
+  "required": ["working_path"],
   "properties": {
-    "input_paths": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Directories (or files) containing the source PDFs."
-    },
-    "output_path": {
+    "working_path": {
       "type": "string",
-      "description": "Root directory for all pipeline output."
-    },
-    "schema_path": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
-      "default": null,
-      "description": "Path to a schema file; passed to every tool that accepts -p."
+      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. Schema is read from ${working_path}/schema.txt if the file exists and is non-empty."
     },
     "pretty": {
       "type": "boolean",
@@ -52,11 +42,6 @@
           "type": "boolean",
           "default": true,
           "description": "true = prompt for each change; false = auto-confirm silently (-y -q)."
-        },
-        "inplace": {
-          "type": "boolean",
-          "default": false,
-          "description": "true = copy PDFs into ${output_path}/papers/ first, then normalize there."
         }
       }
     },
@@ -99,7 +84,7 @@
         "schema": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null,
-          "description": "Inline schema string (-s); overrides top-level schema_path for this run."
+          "description": "Inline schema string (-s); overrides ${working_path}/schema.txt for this run."
         },
         "column_names_hints_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -148,7 +133,7 @@
         "override": {
           "type": "boolean",
           "default": false,
-          "description": "Wipe ${output_path}/tables/ before running. When false, a warning is printed if the directory already has contents."
+          "description": "Wipe ${working_path}/tables/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -244,7 +229,7 @@
         "override": {
           "type": "boolean",
           "default": false,
-          "description": "Wipe ${output_path}/merges/ before running. When false, a warning is printed if the directory already has contents."
+          "description": "Wipe ${working_path}/merges/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     },
@@ -285,7 +270,7 @@
         "override": {
           "type": "boolean",
           "default": false,
-          "description": "Wipe ${output_path}/gathers/ before running. When false, a warning is printed if the directory already has contents."
+          "description": "Wipe ${working_path}/gathers/ before running. When false, a warning is printed if the directory already has contents."
         }
       }
     }

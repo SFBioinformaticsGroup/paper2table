@@ -14,7 +14,7 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
-from paper2pipeline.runner import build_extract_args, build_merge_args
+from paper2pipeline.runner import build_extract_args, build_merge_args, find_schema_path
 from paper2table import __version__
 
 
@@ -26,13 +26,9 @@ def test_version_prints_version_string(capsys):
 
 def test_load_pipeline_minimal(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
-    pipeline_file.write_text(
-        json.dumps({"input_paths": ["papers"], "output_path": "out"})
-    )
+    pipeline_file.write_text(json.dumps({"working_path": "x"}))
     pipeline = load_pipeline(str(pipeline_file))
-    assert pipeline.input_paths == ["papers"]
-    assert pipeline.output_path == "out"
-    assert pipeline.schema_path is None
+    assert pipeline.working_path == "x"
     assert pipeline.normalize is None
     assert pipeline.extract is None
     assert pipeline.merge is None
@@ -43,9 +39,8 @@ def test_load_pipeline_full():
     demo_pipeline = Path(__file__).parent / "data" / "demo.pipeline.jsonc"
     pipeline = load_pipeline(str(demo_pipeline))
 
-    assert pipeline.input_paths == ["tablas"]
-    assert pipeline.schema_path == "schema.txt"
-    assert pipeline.normalize == NormalizeConfig(interactive=False, inplace=True)
+    assert pipeline.working_path == "."
+    assert pipeline.normalize == NormalizeConfig(interactive=False)
     assert pipeline.extract == ExtractConfig(
         runs=[
             ExtractRun(
@@ -74,7 +69,6 @@ def test_load_pipeline_full():
 def test_normalize_defaults():
     config = NormalizeConfig()
     assert config.interactive is True
-    assert config.inplace is False
 
 
 def test_extract_run_defaults():
@@ -106,9 +100,7 @@ def test_override_defaults_to_false():
 
 def test_validate_only_prints_valid(tmp_path, capsys):
     pipeline_file = tmp_path / "pipeline.json"
-    pipeline_file.write_text(
-        json.dumps({"input_paths": ["papers"], "output_path": "out"})
-    )
+    pipeline_file.write_text(json.dumps({"working_path": "x"}))
     main(["--validate-only", str(pipeline_file)])
     assert capsys.readouterr().out == "Pipeline is valid.\n"
 
@@ -132,89 +124,9 @@ def test_merge_config_hints_alignment_accepts_hints_path():
     assert config.hints_column_alignment == "unsafe"
 
 
-def test_merge_order_schema_columns_requires_schema_path():
-    with pytest.raises(Exception):
-        Pipeline(
-            input_paths=["x"],
-            output_path="y",
-            merge=MergeConfig(order_schema_columns=True),
-        )
-
-
-def test_gather_order_schema_columns_requires_schema_path():
-    with pytest.raises(Exception):
-        Pipeline(
-            input_paths=["x"],
-            output_path="y",
-            gather=GatherConfig(order_schema_columns=True),
-        )
-
-
-def test_order_schema_columns_accepted_with_schema_path():
-    pipeline = Pipeline(
-        input_paths=["x"],
-        output_path="y",
-        schema_path="schema.txt",
-        merge=MergeConfig(order_schema_columns=True),
-        gather=GatherConfig(order_schema_columns=True),
-    )
-    assert pipeline.merge.order_schema_columns is True
-    assert pipeline.gather.order_schema_columns is True
-
-
-def test_merge_coerce_schema_column_types_requires_schema_path():
-    with pytest.raises(Exception):
-        Pipeline(
-            input_paths=["x"],
-            output_path="y",
-            merge=MergeConfig(coerce_schema_column_types=True),
-        )
-
-
-def test_gather_coerce_schema_column_types_requires_schema_path():
-    with pytest.raises(Exception):
-        Pipeline(
-            input_paths=["x"],
-            output_path="y",
-            gather=GatherConfig(coerce_schema_column_types=True),
-        )
-
-
-def test_coerce_schema_column_types_accepted_with_schema_path():
-    pipeline = Pipeline(
-        input_paths=["x"],
-        output_path="y",
-        schema_path="schema.txt",
-        merge=MergeConfig(coerce_schema_column_types=True),
-        gather=GatherConfig(coerce_schema_column_types=True),
-    )
-    assert pipeline.merge.coerce_schema_column_types is True
-    assert pipeline.gather.coerce_schema_column_types is True
-
-
-def test_agent_reader_requires_schema_path_or_schema():
-    with pytest.raises(Exception):
-        Pipeline(
-            input_paths=["x"],
-            output_path="y",
-            extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
-        )
-
-
-def test_agent_reader_accepted_with_schema_path():
-    pipeline = Pipeline(
-        input_paths=["x"],
-        output_path="y",
-        schema_path="schema.txt",
-        extract=ExtractConfig(runs=[ExtractRun(reader="agent")]),
-    )
-    assert pipeline.extract.runs[0].reader == "agent"
-
-
 def test_agent_reader_accepted_with_inline_schema():
     pipeline = Pipeline(
-        input_paths=["x"],
-        output_path="y",
+        working_path="x",
         extract=ExtractConfig(runs=[ExtractRun(reader="agent", schema="species family")]),
     )
     assert pipeline.extract.runs[0].reader == "agent"
@@ -223,7 +135,7 @@ def test_agent_reader_accepted_with_inline_schema():
 def test_pipeline_rejects_unknown_fields(tmp_path):
     pipeline_file = tmp_path / "pipeline.json"
     pipeline_file.write_text(
-        json.dumps({"input_paths": ["x"], "output_path": "y", "typo_field": True})
+        json.dumps({"working_path": "x", "typo_field": True})
     )
     with pytest.raises(Exception):
         load_pipeline(str(pipeline_file))
@@ -269,3 +181,17 @@ def test_build_merge_args_row_similarity_threshold_default_omitted(tmp_path):
     config = MergeConfig()
     args = build_merge_args(config, tmp_path, None)
     assert "--row-similarity-threshold" not in args
+
+
+def test_find_schema_path_returns_none_when_missing(tmp_path):
+    assert find_schema_path(tmp_path) is None
+
+
+def test_find_schema_path_returns_none_when_empty(tmp_path):
+    (tmp_path / "schema.txt").write_text("   \n", encoding="utf-8")
+    assert find_schema_path(tmp_path) is None
+
+
+def test_find_schema_path_returns_path_when_present(tmp_path):
+    (tmp_path / "schema.txt").write_text("species family color\n", encoding="utf-8")
+    assert find_schema_path(tmp_path) == str(tmp_path / "schema.txt")
