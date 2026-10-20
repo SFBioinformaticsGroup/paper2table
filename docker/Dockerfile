@@ -6,6 +6,8 @@ FROM python:3.13-slim
 #   docker build --build-arg EXTRA_PACKAGES="google-genai openai" ...
 #   docker build --build-arg EXTRA_PACKAGES="" ...  (no provider)
 ARG EXTRA_PACKAGES="google-genai"
+# spaCy language models to download; set to "" to skip
+ARG SPACY_MODELS="en_core_web_md es_core_news_md"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ghostscript \
@@ -26,6 +28,9 @@ RUN mkdir -p src && \
 
 # Install LLM provider packages
 RUN if [ -n "$EXTRA_PACKAGES" ]; then pip install --no-cache-dir $EXTRA_PACKAGES; fi
+
+# Download spaCy language models
+RUN if [ -n "$SPACY_MODELS" ]; then for model in $SPACY_MODELS; do python -m spacy download $model; done; fi
 
 # Install package
 COPY . .
