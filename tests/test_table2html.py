@@ -343,3 +343,33 @@ def test_build_fragment_html_no_rowspan_without_multivalued():
     )
     out = joined(build_fragment_html(1, fragment))
     assert "rowspan" not in out
+
+
+def test_build_data_rows_renders_float():
+    row = Row(ratio=3.14)
+    html = joined(build_data_rows(row, ["ratio"]))
+    assert "<td>3.14</td>" in html
+
+
+def test_build_data_rows_renders_int_zero_not_empty():
+    row = Row(count=0)
+    html = joined(build_data_rows(row, ["count"]))
+    assert "<td>0</td>" in html
+
+
+def test_build_data_rows_renders_bool_false_not_empty():
+    row = Row(active=False)
+    html = joined(build_data_rows(row, ["active"]))
+    assert "<td>False</td>" in html
+
+
+def test_build_data_rows_renders_bool_true():
+    row = Row(active=True)
+    html = joined(build_data_rows(row, ["active"]))
+    assert "<td>True</td>" in html
+
+
+def test_build_fragment_html_renders_int_cell():
+    fragment = TableFragment(page=1, rows=[Row(count=42)])
+    out = joined(build_fragment_html(1, fragment))
+    assert "<td>42</td>" in out

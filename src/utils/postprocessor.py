@@ -129,13 +129,15 @@ class SchemaPostProcessor:
                 return None
             if isinstance(value, str):
                 return coerce_str(value, target_type)
-            return [
-                ValueWithAgreement(
-                    value=coerce_str(v.value, target_type),
-                    agreement_level=v.agreement_level,
-                )
-                for v in value
-            ]
+            if isinstance(value, list):
+                return [
+                    ValueWithAgreement(
+                        value=coerce_str(v.value, target_type),
+                        agreement_level=v.agreement_level,
+                    )
+                    for v in value
+                ]
+            return coerce_str(str(value), target_type)
 
         def coerce_row(row: Row) -> Row:
             return row.clone(

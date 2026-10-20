@@ -11,7 +11,7 @@ class ValueWithAgreement(BaseModel):
     agreement_level: int
 
 
-ColumnValue = None | str | List[ValueWithAgreement]
+ColumnValue = None | str | int | float | bool | List[ValueWithAgreement]
 
 _META_COLUMNS = frozenset(
     (
@@ -134,16 +134,17 @@ class Row(BaseModel):
         if value is None:
             return True
 
+        if isinstance(value, list):
+            return all(not normalize_column_value(v.value) for v in value)
+
         if isinstance(value, str):
             return not normalize_column_value(value)
 
-        return all(not normalize_column_value(v.value) for v in value)
+        return False  # int, float, bool — never empty
 
     @staticmethod
     def is_convergent(value: ColumnValue) -> bool:
-        if value is None:
-            return True
-        if isinstance(value, str):
+        if not isinstance(value, list):
             return True
         return len(value) == 1
 
@@ -156,13 +157,16 @@ class Row(BaseModel):
         if isinstance(value, str):
             return normalize_column_value(value)
 
-        return [
-            ValueWithAgreement(
-                value=normalize_column_value(value_with_agreement.value),
-                agreement_level=value_with_agreement.agreement_level,
-            )
-            for value_with_agreement in value
-        ]
+        if isinstance(value, list):
+            return [
+                ValueWithAgreement(
+                    value=normalize_column_value(value_with_agreement.value),
+                    agreement_level=value_with_agreement.agreement_level,
+                )
+                for value_with_agreement in value
+            ]
+
+        return value
 
 
 class TableFragment(BaseModel):

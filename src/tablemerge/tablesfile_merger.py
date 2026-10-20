@@ -64,26 +64,27 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
 
     return (
         ratio(
-            get_text(left_columns, sorted_column_keys),
-            get_text(right_columns, sorted_column_keys),
+            get_column_text(left_columns, sorted_column_keys),
+            get_column_text(right_columns, sorted_column_keys),
         )
         >= similarity_threshold
     )
 
 
-def get_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
+def get_column_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
     return "".join(
-        transliterate_scalar(get_scalar(columns.get(k, ""))) for k in sorted_column_keys
+        transliterate_scalar(get_scalar_text(columns.get(k, "")))
+        for k in sorted_column_keys
     )
 
 
-def get_scalar(value: ColumnValue):
-    if isinstance(value, str):
-        return value
+def get_scalar_text(value: ColumnValue):
     if isinstance(value, list):
-        return value[0].value
-    return ""
+        return value[0].value if value else ""
+    if value is None:
+        return ""
+    return str(value)
 
 
 def make_fragments_clusters(

@@ -7,9 +7,9 @@ from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgree
 def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreement]:
     if column_value is None:
         return []
-    if isinstance(column_value, str):
-        return [ValueWithAgreement(value=column_value, agreement_level=1)]
-    return column_value
+    if isinstance(column_value, list):
+        return column_value
+    return [ValueWithAgreement(value=str(column_value), agreement_level=1)]
 
 
 def _merge_scalar_columns(left: Row, right: Row):

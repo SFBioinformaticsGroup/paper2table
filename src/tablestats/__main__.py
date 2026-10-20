@@ -93,6 +93,12 @@ def write_stats(stats: GlobalStats, output_file):
 
 
 def infer_type(value: ColumnValue) -> str:
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
     raw = value if isinstance(value, str) else (value[0].value if value else "")
     stripped = raw.strip()
     if stripped.lower() in ("true", "false"):

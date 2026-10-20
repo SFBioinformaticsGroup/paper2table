@@ -1818,6 +1818,30 @@ def test_to_values_with_agreement_returns_empty_list_for_none():
     assert to_values_with_agreement(None) == []
 
 
+def test_to_values_with_agreement_wraps_int():
+    assert to_values_with_agreement(42) == [
+        ValueWithAgreement(value="42", agreement_level=1)
+    ]
+
+
+def test_to_values_with_agreement_wraps_float():
+    assert to_values_with_agreement(3.14) == [
+        ValueWithAgreement(value="3.14", agreement_level=1)
+    ]
+
+
+def test_to_values_with_agreement_wraps_bool_true():
+    assert to_values_with_agreement(True) == [
+        ValueWithAgreement(value="True", agreement_level=1)
+    ]
+
+
+def test_to_values_with_agreement_wraps_bool_false():
+    assert to_values_with_agreement(False) == [
+        ValueWithAgreement(value="False", agreement_level=1)
+    ]
+
+
 def test_table_fragment_is_empty_all_empty_rows():
     fragment = TableFragment(rows=[Row(family="", scientific_name=None)], page=1)
     assert fragment.is_empty()
