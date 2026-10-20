@@ -1,15 +1,7 @@
 from typing import Iterable, Optional
 
 from tablemerge.agreement import Agreement, SimpleCountAgreement
-from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
-
-
-def to_values_with_agreement(column_value: ColumnValue) -> list[ValueWithAgreement]:
-    if column_value is None:
-        return []
-    if isinstance(column_value, list):
-        return column_value
-    return [ValueWithAgreement(value=str(column_value), agreement_level=1)]
+from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 
 
 def _merge_scalar_columns(left: Row, right: Row):
@@ -24,7 +16,7 @@ def _merge_multivalued_columns(left: Row, right: Row):
     for row in [left, right]:
         for column_name, column_value in row.get_columns().items():
             values = column_values.setdefault(column_name, {})
-            for value_with_agreement in to_values_with_agreement(column_value):
+            for value_with_agreement in Row.to_multivalued(column_value):
                 value = value_with_agreement.value
                 if value in values:
                     values[value] += value_with_agreement.agreement_level

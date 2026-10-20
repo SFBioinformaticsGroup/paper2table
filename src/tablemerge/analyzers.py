@@ -13,28 +13,11 @@ from utils.jaccard import jaccard
 REMOVE_COLUMN = "<remove>"
 
 
-def column_values(value: ColumnValue) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, list):
-        return [entry.value for entry in value]
-    return [str(value)]
-
-
 def sample_column_values(rows: list[Row], column_name: str) -> list[str]:
     values = []
     for row in rows:
         cell = row.get_columns().get(column_name)
-        if cell is None:
-            continue
-        if isinstance(cell, str):
-            text = cell.strip()
-        elif isinstance(cell, list):
-            text = cell[0].value.strip() if cell else ""
-        else:
-            text = str(cell)
+        text = Row.to_text(cell).strip()
         if text:
             values.append(text)
     return values
@@ -114,9 +97,7 @@ class HintsLoadTimeAnalyzer:
         result: dict[str, str] = {}
         for column in columns:
             val = row.get_columns().get(column)
-            if val is None:
-                continue
-            strings = [s.strip() for s in column_values(val) if s.strip()]
+            strings = [s.strip() for s in Row.to_texts(val) if s.strip()]
             if strings:
                 result[column] = normalize_column_name(strings[0])
         return result
@@ -338,16 +319,10 @@ class JaccardMergeTimeAnalyzer:
         return mapping
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
-        if column_value is None:
-            return []
-        if isinstance(column_value, str):
-            return [unidecode(re.sub(r"\s+", " ", column_value.strip()).lower())]
-        if isinstance(column_value, list):
-            return [
-                unidecode(re.sub(r"\s+", " ", entry.value.strip()).lower())
-                for entry in column_value
-            ]
-        return [str(column_value)]
+        return [
+            unidecode(re.sub(r"\s+", " ", s.strip()).lower())
+            for s in Row.to_texts(column_value)
+        ]
 
     def column_value_set(self, rows: list[Row], column: str) -> set[str]:
         result: set[str] = set()

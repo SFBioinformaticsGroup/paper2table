@@ -87,19 +87,10 @@ class GlobalStats:
 def row_value_strings(row: Row) -> frozenset:
     result = set()
     for col, value in row.get_columns().items():
-        if value is None:
-            continue
-        if isinstance(value, str):
-            normalized = value.strip()
+        for text in Row.to_texts(value):
+            normalized = text.strip()
             if normalized:
                 result.add((col, normalized))
-        elif not isinstance(value, list):
-            result.add((col, str(value)))
-        else:
-            for v in value:
-                normalized = v.value.strip()
-                if normalized:
-                    result.add((col, normalized))
     return frozenset(result)
 
 

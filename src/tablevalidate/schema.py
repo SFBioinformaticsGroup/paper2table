@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
@@ -167,6 +167,48 @@ class Row(BaseModel):
             ]
 
         return value
+
+    @staticmethod
+    def map_text(value: ColumnValue, fn: Callable[[str], str]) -> ColumnValue:
+        """Transforms cell's string values"""
+        if isinstance(value, str):
+            return fn(value)
+        if isinstance(value, list):
+            return [
+                ValueWithAgreement(value=fn(v.value), agreement_level=v.agreement_level)
+                for v in value
+            ]
+        return value
+
+    @staticmethod
+    def to_text(value: ColumnValue) -> str:
+        """Transforms cell's value to string"""
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            return value[0].value if value else ""
+        return str(value)
+
+    @staticmethod
+    def to_texts(value: ColumnValue) -> List[str]:
+        """Transforms cell's value to list of strings"""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [entry.value for entry in value]
+        return [str(value)]
+
+    @staticmethod
+    def to_multivalued(value: ColumnValue) -> List[ValueWithAgreement]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [ValueWithAgreement(value=str(value), agreement_level=1)]
 
 
 class TableFragment(BaseModel):
