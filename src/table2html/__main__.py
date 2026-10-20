@@ -51,11 +51,7 @@ def _source_cell(source: dict, key: str) -> str:
 
 
 def render_citation(citation: Citation) -> str:
-    if citation is None:
-        return ""
-    if isinstance(citation, list):
-        return ", ".join(v.value for v in citation)
-    return citation
+    return ", ".join(Row.to_texts(citation))
 
 
 def build_toc(papers: dict[str, TablesFile]) -> list[str]:
@@ -166,7 +162,7 @@ def build_data_rows(
     multivalued: dict[str, list[ValueWithAgreement]] = {}
     for col in columns:
         value = col_values.get(col)
-        if isinstance(value, list) and len(value) > 1:
+        if not Row.is_convergent(value):
             multivalued[col] = value
     span = max((len(v) for v in multivalued.values()), default=1)
     html = []
@@ -205,13 +201,7 @@ def build_data_rows(
                 elif col == "sources_":
                     html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
                 else:
-                    cell = col_values.get(col)
-                    if isinstance(cell, list):
-                        val = cell[0].value if cell else ""
-                    elif cell is not None:
-                        val = str(cell)
-                    else:
-                        val = ""
+                    val = Row.to_text(col_values.get(col))
                     html.append(f"<td{rowspan_attr}>{val}</td>")
         html.append("</tr>")
     return html
