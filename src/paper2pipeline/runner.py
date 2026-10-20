@@ -28,9 +28,10 @@ def run_subprocess(
             capture_output=capture_output,
         )
     except subprocess.CalledProcessError as error:
-        raise PipelineError(
-            f"{step_name} failed with exit code {error.returncode}"
-        ) from error
+        message = f"{step_name} failed with exit code {error.returncode}"
+        if error.stderr and error.stderr.strip():
+            message += f"\n{error.stderr.strip()}"
+        raise PipelineError(message) from error
 
 
 def collect_pdfs(paths: list[str]) -> list[str]:
@@ -42,6 +43,13 @@ def collect_pdfs(paths: list[str]) -> list[str]:
         elif p.is_file():
             files.append(str(p))
     return files
+
+
+def find_schema_path(working_path: Path) -> str | None:
+    schema_file = working_path / "schema.txt"
+    if schema_file.exists() and schema_file.read_text(encoding="utf-8").strip():
+        return str(schema_file)
+    return None
 
 
 def run_stats(input_dir: Path, step_name: str) -> None:
@@ -91,28 +99,17 @@ def prepare_output_dir(path: Path, override: bool, step_name: str) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def run_normalize(
-    config: NormalizeConfig, output_path: Path, input_paths: list[str]
-) -> list[str]:
-    if config.inplace:
-        papers_dir = output_path / "papers"
-        papers_dir.mkdir(parents=True, exist_ok=True)
-        for src in collect_pdfs(input_paths):
-            shutil.copy2(src, papers_dir / Path(src).name)
-        filenorm_files = sorted(str(f) for f in papers_dir.glob("*.pdf"))
-    else:
-        filenorm_files = collect_pdfs(input_paths)
-
+def run_normalize(config: NormalizeConfig, working_path: Path) -> None:
+    papers_dir = working_path / "papers"
+    filenorm_files = sorted(str(f) for f in papers_dir.glob("*.pdf"))
+    if not filenorm_files:
+        raise PipelineError(f"no input papers in: {papers_dir}")
     args = ["filenorm"]
     if not config.interactive:
         args += ["-y", "-q"]
     args += filenorm_files
     print("[pipeline] normalize", file=sys.stderr, flush=True)
     run_subprocess(args, step_name="normalize")
-
-    if config.inplace:
-        return sorted(str(f) for f in (output_path / "papers").glob("*.pdf"))
-    return collect_pdfs(input_paths)
 
 
 def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
@@ -126,13 +123,13 @@ def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
 
 
 def build_extract_args(
-    run: ExtractRun, schema_path: str | None, output_path: Path, paper_files: list[str], pretty: bool = True
+    run: ExtractRun, schema_path: str | None, working_path: Path, paper_files: list[str], pretty: bool = True
 ) -> list[str]:
     args = [
         "paper2table",
         "-t",
         "-o",
-        str(output_path / "tables"),
+        str(working_path / "tables"),
         "-r",
         run.reader,
     ]
@@ -141,7 +138,7 @@ def build_extract_args(
     if run.model_sleep is not None:
         args += ["-z", str(run.model_sleep)]
     if run.hybrid:
-        args += ["-H", "-M", str(output_path / "mappings")]
+        args += ["-H", "-M", str(working_path / "mappings")]
     if run.override_mappings:
         args += ["-F"]
     if run.schema_:
@@ -164,19 +161,19 @@ def build_extract_args(
 
 def run_extract(
     config: ExtractConfig,
-    output_path: Path,
+    working_path: Path,
     paper_files: list[str],
     schema_path: str | None,
     pretty: bool = True,
 ) -> None:
-    tables_dir = output_path / "tables"
+    tables_dir = working_path / "tables"
     prepare_output_dir(tables_dir, config.override, "extract")
 
     for i, run in enumerate(config.runs):
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
         print(f"[pipeline] extract (run {i + 1}/{len(config.runs)})", file=sys.stderr, flush=True)
         run_subprocess(
-            build_extract_args(run, schema_path, output_path, paper_files, pretty=pretty),
+            build_extract_args(run, schema_path, working_path, paper_files, pretty=pretty),
             step_name=f"extract run {i + 1}",
         )
         uuid_dir = find_new_uuid_dir(tables_dir, before)
@@ -192,11 +189,11 @@ def run_extract(
 
 
 def build_merge_args(
-    config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True
+    config: MergeConfig, working_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
-    tables_dir = output_path / "tables"
-    merges_dir = output_path / "merges"
-    input_dirs = sorted(str(d) for d in tables_dir.iterdir() if d.is_dir())
+    tables_dir = working_path / "tables"
+    merges_dir = working_path / "merges"
+    input_dirs = sorted(str(d) for d in tables_dir.iterdir() if d.is_dir()) if tables_dir.exists() else []
 
     args = [
         "tablemerge",
@@ -267,13 +264,13 @@ def build_merge_args(
     return args
 
 
-def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None, pretty: bool = True) -> None:
-    merges_dir = output_path / "merges"
+def run_merge(config: MergeConfig, working_path: Path, schema_path: str | None, pretty: bool = True) -> None:
+    merges_dir = working_path / "merges"
     prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
-        build_merge_args(config, output_path, schema_path, pretty=pretty), step_name="merge"
+        build_merge_args(config, working_path, schema_path, pretty=pretty), step_name="merge"
     )
 
     if config.stats:
@@ -287,10 +284,10 @@ def run_merge(config: MergeConfig, output_path: Path, schema_path: str | None, p
 
 
 def build_gather_args(
-    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
+    config: GatherConfig, working_path: Path, schema_path: str | None, pretty: bool = True
 ) -> list[str]:
-    merges_dir = output_path / "merges"
-    gathers_dir = output_path / "gathers"
+    merges_dir = working_path / "merges"
+    gathers_dir = working_path / "gathers"
 
     args = ["tablegather", "-o", str(gathers_dir), "--convergence", config.convergence]
 
@@ -318,14 +315,14 @@ def build_gather_args(
 
 
 def run_gather(
-    config: GatherConfig, output_path: Path, schema_path: str | None, pretty: bool = True
+    config: GatherConfig, working_path: Path, schema_path: str | None, pretty: bool = True
 ) -> None:
-    gathers_dir = output_path / "gathers"
+    gathers_dir = working_path / "gathers"
     prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
-        build_gather_args(config, output_path, schema_path, pretty=pretty), step_name="gather"
+        build_gather_args(config, working_path, schema_path, pretty=pretty), step_name="gather"
     )
 
     if config.stats:
@@ -335,24 +332,24 @@ def run_gather(
 
 
 def run_pipeline(pipeline: Pipeline) -> None:
-    output_path = Path(pipeline.output_path)
-    output_path.mkdir(parents=True, exist_ok=True)
+    working_path = Path(pipeline.working_path)
+    working_path.mkdir(parents=True, exist_ok=True)
+
+    schema_path = find_schema_path(working_path)
 
     if pipeline.normalize:
-        paper_files = run_normalize(
-            pipeline.normalize, output_path, pipeline.input_paths
-        )
-    else:
-        paper_files = collect_pdfs(pipeline.input_paths)
+        run_normalize(pipeline.normalize, working_path)
+
+    paper_files = collect_pdfs([str(working_path / "papers")])
 
     if pipeline.extract:
-        run_extract(pipeline.extract, output_path, paper_files, pipeline.schema_path, pretty=pipeline.pretty)
+        run_extract(pipeline.extract, working_path, paper_files, schema_path, pretty=pipeline.pretty)
 
     # TODO validate that: there is at least one extract.
     # Also, if there is more than one extract and gather is present,
     # that there must be one merge
     if pipeline.merge:
-        run_merge(pipeline.merge, output_path, pipeline.schema_path, pretty=pipeline.pretty)
+        run_merge(pipeline.merge, working_path, schema_path, pretty=pipeline.pretty)
 
     if pipeline.gather:
-        run_gather(pipeline.gather, output_path, pipeline.schema_path, pretty=pipeline.pretty)
+        run_gather(pipeline.gather, working_path, schema_path, pretty=pipeline.pretty)

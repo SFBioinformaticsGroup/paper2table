@@ -9,7 +9,6 @@ class NormalizeConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     interactive: bool = True
-    inplace: bool = False
 
 
 class ExtractRun(BaseModel):
@@ -101,34 +100,12 @@ class GatherConfig(BaseModel):
 class Pipeline(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    input_paths: list[str]
-    output_path: str
-    schema_path: str | None = None
+    working_path: str
     pretty: bool = False
     normalize: NormalizeConfig | None = None
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None
     gather: GatherConfig | None = None
-
-    @model_validator(mode="after")
-    def schema_path_required_features(self) -> "Pipeline":
-        if self.extract:
-            for run in self.extract.runs:
-                if run.reader == "agent" and self.schema_path is None and run.schema_ is None:
-                    raise ValueError(
-                        "Missing schema. Need to either pass --schema-path or --schema when using agent reader"
-                    )
-        if self.schema_path is not None:
-            return self
-        if self.merge and self.merge.order_schema_columns:
-            raise ValueError("merge.order_schema_columns requires schema_path")
-        if self.gather and self.gather.order_schema_columns:
-            raise ValueError("gather.order_schema_columns requires schema_path")
-        if self.merge and self.merge.coerce_schema_column_types:
-            raise ValueError("merge.coerce_schema_column_types requires schema_path")
-        if self.gather and self.gather.coerce_schema_column_types:
-            raise ValueError("gather.coerce_schema_column_types requires schema_path")
-        return self
 
 
 def load_pipeline(path: str) -> Pipeline:

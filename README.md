@@ -559,11 +559,12 @@ paper2pipeline pipeline.json
 
 The pipeline runs four optional steps in order — **normalize → extract → merge → gather** — and skips any section that is absent from the file.
 
-#### Output directory layout
+#### Directory layout
 
 ```
-${output_path}/
-  papers/          # only when normalize.inplace = true
+${working_path}/
+  papers/          # input PDFs
+  schema.txt       # optional schema; absent or empty = no schema
   tables/
     ${uuid}/       # one per extract run
       *.tables.json
@@ -586,13 +587,10 @@ ${output_path}/
 
 ```json
 {
-  "input_paths": ["tablas"],
-  "output_path": "out",
-  "schema_path": "schema.txt",
+  "working_path": ".",
 
   "normalize": {
-    "interactive": true,
-    "inplace": false
+    "interactive": true
   },
 
   "extract": {
@@ -634,10 +632,8 @@ ${output_path}/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `input_paths` | `list[str]` | Directories (or files) containing the source PDFs |
-| `output_path` | `str` | Root directory for all pipeline output |
-| `schema_path` | `str` | Path to a schema file; passed to every tool that accepts `-p` |
-| `normalize` | object | Optional. Run `filenorm` on the input PDFs |
+| `working_path` | `str` | Base directory. PDFs in `${working_path}/papers/`; schema auto-detected from `${working_path}/schema.txt` (absent or empty = no schema) |
+| `normalize` | object | Optional. Run `filenorm` on `${working_path}/papers/` |
 | `extract` | object | Optional. Run one or more `paper2table` extraction passes |
 | `merge` | object | Optional. Run `tablemerge` across all extract runs |
 | `gather` | object | Optional. Run `tablegather` on the merge output |
@@ -647,7 +643,6 @@ ${output_path}/
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `interactive` | `bool` | `true` | `true` = prompt for each change; `false` = auto-confirm silently (`-y -q`) |
-| `inplace` | `bool` | `false` | `true` = copy PDFs from `input_paths` into `${output_path}/papers/` first, then normalize there |
 
 #### `extract.runs` fields (each run maps to one `paper2table` invocation)
 
@@ -657,9 +652,9 @@ ${output_path}/
 | `model` | `str` | — | Language model (`-m`) |
 | `model_sleep` | `int` | — | Seconds between model calls (`-z`) |
 | `verbose` | `bool` | `false` | Enable verbose logging (`-vv`) |
-| `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`); mappings are stored in `${output_path}/mappings/` |
+| `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`); mappings are stored in `${working_path}/mappings/` |
 | `override_mappings` | `bool` | `false` | Regenerate mapping even if cached (`--override-mappings` / `-F`). Does not affect `override`; `override` only wipes `tables/`, never `mappings/`. |
-| `schema` | `str` | — | Inline schema string (overrides top-level `schema_path` for this run) |
+| `schema` | `str` | — | Inline schema string (overrides `${working_path}/schema.txt` for this run) |
 | `column_names_hints_path` | `str` | — | Path to column name hints file (`-c`) |
 | `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
 | `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
@@ -671,7 +666,7 @@ The `stats`, `validate`, `export`, and `override` fields apply to the extract st
 | `stats` | `bool` | `false` | Run `tablestats` and write output to `${uuid}/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the extracted tables |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` → `table2csv`, `"html"` → `table2html` |
-| `override` | `bool` | `false` | Wipe `${output_path}/tables/` before running. Does **not** delete `${output_path}/mappings/`; set `override_mappings: true` on a run to force mapping regeneration instead. |
+| `override` | `bool` | `false` | Wipe `${working_path}/tables/` before running. Does **not** delete `${working_path}/mappings/`; set `override_mappings: true` on a run to force mapping regeneration instead. |
 
 #### `merge` fields
 
@@ -708,7 +703,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
-| `override` | `bool` | `false` | Wipe `${output_path}/merges/` before running |
+| `override` | `bool` | `false` | Wipe `${working_path}/merges/` before running |
 
 #### `gather` fields
 
@@ -724,7 +719,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
 | `stats` | `bool` | `false` | Run `tablestats` and write to `gathers/stats.txt` |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
-| `override` | `bool` | `false` | Wipe `${output_path}/gathers/` before running |
+| `override` | `bool` | `false` | Wipe `${working_path}/gathers/` before running |
 
 #### JSON schema
 

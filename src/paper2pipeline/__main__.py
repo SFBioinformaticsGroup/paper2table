@@ -29,6 +29,9 @@ def main(argv=None):
             print("Pipeline is valid.")
             return
         run_pipeline(pipeline)
+    except FileNotFoundError:
+        print(f"Pipeline file not found: {args.pipeline_file}")
+        raise SystemExit(1)
     except ValidationError as error:
         print("Pipeline configuration error:")
         for e in error.errors():
