@@ -10,14 +10,14 @@ from paper2table import __version__
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", action="version", version=f"filenorm {__version__}")
-    parser.add_argument("files", nargs="+", help="List of files to process")
+    parser.add_argument("files", nargs="*", help="List of files to process")
     parser.add_argument(
         "-y", "--yes", action="store_true", help="Do not ask for confirmation"
     )
     parser.add_argument(
         "-q", "--quiet", action="store_true", help="Don't explain actions performed"
     )
-    return parser.parse_args()
+    return parser, parser.parse_args()
 
 
 def md5sum(path):
@@ -90,7 +90,9 @@ def confirm(question):
 def main():
     handle_sigint()
 
-    args = parse_args()
+    parser, args = parse_args()
+    if not args.files:
+        parser.error("no input papers")
     duplicates, renames, checksums = plan_actions(args.files)
     if args.yes:
 
