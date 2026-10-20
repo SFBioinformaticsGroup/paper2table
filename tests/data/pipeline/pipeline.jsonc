@@ -1,13 +1,8 @@
 {
-  "input_paths": [
-    "tests/data/pipeline/tables"
-  ],
-  "output_path": "tests/data/pipeline",
-  "schema_path": "tests/data/pipeline/schema.txt",
+  "working_path": "tests/data/pipeline",
   "pretty": true,
   "normalize": {
-    "interactive": true,
-    "inplace": true
+    "interactive": true
   },
   "extract": {
     "runs": [
