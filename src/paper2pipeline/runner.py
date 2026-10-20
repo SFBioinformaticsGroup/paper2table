@@ -28,9 +28,10 @@ def run_subprocess(
             capture_output=capture_output,
         )
     except subprocess.CalledProcessError as error:
-        raise PipelineError(
-            f"{step_name} failed with exit code {error.returncode}"
-        ) from error
+        message = f"{step_name} failed with exit code {error.returncode}"
+        if error.stderr and error.stderr.strip():
+            message += f"\n{error.stderr.strip()}"
+        raise PipelineError(message) from error
 
 
 def collect_pdfs(paths: list[str]) -> list[str]:
