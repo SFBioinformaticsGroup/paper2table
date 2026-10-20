@@ -1820,25 +1820,25 @@ def test_to_multivalued_returns_empty_list_for_none():
 
 def test_to_multivalued_wraps_int():
     assert Row.to_multivalued(42) == [
-        ValueWithAgreement(value="42", agreement_level=1)
+        ValueWithAgreement(value=42, agreement_level=1)
     ]
 
 
 def test_to_multivalued_wraps_float():
     assert Row.to_multivalued(3.14) == [
-        ValueWithAgreement(value="3.14", agreement_level=1)
+        ValueWithAgreement(value=3.14, agreement_level=1)
     ]
 
 
 def test_to_multivalued_wraps_bool_true():
     assert Row.to_multivalued(True) == [
-        ValueWithAgreement(value="True", agreement_level=1)
+        ValueWithAgreement(value=True, agreement_level=1)
     ]
 
 
 def test_to_multivalued_wraps_bool_false():
     assert Row.to_multivalued(False) == [
-        ValueWithAgreement(value="False", agreement_level=1)
+        ValueWithAgreement(value=False, agreement_level=1)
     ]
 
 
