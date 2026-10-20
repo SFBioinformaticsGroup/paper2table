@@ -1,8 +1,10 @@
+from tablevalidate.schema import ScalarValue
+
 _BOOL_TRUE = {"true", "1", "yes", "on"}
 _BOOL_FALSE = {"false", "0", "no", "off"}
 
 
-def coerce_str(value: str, target_type: type) -> str | int | float | bool:
+def coerce_str(value: str, target_type: type) -> ScalarValue:
     """Try to parse value as target_type and return the typed result.
 
     Returns the original string unchanged if conversion fails or if target_type is str.

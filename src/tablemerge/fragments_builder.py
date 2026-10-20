@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
 
 from tablemerge.agreement import Agreement, SimpleCountAgreement
-from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
+from tablevalidate.schema import Row, ScalarValue, TableFragment, ValueWithAgreement
 
 
 def _merge_scalar_columns(left: Row, right: Row):
@@ -12,7 +12,7 @@ def _merge_scalar_columns(left: Row, right: Row):
 
 
 def _merge_multivalued_columns(left: Row, right: Row):
-    column_values: dict[str, dict[str | int | float | bool, int]] = {}
+    column_values: dict[str, dict[ScalarValue, int]] = {}
     for row in [left, right]:
         for column_name, column_value in row.get_columns().items():
             values = column_values.setdefault(column_name, {})

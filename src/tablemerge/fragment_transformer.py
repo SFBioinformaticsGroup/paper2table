@@ -2,7 +2,7 @@ import re
 import unicodedata
 from typing import Protocol
 
-from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
+from tablevalidate.schema import ColumnValue, Row, ScalarValue, TableFragment, ValueWithAgreement
 from utils.filters import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 
@@ -186,8 +186,10 @@ class SplitColumnTransformer:
         return text
 
     def split_cell_value(
-        self, value: str, left_header_doc, right_header_doc
-    ) -> tuple[str, str]:
+        self, value: ScalarValue, left_header_doc, right_header_doc
+    ) -> tuple[ScalarValue, ScalarValue]:
+        if not isinstance(value, str):
+            return (value, value)
         tokens = value.split()
         if len(tokens) <= 1:
             return (value, "")

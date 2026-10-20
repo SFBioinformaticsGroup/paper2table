@@ -6,12 +6,15 @@ from utils.column_values import normalize_column_value
 from utils.str import normalize_str
 
 
+ScalarValue = str | int | float | bool
+
+
 class ValueWithAgreement(BaseModel):
-    value: str | int | float | bool
+    value: ScalarValue
     agreement_level: int
 
 
-ColumnValue = None | str | int | float | bool | List[ValueWithAgreement]
+ColumnValue = None | ScalarValue | List[ValueWithAgreement]
 
 _META_COLUMNS = frozenset(
     (
@@ -176,7 +179,7 @@ class Row(BaseModel):
 
     @staticmethod
     def map_text(
-        value: ColumnValue, fn: Callable[[str], "str | int | float | bool"]
+        value: ColumnValue, fn: Callable[[str], ScalarValue]
     ) -> ColumnValue:
         """Transforms cell's string values"""
         if isinstance(value, str):
