@@ -216,6 +216,8 @@ def build_merge_args(
         args += ["--jaccard-column-alignment"]
     if config.column_alignment_threshold != 0.5:
         args += ["--column-alignment-threshold", str(config.column_alignment_threshold)]
+    if config.row_similarity_threshold != 0.6:
+        args += ["--row-similarity-threshold", str(config.row_similarity_threshold)]
     if config.column_name_semantic_alignment:
         args += ["--column-name-semantic-alignment"]
     if config.column_value_semantic_alignment:

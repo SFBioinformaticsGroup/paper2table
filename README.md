@@ -279,6 +279,12 @@ tablemerge --jaccard-column-alignment tests/data/demo_resultsets/*
 tablemerge --jaccard-column-alignment --column-alignment-threshold 0.6 tests/data/demo_resultsets/*
 ```
 
+`--row-similarity-threshold` sets the minimum Levenshtein ratio for two rows to be considered equal during merging (default: 0.6). Lower values merge more aggressively; raise it when rows that should stay separate are being incorrectly matched:
+
+```bash
+tablemerge --row-similarity-threshold 0.8 tests/data/demo_resultsets/*
+```
+
 `--column-value-semantic-alignment` adds a merge-time NLP pass (spaCy) that runs after Jaccard, comparing each numeric column's cell values against the semantic column names from the opposing fragment. No schema required:
 
 ```bash
@@ -658,6 +664,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `filter_title_rows` | `bool` | `true` | Remove rows that duplicate column names |
 | `jaccard_column_alignment` | `bool` | `false` | Align numeric columns by Jaccard value similarity |
 | `column_alignment_threshold` | `float` | `0.5` | Minimum Jaccard similarity score |
+| `row_similarity_threshold` | `float` | `0.6` | Minimum Levenshtein similarity ratio to consider two rows equal during merging |
 | `column_name_semantic_alignment` | `bool` | `false` | Load-time NLP column alignment |
 | `column_value_semantic_alignment` | `bool` | `false` | Merge-time NLP column alignment |
 | `semantic_language` | `str` | `"en"` | spaCy language: `"en"` or `"es"` |

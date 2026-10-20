@@ -187,6 +187,7 @@ def merge_tablesfiles_paths(
     postprocessors: list[PostProcessor] = [],
     tablesfile_transformer: TablesfileTransformer = NullTablesfileTransformer(),
     force_update: bool = False,
+    row_similarity_threshold: float = 0.6,
 ):
     loader = TablesFileLoader(
         pretransformers=pretransformers,
@@ -225,6 +226,7 @@ def merge_tablesfiles_paths(
             analyzers=merge_analyzers,
             page_offsets=page_offsets,
             multivalued=True,
+            row_similarity_threshold=row_similarity_threshold,
         )
         for postprocessor in postprocessors:
             merged_tablesfile = postprocessor.postprocess(merged_tablesfile)
@@ -260,6 +262,7 @@ def merge_resultsets(
     paper_aliases: dict[str, PaperAlias] = {},
     paper_filter: str | None = None,
     force_update: bool = False,
+    row_similarity_threshold: float = 0.6,
 ):
     output_path = Path(output_dir)
     resultset_metadata = {d: read_resultset_metadata(d) for d in resultset_dirs}
@@ -307,6 +310,7 @@ def merge_resultsets(
         postprocessors=postprocessors,
         tablesfile_transformer=tablesfile_transformer,
         force_update=force_update,
+        row_similarity_threshold=row_similarity_threshold,
     )
     with ThreadPoolExecutor(max_workers=workers) as executor:
         list(executor.map(worker_fn, canonical_basenames, sources_list))
@@ -369,6 +373,12 @@ def parse_args():
         type=float,
         default=0.5,
         help="Minimum similarity threshold for column alignment (default: 0.5)",
+    )
+    parser.add_argument(
+        "--row-similarity-threshold",
+        type=float,
+        default=0.6,
+        help="Minimum Levenshtein similarity ratio for two rows to be considered equal during merging (default: 0.6)",
     )
     parser.add_argument(
         "--column-name-semantic-alignment",
@@ -599,6 +609,7 @@ def main():
         paper_aliases=paper_aliases,
         paper_filter=args.paper,
         force_update=args.force_update,
+        row_similarity_threshold=args.row_similarity_threshold,
     )
 
     if args.export_settings:
