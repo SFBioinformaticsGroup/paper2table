@@ -14,7 +14,7 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
-from paper2pipeline.runner import build_extract_args
+from paper2pipeline.runner import build_extract_args, build_merge_args
 from paper2table import __version__
 
 
@@ -251,3 +251,21 @@ def test_build_extract_args_override_mappings_passes_flag(tmp_path):
     run = ExtractRun(hybrid=True, override_mappings=True)
     args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
     assert "-F" in args
+
+
+def test_merge_config_row_similarity_threshold_default():
+    assert MergeConfig().row_similarity_threshold == 0.6
+
+
+def test_build_merge_args_row_similarity_threshold(tmp_path):
+    config = MergeConfig(row_similarity_threshold=0.5)
+    args = build_merge_args(config, tmp_path, None)
+    assert "--row-similarity-threshold" in args
+    threshold_index = args.index("--row-similarity-threshold")
+    assert args[threshold_index + 1] == "0.5"
+
+
+def test_build_merge_args_row_similarity_threshold_default_omitted(tmp_path):
+    config = MergeConfig()
+    args = build_merge_args(config, tmp_path, None)
+    assert "--row-similarity-threshold" not in args

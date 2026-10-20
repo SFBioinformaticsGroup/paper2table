@@ -166,6 +166,11 @@
         "remove_header_rows": { "type": "boolean", "default": false },
         "jaccard_column_alignment": { "type": "boolean", "default": false },
         "column_alignment_threshold": { "type": "number", "default": 0.5 },
+        "row_similarity_threshold": {
+          "type": "number",
+          "default": 0.6,
+          "description": "Minimum Levenshtein similarity ratio for two rows to be considered equal during merging (default: 0.6)."
+        },
         "column_name_semantic_alignment": { "type": "boolean", "default": false },
         "column_value_semantic_alignment": { "type": "boolean", "default": false },
         "semantic_language": {

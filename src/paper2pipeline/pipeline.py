@@ -45,6 +45,7 @@ class MergeConfig(BaseModel):
     remove_header_rows: bool = False
     jaccard_column_alignment: bool = False
     column_alignment_threshold: float = 0.5
+    row_similarity_threshold: float = 0.6
     column_name_semantic_alignment: bool = False
     column_value_semantic_alignment: bool = False
     semantic_language: str = "en"
