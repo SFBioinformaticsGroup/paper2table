@@ -169,28 +169,28 @@ def coerce_cols(tf: TablesFile) -> dict:
 def test_coerce_types_int():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(year="2020.0")])))["year"]
-        == "2020"
+        == 2020
     )
 
 
 def test_coerce_types_float():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(length="3")])))["length"]
-        == "3.0"
+        == 3.0
     )
 
 
 def test_coerce_types_bool_true():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(active="yes")])))["active"]
-        == "True"
+        is True
     )
 
 
 def test_coerce_types_bool_false():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(active="no")])))["active"]
-        == "False"
+        is False
     )
 
 
@@ -233,7 +233,7 @@ def test_coerce_types_value_with_agreement():
     )
     values = coerce_cols(coerce_processor().postprocess(tf))["year"]
     assert isinstance(values, list)
-    assert values[0].value == "2020"
+    assert values[0].value == 2020
     assert values[1].value == "bad"
     assert values[0].agreement_level == 2
 
@@ -416,14 +416,14 @@ def native_coerce_processor() -> SchemaPostProcessor:
 
 def test_coerce_native_int_value():
     result = native_coerce_processor().postprocess(wrap([Row(count=42)]))
-    assert rows_of(result) == [Row(count="42")]
+    assert rows_of(result) == [Row(count=42)]
 
 
 def test_coerce_native_float_value():
     result = native_coerce_processor().postprocess(wrap([Row(ratio=3.14)]))
-    assert rows_of(result) == [Row(ratio="3.14")]
+    assert rows_of(result) == [Row(ratio=3.14)]
 
 
 def test_coerce_native_bool_value():
     result = native_coerce_processor().postprocess(wrap([Row(active=True)]))
-    assert rows_of(result) == [Row(active="True")]
+    assert rows_of(result) == [Row(active=True)]

@@ -130,7 +130,7 @@
       "type": "object",
       "properties": {
         "value": {
-          "type": "string"
+          "type": ["string", "number", "boolean"]
         },
         "agreement_level": {
           "type": "integer"

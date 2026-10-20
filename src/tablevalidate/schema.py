@@ -7,7 +7,7 @@ from utils.str import normalize_str
 
 
 class ValueWithAgreement(BaseModel):
-    value: str
+    value: str | int | float | bool
     agreement_level: int
 
 
@@ -135,7 +135,10 @@ class Row(BaseModel):
             return True
 
         if isinstance(value, list):
-            return all(not normalize_column_value(v.value) for v in value)
+            return all(
+                isinstance(v.value, str) and not normalize_column_value(v.value)
+                for v in value
+            )
 
         if isinstance(value, str):
             return not normalize_column_value(value)
@@ -150,7 +153,6 @@ class Row(BaseModel):
 
     @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
-        # TODO isn't this already in other place?
         if value is None:
             return None
 
@@ -160,22 +162,29 @@ class Row(BaseModel):
         if isinstance(value, list):
             return [
                 ValueWithAgreement(
-                    value=normalize_column_value(value_with_agreement.value),
-                    agreement_level=value_with_agreement.agreement_level,
+                    value=(
+                        normalize_column_value(v.value)
+                        if isinstance(v.value, str)
+                        else v.value
+                    ),
+                    agreement_level=v.agreement_level,
                 )
-                for value_with_agreement in value
+                for v in value
             ]
 
         return value
 
     @staticmethod
-    def map_text(value: ColumnValue, fn: Callable[[str], str]) -> ColumnValue:
+    def map_text(value: ColumnValue, fn: Callable[[str], "str | int | float | bool"]) -> ColumnValue:
         """Transforms cell's string values"""
         if isinstance(value, str):
             return fn(value)
         if isinstance(value, list):
             return [
-                ValueWithAgreement(value=fn(v.value), agreement_level=v.agreement_level)
+                ValueWithAgreement(
+                    value=fn(v.value) if isinstance(v.value, str) else v.value,
+                    agreement_level=v.agreement_level,
+                )
                 for v in value
             ]
         return value
@@ -188,7 +197,7 @@ class Row(BaseModel):
         if isinstance(value, str):
             return value
         if isinstance(value, list):
-            return value[0].value if value else ""
+            return str(value[0].value) if value else ""
         return str(value)
 
     @staticmethod
@@ -199,7 +208,7 @@ class Row(BaseModel):
         if isinstance(value, str):
             return [value]
         if isinstance(value, list):
-            return [entry.value for entry in value]
+            return [str(entry.value) for entry in value]
         return [str(value)]
 
     @staticmethod
@@ -208,7 +217,7 @@ class Row(BaseModel):
             return []
         if isinstance(value, list):
             return value
-        return [ValueWithAgreement(value=str(value), agreement_level=1)]
+        return [ValueWithAgreement(value=value, agreement_level=1)]
 
 
 class TableFragment(BaseModel):
