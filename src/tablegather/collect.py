@@ -51,10 +51,7 @@ def gather_tablesfiles(
 
     for tablesfile, path in tablesfiles_with_paths:
         raw_citation = tablesfile.citation
-        if isinstance(raw_citation, list):
-            citation: str | None = raw_citation[0].value if raw_citation else None
-        else:
-            citation = raw_citation or None
+        citation: str | None = Row.to_text(raw_citation) or None
 
         if convergence == "tables":
             source_rows = apply_tables_convergence(tablesfile)

@@ -169,28 +169,28 @@ def coerce_cols(tf: TablesFile) -> dict:
 def test_coerce_types_int():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(year="2020.0")])))["year"]
-        == "2020"
+        == 2020
     )
 
 
 def test_coerce_types_float():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(length="3")])))["length"]
-        == "3.0"
+        == 3.0
     )
 
 
 def test_coerce_types_bool_true():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(active="yes")])))["active"]
-        == "True"
+        is True
     )
 
 
 def test_coerce_types_bool_false():
     assert (
         coerce_cols(coerce_processor().postprocess(wrap([Row(active="no")])))["active"]
-        == "False"
+        is False
     )
 
 
@@ -233,7 +233,7 @@ def test_coerce_types_value_with_agreement():
     )
     values = coerce_cols(coerce_processor().postprocess(tf))["year"]
     assert isinstance(values, list)
-    assert values[0].value == "2020"
+    assert values[0].value == 2020
     assert values[1].value == "bad"
     assert values[0].agreement_level == 2
 
@@ -345,3 +345,85 @@ def test_drop_empty_tables_postprocessor_removes_empty_table():
     result = DropEmptyTablesPostProcessor().postprocess(tablesfile)
     assert len(result.tables) == 1
     assert result.tables[0].get_table_fragments()[0].rows == [Row(family="Apiaceae")]
+
+
+def test_is_empty_value_float_is_not_empty():
+    assert Row.is_empty_value(3.14) is False
+
+
+def test_is_empty_value_zero_float_is_not_empty():
+    assert Row.is_empty_value(0.0) is False
+
+
+def test_is_empty_value_int_is_not_empty():
+    assert Row.is_empty_value(42) is False
+
+
+def test_is_empty_value_zero_int_is_not_empty():
+    assert Row.is_empty_value(0) is False
+
+
+def test_is_empty_value_bool_false_is_not_empty():
+    assert Row.is_empty_value(False) is False
+
+
+def test_is_empty_value_bool_true_is_not_empty():
+    assert Row.is_empty_value(True) is False
+
+
+def test_is_convergent_float():
+    assert Row.is_convergent(3.14) is True
+
+
+def test_is_convergent_int():
+    assert Row.is_convergent(42) is True
+
+
+def test_is_convergent_bool():
+    assert Row.is_convergent(False) is True
+
+
+def test_normalize_value_float_unchanged():
+    assert Row.normalize_value(3.14) == 3.14
+
+
+def test_normalize_value_int_unchanged():
+    assert Row.normalize_value(42) == 42
+
+
+def test_normalize_value_bool_unchanged():
+    assert Row.normalize_value(True) is True
+
+
+def test_row_is_empty_false_for_int_zero():
+    assert Row(count=0).is_empty() is False
+
+
+def test_row_is_empty_false_for_bool_false():
+    assert Row(active=False).is_empty() is False
+
+
+def test_row_is_empty_false_for_float():
+    assert Row(ratio=3.14).is_empty() is False
+
+
+_NATIVE_COERCE_SCHEMA = ColumnSchema({"count": int, "ratio": float, "active": bool})
+
+
+def native_coerce_processor() -> SchemaPostProcessor:
+    return SchemaPostProcessor(_NATIVE_COERCE_SCHEMA, coerce_types=True)
+
+
+def test_coerce_native_int_value():
+    result = native_coerce_processor().postprocess(wrap([Row(count=42)]))
+    assert rows_of(result) == [Row(count=42)]
+
+
+def test_coerce_native_float_value():
+    result = native_coerce_processor().postprocess(wrap([Row(ratio=3.14)]))
+    assert rows_of(result) == [Row(ratio=3.14)]
+
+
+def test_coerce_native_bool_value():
+    result = native_coerce_processor().postprocess(wrap([Row(active=True)]))
+    assert rows_of(result) == [Row(active=True)]

@@ -5,7 +5,6 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     Row,
-    ValueWithAgreement,
     ColumnValue,
 )
 from utils.coerce import coerce_str
@@ -125,17 +124,9 @@ class SchemaPostProcessor:
 
     def _coerce_schema_column_types(self, tablesfile: TablesFile) -> TablesFile:
         def coerce_column_value(value: ColumnValue, target_type: type) -> ColumnValue:
-            if value is None:
-                return None
-            if isinstance(value, str):
-                return coerce_str(value, target_type)
-            return [
-                ValueWithAgreement(
-                    value=coerce_str(v.value, target_type),
-                    agreement_level=v.agreement_level,
-                )
-                for v in value
-            ]
+            if isinstance(value, (int, float, bool)):
+                return coerce_str(str(value), target_type)
+            return Row.map_text(value, lambda s: coerce_str(s, target_type))
 
         def coerce_row(row: Row) -> Row:
             return row.clone(

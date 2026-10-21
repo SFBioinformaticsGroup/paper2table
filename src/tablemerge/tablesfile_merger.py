@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, List, cast
+from typing import Dict, cast
 from unidecode import unidecode
 
 from tablevalidate.schema import (
@@ -10,7 +10,6 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     TableWithRows,
-    ValueWithAgreement,
     ColumnValue,
     Row,
 )
@@ -38,22 +37,7 @@ class FragmentClusterKey:
 
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
-    if isinstance(value, str):
-        return transliterate_scalar(value)
-    if isinstance(value, list):
-        return transliterate_multivalued(value)
-    return value
-
-
-def transliterate_scalar(value: str):
-    return unidecode(value)
-
-
-def transliterate_multivalued(value: List[ValueWithAgreement]):
-    return [
-        ValueWithAgreement(value=unidecode(v.value), agreement_level=v.agreement_level)
-        for v in value
-    ]
+    return Row.map_text(value, unidecode)
 
 
 def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
@@ -64,26 +48,19 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
 
     return (
         ratio(
-            get_text(left_columns, sorted_column_keys),
-            get_text(right_columns, sorted_column_keys),
+            get_column_text(left_columns, sorted_column_keys),
+            get_column_text(right_columns, sorted_column_keys),
         )
         >= similarity_threshold
     )
 
 
-def get_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
+def get_column_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
     return "".join(
-        transliterate_scalar(get_scalar(columns.get(k, ""))) for k in sorted_column_keys
+        unidecode(Row.to_text(columns.get(k, "")))
+        for k in sorted_column_keys
     )
-
-
-def get_scalar(value: ColumnValue):
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return value[0].value
-    return ""
 
 
 def make_fragments_clusters(

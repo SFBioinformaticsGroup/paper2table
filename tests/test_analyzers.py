@@ -9,7 +9,6 @@ from tablemerge.analyzers import (
     HintsLoadTimeAnalyzer,
     JaccardMergeTimeAnalyzer,
     REMOVE_COLUMN,
-    column_value_to_strings,
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
@@ -810,8 +809,8 @@ def test_hints_unsafe_returns_empty_when_no_rows_match_hints():
     assert result == {}
 
 
-def test_column_value_to_strings_returns_empty_for_none():
-    assert column_value_to_strings(None) == []
+def test_to_texts_returns_empty_for_none():
+    assert Row.to_texts(None) == []
 
 
 def test_extract_column_str_values_returns_empty_for_none():

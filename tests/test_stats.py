@@ -138,6 +138,54 @@ def test_infer_type_with_agreement_list():
     assert infer_type([ValueWithAgreement(value="99", agreement_level=2)]) == "int"
 
 
+def test_infer_type_native_bool_true():
+    assert infer_type(True) == "bool"
+
+
+def test_infer_type_native_bool_false():
+    assert infer_type(False) == "bool"
+
+
+def test_infer_type_native_int():
+    assert infer_type(42) == "int"
+
+
+def test_infer_type_native_float():
+    assert infer_type(3.14) == "float"
+
+
+def test_row_value_strings_int_value():
+    paper = make_paper(
+        [{"page": 1, "rows": [{"count": 42, "row_": 1}]}]
+    )
+    row = paper.tables[0].get_table_fragments()[0].rows[0]
+    assert row_value_strings(row) == frozenset({("count", "42")})
+
+
+def test_row_value_strings_float_value():
+    paper = make_paper(
+        [{"page": 1, "rows": [{"ratio": 3.14, "row_": 1}]}]
+    )
+    row = paper.tables[0].get_table_fragments()[0].rows[0]
+    assert row_value_strings(row) == frozenset({("ratio", "3.14")})
+
+
+def test_row_value_strings_bool_false_is_not_skipped():
+    paper = make_paper(
+        [{"page": 1, "rows": [{"active": False, "row_": 1}]}]
+    )
+    row = paper.tables[0].get_table_fragments()[0].rows[0]
+    assert row_value_strings(row) == frozenset({("active", "False")})
+
+
+def test_row_value_strings_int_zero_is_not_skipped():
+    paper = make_paper(
+        [{"page": 1, "rows": [{"count": 0, "row_": 1}]}]
+    )
+    row = paper.tables[0].get_table_fragments()[0].rows[0]
+    assert row_value_strings(row) == frozenset({("count", "0")})
+
+
 def test_format_stats_with_columns():
     stats = GlobalStats(
         papers=1,

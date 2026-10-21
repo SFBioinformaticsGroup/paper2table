@@ -1,6 +1,7 @@
 import argparse
 import webbrowser
 from pathlib import Path
+from typing import cast
 
 from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
@@ -51,11 +52,7 @@ def _source_cell(source: dict, key: str) -> str:
 
 
 def render_citation(citation: Citation) -> str:
-    if citation is None:
-        return ""
-    if isinstance(citation, list):
-        return ", ".join(v.value for v in citation)
-    return citation
+    return ", ".join(Row.to_texts(citation))
 
 
 def build_toc(papers: dict[str, TablesFile]) -> list[str]:
@@ -166,8 +163,8 @@ def build_data_rows(
     multivalued: dict[str, list[ValueWithAgreement]] = {}
     for col in columns:
         value = col_values.get(col)
-        if isinstance(value, list) and len(value) > 1:
-            multivalued[col] = value
+        if not Row.is_convergent(value):
+            multivalued[col] = cast(list[ValueWithAgreement], value)
     span = max((len(v) for v in multivalued.values()), default=1)
     html = []
     for i in range(span):
@@ -205,11 +202,7 @@ def build_data_rows(
                 elif col == "sources_":
                     html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
                 else:
-                    cell = col_values.get(col, "")
-                    if isinstance(cell, list):
-                        val = cell[0].value if cell else ""
-                    else:
-                        val = cell or ""
+                    val = Row.to_text(col_values.get(col))
                     html.append(f"<td{rowspan_attr}>{val}</td>")
         html.append("</tr>")
     return html

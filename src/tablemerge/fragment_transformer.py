@@ -2,7 +2,7 @@ import re
 import unicodedata
 from typing import Protocol
 
-from tablevalidate.schema import ColumnValue, Row, TableFragment, ValueWithAgreement
+from tablevalidate.schema import ColumnValue, Row, ScalarValue, TableFragment, ValueWithAgreement
 from utils.filters import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 
@@ -51,18 +51,10 @@ class FilterTitleRowsTransformer:
         if len(non_empty) == 0:
             return False
         if len(non_empty) == 1:
-            text = self.extract_text(next(iter(non_empty.values())))
+            text = Row.to_text(next(iter(non_empty.values())))
         else:
-            text = "".join(self.extract_text(v) for v in non_empty.values())
+            text = "".join(Row.to_text(v).strip() for v in non_empty.values())
         return bool(_TITLE_ROW_RE.match(text.strip()))
-
-    def extract_text(self, val: ColumnValue) -> str:
-        if isinstance(val, str):
-            return val.strip()
-        if isinstance(val, list):
-            texts = [v.value.strip() for v in val if v.value.strip()]
-            return texts[0] if texts else ""
-        return ""
 
 
 class LeadingRowNumberTransformer:
@@ -85,7 +77,7 @@ class LeadingRowNumberTransformer:
             val = row.get_columns().get(column)
             if val is None or Row.is_empty_value(val):
                 continue
-            text = self.extract_text(val)
+            text = Row.to_text(val).strip()
             if text:
                 samples.append(text)
             if len(samples) == 5:
@@ -100,14 +92,6 @@ class LeadingRowNumberTransformer:
             numbers.append(int(match.group(1)))
         return all(numbers[i] < numbers[i + 1] for i in range(len(numbers) - 1))
 
-    def extract_text(self, val: ColumnValue) -> str:
-        if isinstance(val, str):
-            return val.strip()
-        if isinstance(val, list):
-            texts = [v.value.strip() for v in val if v.value.strip()]
-            return texts[0] if texts else ""
-        return ""
-
     def transform_row(self, row: Row, columns_to_strip: set[str]) -> Row:
         return row.clone(
             columns={
@@ -117,17 +101,7 @@ class LeadingRowNumberTransformer:
         )
 
     def strip_leading_number(self, val: ColumnValue) -> ColumnValue:
-        if isinstance(val, str):
-            return _LEADING_NUMBER_RE.sub("", val)
-        if isinstance(val, list):
-            return [
-                ValueWithAgreement(
-                    value=_LEADING_NUMBER_RE.sub("", v.value),
-                    agreement_level=v.agreement_level,
-                )
-                for v in val
-            ]
-        return val
+        return Row.map_text(val, lambda v: _LEADING_NUMBER_RE.sub("", v))
 
 
 class FilterEmptyRowsTransformer:
@@ -155,16 +129,7 @@ class NormalizePunctuationTransformer:
         )
 
     def transform_value(self, val: ColumnValue) -> ColumnValue:
-        if isinstance(val, str):
-            return self.normalize(val)
-        if isinstance(val, list):
-            return [
-                ValueWithAgreement(
-                    value=self.normalize(v.value), agreement_level=v.agreement_level
-                )
-                for v in val
-            ]
-        return val
+        return Row.map_text(val, self.normalize)
 
     def normalize(self, text: str) -> str:
         text = _DASH_VARIANTS_RE.sub("-", text)
@@ -221,8 +186,10 @@ class SplitColumnTransformer:
         return text
 
     def split_cell_value(
-        self, value: str, left_header_doc, right_header_doc
-    ) -> tuple[str, str]:
+        self, value: ScalarValue, left_header_doc, right_header_doc
+    ) -> tuple[ScalarValue, ScalarValue]:
+        if not isinstance(value, str):
+            return (value, value)
         tokens = value.split()
         if len(tokens) <= 1:
             return (value, "")
@@ -251,6 +218,8 @@ class SplitColumnTransformer:
             return self.split_cell_value(
                 column_value, left_header_doc, right_header_doc
             )
+        if not isinstance(column_value, list):
+            return (column_value, column_value)
         left_list = []
         right_list = []
         for entry in column_value:
@@ -329,28 +298,17 @@ class FragmentValuesReverser:
         )
 
     def _row_score(self, row: Row) -> int:
-        total = 0
-        for value in row.get_column_values():
-            if isinstance(value, str):
-                total += self._count_known_words(value)
-            elif isinstance(value, list):
-                total += sum(self._count_known_words(v.value) for v in value)
-        return total
+        return sum(
+            self._count_known_words(text)
+            for value in row.get_column_values()
+            for text in Row.to_texts(value)
+        )
 
     def _fragment_score(self, fragment: TableFragment) -> int:
         return sum(self._row_score(row) for row in fragment.rows)
 
     def _reverse_cell(self, value: ColumnValue) -> ColumnValue:
-        if isinstance(value, str):
-            return value[::-1]
-        if isinstance(value, list):
-            return [
-                ValueWithAgreement(
-                    value=v.value[::-1], agreement_level=v.agreement_level
-                )
-                for v in value
-            ]
-        return value
+        return Row.map_text(value, lambda v: v[::-1])
 
     def _transform_row(self, row: Row) -> Row:
         return row.clone(

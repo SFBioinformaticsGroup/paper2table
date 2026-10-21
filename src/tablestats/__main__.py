@@ -4,7 +4,7 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
-from tablevalidate.schema import ColumnValue, TablesFile
+from tablevalidate.schema import ColumnValue, Row, TablesFile
 from utils.jsonc import load_jsonc
 from .stats import GlobalStats, PaperStats, update_papers_stats
 from paper2table import __version__
@@ -93,8 +93,13 @@ def write_stats(stats: GlobalStats, output_file):
 
 
 def infer_type(value: ColumnValue) -> str:
-    raw = value if isinstance(value, str) else (value[0].value if value else "")
-    stripped = raw.strip()
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    stripped = Row.to_text(value).strip()
     if stripped.lower() in ("true", "false"):
         return "bool"
     try:

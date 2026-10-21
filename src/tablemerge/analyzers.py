@@ -13,12 +13,14 @@ from utils.jaccard import jaccard
 REMOVE_COLUMN = "<remove>"
 
 
-def column_value_to_strings(value: ColumnValue) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value]
-    return [entry.value for entry in value]
+def sample_column_values(rows: list[Row], column_name: str) -> list[str]:
+    values = []
+    for row in rows:
+        cell = row.get_columns().get(column_name)
+        text = Row.to_text(cell).strip()
+        if text:
+            values.append(text)
+    return values
 
 
 def renamable_source_columns(
@@ -95,9 +97,7 @@ class HintsLoadTimeAnalyzer:
         result: dict[str, str] = {}
         for column in columns:
             val = row.get_columns().get(column)
-            if val is None:
-                continue
-            strings = [s.strip() for s in column_value_to_strings(val) if s.strip()]
+            strings = [s.strip() for s in Row.to_texts(val) if s.strip()]
             if strings:
                 result[column] = normalize_column_name(strings[0])
         return result
@@ -190,7 +190,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         scores = []
 
         for candidate in candidates:
-            values = self.sample_values(rows, candidate)
+            values = sample_column_values(rows, candidate)
             if not values:
                 continue
             column_name_score = (
@@ -229,21 +229,6 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         if self._nlp is None:
             self._nlp = load_spacy_model(self.language)
         return self._nlp
-
-    def sample_values(self, rows: list[Row], column_name: str) -> list[str]:
-        values = []
-        for row in rows:
-            cell = row.get_columns().get(column_name)
-            if cell is None:
-                continue
-            text = (
-                cell.strip()
-                if isinstance(cell, str)
-                else (cell[0].value.strip() if cell else "")
-            )
-            if text:
-                values.append(text)
-        return values
 
     def semantic_score(
         self, nlp: spacy.language.Language, values: list[str], column_name: str
@@ -334,13 +319,9 @@ class JaccardMergeTimeAnalyzer:
         return mapping
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
-        if column_value is None:
-            return []
-        if isinstance(column_value, str):
-            return [unidecode(re.sub(r"\s+", " ", column_value.strip()).lower())]
         return [
-            unidecode(re.sub(r"\s+", " ", entry.value.strip()).lower())
-            for entry in column_value
+            unidecode(re.sub(r"\s+", " ", s.strip()).lower())
+            for s in Row.to_texts(column_value)
         ]
 
     def column_value_set(self, rows: list[Row], column: str) -> set[str]:
@@ -404,7 +385,7 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         nlp = self.load_model()
         scores = []
         for source_column in source_columns:
-            values = self.sample_values(source_rows, source_column)
+            values = sample_column_values(source_rows, source_column)
             if not values:
                 continue
             for target_column in target_column_names:
@@ -428,21 +409,6 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         if self._nlp is None:
             self._nlp = load_spacy_model(self.language)
         return self._nlp
-
-    def sample_values(self, rows: list[Row], column_name: str) -> list[str]:
-        values = []
-        for row in rows:
-            cell = row.get_columns().get(column_name)
-            if cell is None:
-                continue
-            text = (
-                cell.strip()
-                if isinstance(cell, str)
-                else (cell[0].value.strip() if cell else "")
-            )
-            if text:
-                values.append(text)
-        return values
 
     def semantic_score(
         self, nlp: spacy.language.Language, values: list[str], column_name: str

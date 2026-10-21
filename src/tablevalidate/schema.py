@@ -1,17 +1,20 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
 from utils.str import normalize_str
 
 
+ScalarValue = str | int | float | bool
+
+
 class ValueWithAgreement(BaseModel):
-    value: str
+    value: ScalarValue
     agreement_level: int
 
 
-ColumnValue = None | str | List[ValueWithAgreement]
+ColumnValue = None | ScalarValue | List[ValueWithAgreement]
 
 _META_COLUMNS = frozenset(
     (
@@ -134,35 +137,92 @@ class Row(BaseModel):
         if value is None:
             return True
 
+        if isinstance(value, list):
+            return all(
+                isinstance(v.value, str) and not normalize_column_value(v.value)
+                for v in value
+            )
+
         if isinstance(value, str):
             return not normalize_column_value(value)
 
-        return all(not normalize_column_value(v.value) for v in value)
+        return False  # int, float, bool — never empty
 
     @staticmethod
     def is_convergent(value: ColumnValue) -> bool:
-        if value is None:
-            return True
-        if isinstance(value, str):
+        if not isinstance(value, list):
             return True
         return len(value) == 1
 
     @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
-        # TODO isn't this already in other place?
         if value is None:
             return None
 
         if isinstance(value, str):
             return normalize_column_value(value)
 
-        return [
-            ValueWithAgreement(
-                value=normalize_column_value(value_with_agreement.value),
-                agreement_level=value_with_agreement.agreement_level,
-            )
-            for value_with_agreement in value
-        ]
+        if isinstance(value, list):
+            return [
+                ValueWithAgreement(
+                    value=(
+                        normalize_column_value(v.value)
+                        if isinstance(v.value, str)
+                        else v.value
+                    ),
+                    agreement_level=v.agreement_level,
+                )
+                for v in value
+            ]
+
+        return value
+
+    @staticmethod
+    def map_text(
+        value: ColumnValue, fn: Callable[[str], ScalarValue]
+    ) -> ColumnValue:
+        """Transforms cell's string values"""
+        if isinstance(value, str):
+            return fn(value)
+        if isinstance(value, list):
+            return [
+                ValueWithAgreement(
+                    value=fn(v.value) if isinstance(v.value, str) else v.value,
+                    agreement_level=v.agreement_level,
+                )
+                for v in value
+            ]
+        return value
+
+    @staticmethod
+    def to_text(value: ColumnValue) -> str:
+        """Transforms cell's value to string"""
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            return str(value[0].value) if value else ""
+        return str(value)
+
+    @staticmethod
+    def to_texts(value: ColumnValue) -> List[str]:
+        """Transforms cell's value to list of strings"""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(entry.value) for entry in value]
+        return [str(value)]
+
+    @staticmethod
+    def to_multivalued(value: ColumnValue) -> List[ValueWithAgreement]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [ValueWithAgreement(value=value, agreement_level=1)]
 
 
 class TableFragment(BaseModel):
@@ -280,7 +340,8 @@ class TablesFile(BaseModel):
             return normalize_str(citation)
         return [
             ValueWithAgreement(
-                value=normalize_str(v.value), agreement_level=v.agreement_level
+                value=normalize_str(v.value) if isinstance(v.value, str) else v.value,
+                agreement_level=v.agreement_level,
             )
             for v in citation
         ]

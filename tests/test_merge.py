@@ -26,7 +26,7 @@ from utils.filters import (
     value_matches_hints,
 )
 from tablemerge.agreement import DistinctReadersAgreement, SimpleCountAgreement
-from tablemerge.fragments_builder import merge_rows, to_values_with_agreement
+from tablemerge.fragments_builder import merge_rows
 from tablemerge.tablesfile_merger import merge_tablesfiles
 from tablevalidate.schema import (
     TablesFile,
@@ -1814,8 +1814,32 @@ def test_value_matches_hints_returns_false_for_none():
     assert value_matches_hints(None, {"family", "species"}) == False
 
 
-def test_to_values_with_agreement_returns_empty_list_for_none():
-    assert to_values_with_agreement(None) == []
+def test_to_multivalued_returns_empty_list_for_none():
+    assert Row.to_multivalued(None) == []
+
+
+def test_to_multivalued_wraps_int():
+    assert Row.to_multivalued(42) == [
+        ValueWithAgreement(value=42, agreement_level=1)
+    ]
+
+
+def test_to_multivalued_wraps_float():
+    assert Row.to_multivalued(3.14) == [
+        ValueWithAgreement(value=3.14, agreement_level=1)
+    ]
+
+
+def test_to_multivalued_wraps_bool_true():
+    assert Row.to_multivalued(True) == [
+        ValueWithAgreement(value=True, agreement_level=1)
+    ]
+
+
+def test_to_multivalued_wraps_bool_false():
+    assert Row.to_multivalued(False) == [
+        ValueWithAgreement(value=False, agreement_level=1)
+    ]
 
 
 def test_table_fragment_is_empty_all_empty_rows():
