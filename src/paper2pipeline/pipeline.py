@@ -25,6 +25,7 @@ class ExtractRun(BaseModel):
     column_hints_path: str | None = None
     split_pages: int | None = None
     quiet: bool = False
+    id: str | None = None
 
 
 class ExtractConfig(BaseModel):

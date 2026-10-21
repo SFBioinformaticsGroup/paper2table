@@ -87,15 +87,15 @@ def write_merge_metadata(
     for resultset_dir in resultset_dirs:
         meta = resultset_metadata.get(resultset_dir, {})
         source = {"path": resultset_dir}
-        if "uuid" in meta:
-            source["uuid"] = meta["uuid"]
+        if "id" in meta:
+            source["id"] = meta["id"]
         if "reader" in meta:
             source["reader"] = meta["reader"]
         sources.append(source)
 
     merge_metadata = {
         "reader": "tablemerge",
-        "uuid": str(uuid4()),
+        "id": str(uuid4()),
         "datetime": dt.now().isoformat(),
         "sources": sources,
     }
@@ -201,7 +201,7 @@ def merge_tablesfiles_paths(
         tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
             tablesfile = loader.load(tables_path)
-            tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("uuid")
+            tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("id")
             tablesfiles.append(tablesfile)
             page_offsets.append(page_offset)
 
@@ -279,9 +279,9 @@ def merge_resultsets(
     agreement = (
         DistinctReadersAgreement(
             {
-                meta["uuid"]: meta["reader"]
+                meta["id"]: meta["reader"]
                 for meta in resultset_metadata.values()
-                if "uuid" in meta and "reader" in meta
+                if "id" in meta and "reader" in meta
             }
         )
         if agreement_method == "distinct-readers"

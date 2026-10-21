@@ -160,7 +160,7 @@ def test_metadata_scalar_fields_rendered():
 def test_metadata_sources_table_rendered():
     metadata = {
         "sources": [
-            {"uuid": "abc", "reader": "pdfplumber", "path": "/tmp/a.pdf"},
+            {"id": "abc", "reader": "pdfplumber", "path": "/tmp/a.pdf"},
         ]
     }
     out = joined(build_metadata_html(metadata))
@@ -171,11 +171,11 @@ def test_metadata_sources_table_rendered():
 
 def test_metadata_sources_preferred_column_order():
     metadata = {
-        "sources": [{"uuid": "u1", "reader": "camelot", "path": "/p", "extra": "e"}]
+        "sources": [{"id": "u1", "reader": "camelot", "path": "/p", "extra": "e"}]
     }
     out = joined(build_metadata_html(metadata))
     headers = [h.split("</th>")[0] for h in out.split("<th>")[1:]]
-    assert headers[:3] == ["uuid", "reader", "path"]
+    assert headers[:3] == ["id", "reader", "path"]
 
 
 def test_metadata_no_sources_key():

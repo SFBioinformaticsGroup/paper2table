@@ -112,7 +112,7 @@ def run_normalize(config: NormalizeConfig, working_path: Path) -> None:
     run_subprocess(args, step_name="normalize")
 
 
-def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
+def find_new_id_dir(tables_dir: Path, before: set[Path]) -> Path:
     after = set(d for d in tables_dir.iterdir() if d.is_dir())
     new_dirs = after - before
     if len(new_dirs) != 1:
@@ -172,6 +172,8 @@ def build_extract_args(
         args += ["-c", hints_path]
     if run.split_pages is not None:
         args += ["--split-pages", str(run.split_pages)]
+    if run.id:
+        args += ["--id", run.id]
     if run.verbose:
         args += ["-vv"]  # TODO make verbosity global arg
     if run.quiet:
@@ -203,7 +205,7 @@ def run_extract(
     effective_paper_files = apply_page_ranges(paper_files, config.page_ranges)
 
     for i, run in enumerate(config.runs):
-        before = set(d for d in tables_dir.iterdir() if d.is_dir())
+        before = set() if run.id else set(d for d in tables_dir.iterdir() if d.is_dir())
         print(
             f"[pipeline] extract (run {i + 1}/{len(config.runs)})",
             file=sys.stderr,
@@ -215,16 +217,22 @@ def run_extract(
             ),
             step_name=f"extract run {i + 1}",
         )
-        uuid_dir = find_new_uuid_dir(tables_dir, before)
+
+        if run.id:
+            id_dir = tables_dir / run.id
+            if not id_dir.exists():
+                continue
+        else:
+            id_dir = find_new_id_dir(tables_dir, before)
 
         if config.stats:
-            run_stats(uuid_dir, step_name=f"extract run {i + 1} stats")
+            run_stats(id_dir, step_name=f"extract run {i + 1} stats")
         if config.validate_:
-            table_files = sorted(uuid_dir.glob("*.tables.json"))
+            table_files = sorted(id_dir.glob("*.tables.json"))
             if table_files:
                 run_validate(table_files, step_name=f"extract run {i + 1} validate")
         if config.export:
-            run_export(uuid_dir, config.export, step_name=f"extract run {i + 1} export")
+            run_export(id_dir, config.export, step_name=f"extract run {i + 1} export")
 
 
 def build_merge_args(

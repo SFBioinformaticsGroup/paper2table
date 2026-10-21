@@ -4,16 +4,15 @@
   "title": "TablesMetadata",
   "description": "Metadata file written alongside every tables output directory by paper2table, tablemerge, and tablegather.",
   "type": "object",
-  "required": ["reader", "uuid", "datetime"],
+  "required": ["reader", "id", "datetime"],
   "properties": {
     "reader": {
       "type": "string",
       "description": "Identifies which tool produced the output. Extraction runs use the reader name (e.g. 'pdfplumber'), the model identifier (for agent runs), or 'hybrid-<reader>-<model>'. Merge outputs use 'tablemerge'. Gather outputs use 'tablegather'."
     },
-    "uuid": {
+    "id": {
       "type": "string",
-      "format": "uuid",
-      "description": "UUID v4 assigned to this output."
+      "description": "Identifier for this output. Defaults to a UUID v4; can be set to a custom string via --id."
     },
     "datetime": {
       "type": "string",
@@ -53,10 +52,9 @@
           "type": "string",
           "description": "Path to the source file or directory."
         },
-        "uuid": {
+        "id": {
           "type": "string",
-          "format": "uuid",
-          "description": "UUID from the source's own metadata, if available."
+          "description": "Identifier from the source's own metadata, if available."
         },
         "reader": {
           "type": "string",

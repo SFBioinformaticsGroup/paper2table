@@ -30,7 +30,7 @@ def compute_sources(
     for tablesfile, path in tablesfiles_with_paths:
         source: dict = {"path": str(path)}
         if tablesfile.uuid:
-            source["uuid"] = tablesfile.uuid
+            source["id"] = tablesfile.uuid
         dir_meta = directory_metadata.get(str(path.parent), {})
         if "reader" in dir_meta:
             source["reader"] = dir_meta["reader"]
@@ -43,7 +43,7 @@ def write_gather_metadata(
 ) -> None:
     metadata = {
         "reader": "tablegather",
-        "uuid": str(uuid4()),
+        "id": str(uuid4()),
         "datetime": dt.now().isoformat(),
         "settings": settings,
         "sources": sources,

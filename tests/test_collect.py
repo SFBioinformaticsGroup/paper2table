@@ -699,8 +699,8 @@ def test_compute_sources_includes_gathered_files():
     path_b = Path("resultset/jones_2021.tables.json")
     sources = compute_sources([(file_a, path_a), (file_b, path_b)], {})
     assert sources == [
-        {"path": "resultset/mamani_2020.tables.json", "uuid": "uuid-a"},
-        {"path": "resultset/jones_2021.tables.json", "uuid": "uuid-b"},
+        {"path": "resultset/mamani_2020.tables.json", "id": "uuid-a"},
+        {"path": "resultset/jones_2021.tables.json", "id": "uuid-b"},
     ]
 
 
@@ -731,8 +731,8 @@ def test_compute_sources_includes_all_files():
     path_b = Path("resultset_2/mamani_2020.tables.json")
     sources = compute_sources([(file_a, path_a), (file_b, path_b)], {})
     assert sources == [
-        {"path": "resultset_1/mamani_2020.tables.json", "uuid": "uuid-a"},
-        {"path": "resultset_2/mamani_2020.tables.json", "uuid": "uuid-b"},
+        {"path": "resultset_1/mamani_2020.tables.json", "id": "uuid-a"},
+        {"path": "resultset_2/mamani_2020.tables.json", "id": "uuid-b"},
     ]
 
 
@@ -770,5 +770,5 @@ def test_write_gather_metadata_creates_file(tmp_path):
     assert metadata["sources"] == [
         {"path": "resultset/mamani_2020.tables.json", "uuid": "uuid-a"}
     ]
-    assert "uuid" in metadata
+    assert "id" in metadata
     assert "datetime" in metadata

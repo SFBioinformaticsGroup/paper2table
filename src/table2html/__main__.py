@@ -45,7 +45,7 @@ def _reader_emoji(reader: str) -> str:
 
 def _source_cell(source: dict, key: str) -> str:
     value = source.get(key, "")
-    if key == "uuid":
+    if key == "id":
         emoji = _reader_emoji(source.get("reader", ""))
         return f"{emoji} {value}" if emoji else value
     return value
@@ -127,7 +127,7 @@ def build_metadata_html(metadata: dict) -> list[str]:
     if sources:
         html.append("<h3>Sources</h3>")
         all_keys = {k for s in sources for k in s}
-        preferred = ["uuid", "reader", "path"]
+        preferred = ["id", "reader", "path"]
         source_keys = [k for k in preferred if k in all_keys] + sorted(
             all_keys - set(preferred)
         )
@@ -222,7 +222,7 @@ def build_paper_sources_html(sources: list[dict]) -> list[str]:
     if not sources:
         return []
     all_keys = {k for s in sources for k in s}
-    preferred = ["uuid", "reader", "path"]
+    preferred = ["id", "reader", "path"]
     source_keys = [k for k in preferred if k in all_keys] + sorted(
         all_keys - set(preferred)
     )
@@ -369,9 +369,9 @@ def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) ->
         html.extend(build_settings_html(settings))
 
     uuid_to_reader: dict[str, str] = {
-        s["uuid"]: s["reader"]
+        s["id"]: s["reader"]
         for s in metadata.get("sources", [])
-        if "uuid" in s and "reader" in s
+        if "id" in s and "reader" in s
     }
 
     html.append("<h2>Papers</h2>")
@@ -381,7 +381,7 @@ def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) ->
         html.append(f"<p>Citation: {render_citation(content.citation)}</p>")
         paper_uuids = collect_paper_source_uuids(content)
         paper_sources = [
-            s for s in metadata.get("sources", []) if s.get("uuid") in paper_uuids
+            s for s in metadata.get("sources", []) if s.get("id") in paper_uuids
         ]
         html.extend(build_paper_sources_html(paper_sources))
         for idx, table in enumerate(content.tables, 1):
