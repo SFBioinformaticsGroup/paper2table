@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from typing import Optional
 import traceback
+from uuid import uuid4
 
 from tqdm import tqdm
 
@@ -24,7 +25,7 @@ from paper2table.readers import (
 from paper2table.readers.errors import ModelUnavailableError, PartialProcessingError
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
-from paper2table.writers.tablemerge import TablemergeMetadata
+from paper2table.writers.tablemerge import TablemergeMetadata, reader_slug
 from utils.handle_sigint import handle_sigint
 
 __author__ = "Franco Leonardo Bulgarelli"
@@ -144,7 +145,7 @@ def parse_args():
     )
     parser.add_argument(
         "--id",
-        dest="run_id",
+        dest="id",
         type=str,
         default=None,
         metavar="ID",
@@ -220,39 +221,29 @@ def get_tables_reader(args):
     elif args.reader == "pdfplumber":
         column_hints = read_column_hints(args)
 
-        _logger.debug(
-            f"Using pdfplumber reader with column hints {column_hints}"
-        )
+        _logger.debug(f"Using pdfplumber reader with column hints {column_hints}")
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
             paper_path: str, mapping: Optional[TablesMapping] = None
         ):
             _logger.debug(f"Processing paper {paper_path}...")
-            return pdfplumber.read_tables(
-                paper_path, column_hints, mapping=mapping
-            )
+            return pdfplumber.read_tables(paper_path, column_hints, mapping=mapping)
 
     elif args.reader == "img2table":
         column_hints = read_column_hints(args)
 
-        _logger.debug(
-            f"Using img2table reader with column hints {column_hints}"
-        )
+        _logger.debug(f"Using img2table reader with column hints {column_hints}")
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
             paper_path: str, mapping: Optional[TablesMapping] = None
         ):
             _logger.debug(f"Processing paper {paper_path}...")
-            return img2table.read_tables(
-                paper_path, column_hints, mapping=mapping
-            )
+            return img2table.read_tables(paper_path, column_hints, mapping=mapping)
 
     elif args.reader == "pymupdf":
         column_hints = read_column_hints(args)
 
-        _logger.debug(
-            f"Using pymupdf reader with column hints {column_hints}"
-        )
+        _logger.debug(f"Using pymupdf reader with column hints {column_hints}")
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
             paper_path: str, mapping: Optional[TablesMapping] = None
@@ -360,11 +351,11 @@ def get_table_writer(args):
         print("--append requires --tablemerge and --output-directory")
         sys.exit(1)
 
-    if args.run_id and not (args.tablemerge and args.output_directory):
+    if args.id and not (args.tablemerge and args.output_directory):
         print("--id requires --tablemerge and --output-directory")
         sys.exit(1)
 
-    if args.append and args.run_id:
+    if args.append and args.id:
         print("--id and --append cannot be used together")
         sys.exit(1)
 
@@ -373,20 +364,22 @@ def get_table_writer(args):
     if args.tablemerge:
         if args.append:
             validate_existing_resultset(args)
-            run_id = args.append
-        elif args.run_id:
-            run_id = args.run_id
-            if os.path.isdir(os.path.join(args.output_directory, run_id)):
-                print(f"Skipping: resultset '{run_id}' already exists")
+            id = args.append
+        elif args.id:
+            id = args.id
+            if os.path.isdir(os.path.join(args.output_directory, id)):
+                print(f"Skipping: resultset '{id}' already exists")
                 sys.exit(0)
         else:
-            run_id = None
+            id = str(uuid4())
 
         metadata = TablemergeMetadata(
-            reader=args.reader, model=args.model, hybrid=args.hybrid, id=run_id
+            reader=args.reader, model=args.model, hybrid=args.hybrid, id=id
         )
 
-        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
+        def write_tables(  # pyright: ignore[reportRedeclaration]
+            result: TablesReader, paper_path: str
+        ):
             tablemerge.write_tables(
                 result,
                 paper_path,
@@ -397,9 +390,14 @@ def get_table_writer(args):
 
     elif args.output_directory:
 
-        def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]
+        def write_tables(  # pyright: ignore[reportRedeclaration]
+            result: TablesReader, paper_path: str
+        ):
             file.write_tables(
-                result, paper_path, output_directory=args.output_directory, indent=indent
+                result,
+                paper_path,
+                output_directory=args.output_directory,
+                indent=indent,
             )
 
     else:
@@ -417,9 +415,9 @@ def validate_existing_resultset(args):
         print("--append: resultset doesn't exist or doesn't contain valid metadata")
         sys.exit(1)
 
-    current_reader = TablemergeMetadata(
+    current_reader = reader_slug(
         reader=args.reader, model=args.model, hybrid=args.hybrid
-    ).get_reader()
+    )
 
     if existing["reader"] != current_reader:
         print(
@@ -444,16 +442,16 @@ def main():
     should_skip = get_skip_predicate(args)
 
     for raw_path in get_paper_paths(args):
-        clean_path, page_range = parse_page_range(raw_path)
-        if should_skip(clean_path):
-            _logger.debug(f"Skipping {clean_path}, already in resultset")
+        paper_path, page_range = parse_page_range(raw_path)
+        if should_skip(paper_path):
+            _logger.debug(f"Skipping {paper_path}, already in resultset")
             continue
         try:
-            result = read_tables(clean_path, page_range=page_range)
+            result = read_tables(paper_path, page_range=page_range)
 
-            write_tables(result, clean_path)
+            write_tables(result, paper_path)
 
-            _logger.debug(f"Paper {clean_path} processed")
+            _logger.debug(f"Paper {paper_path} processed")
         except ModelUnavailableError:
             _logger.warning("model is unavailable right now")
         except PartialProcessingError as e:
@@ -461,12 +459,12 @@ def main():
                 _logger.warning("model is unavailable right now")
             else:
                 _logger.warning(
-                    f"Paper {clean_path} failed on page {e.page_num}."
+                    f"Paper {paper_path} failed on page {e.page_num}."
                     f" Writing partial results. {str(traceback.format_exc())}"
                 )
-            write_tables(e.partial_result, clean_path)
+            write_tables(e.partial_result, paper_path)
         except Exception:
-            _logger.warning(f"Paper {clean_path} failed {str(traceback.format_exc())}")
+            _logger.warning(f"Paper {paper_path} failed {str(traceback.format_exc())}")
 
 
 if __name__ == "__main__":

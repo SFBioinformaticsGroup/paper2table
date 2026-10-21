@@ -6,34 +6,26 @@ import pytest
 from paper2table.writers.tablemerge import TablemergeMetadata
 
 
-def test_id_is_unique():
-    m1 = TablemergeMetadata("camelot", "model1")
-    m2 = TablemergeMetadata("camelot", "model2")
-    assert m1.id != m2.id
-
 
 def test_to_dict_regular_reader():
-    meta = TablemergeMetadata(reader="camelot", model="test-model")
+    meta = TablemergeMetadata(reader="camelot", model="test-model", id="test")
     d = meta.to_dict()
 
     assert d["reader"] == "camelot"
-    assert UUID(d["id"])
     assert isinstance(datetime.fromisoformat(d["datetime"]), datetime)
 
 
 def test_to_dict_reader_agent_substitutes_model():
-    meta = TablemergeMetadata(reader="agent", model="special-model")
+    meta = TablemergeMetadata(reader="agent", model="special-model", id="test")
     d = meta.to_dict()
 
     assert d["reader"] == "special-model"
-    assert UUID(d["id"])
     assert isinstance(datetime.fromisoformat(d["datetime"]), datetime)
 
 
-def test_to_dict_reader_agent_with_none_model():
-    meta = TablemergeMetadata(reader="agent", model=None)
+def test_to_dict_reader_hybrid():
+    meta = TablemergeMetadata(reader="pdfplumber", model="custom", id="test", hybrid=True)
     d = meta.to_dict()
 
-    assert d["reader"] is None
-    assert UUID(d["id"])
+    assert d["reader"] == "hybrid-pdfplumber-custom"
     assert isinstance(datetime.fromisoformat(d["datetime"]), datetime)

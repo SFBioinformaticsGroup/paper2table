@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 from typing import Literal, Optional
-from uuid import uuid4
 from datetime import datetime as dt
 
 from paper2table.tables_reader import TablesReader
@@ -11,6 +10,13 @@ from utils.jsonc import load_jsonc
 from . import file
 
 type Reader = Literal["agent", "pdfplumber", "camelot", "img2table", "pymupdf"]
+
+def reader_slug(reader: str, model: Optional[str], hybrid: bool):
+    if reader == "agent":
+        return model
+    if hybrid:
+        return f"hybrid-{reader}-{model}"
+    return reader
 
 class TablemergeMetadata:
     reader: Reader
@@ -23,25 +29,18 @@ class TablemergeMetadata:
         self,
         reader: Reader,
         model: Optional[str],
+        id: str,
         hybrid=False,
-        id: Optional[str] = None,
     ):
         self.reader = reader
         self.model = model
         self.hybrid = hybrid
-        self.id = id if id is not None else str(uuid4())
+        self.id = id
         self.datetime = dt.now()
-
-    def get_reader(self):
-        if self.reader == "agent":
-            return self.model
-        if self.hybrid:
-            return f"hybrid-{self.reader}-{self.model}"
-        return self.reader
 
     def to_dict(self):
         return {
-            "reader": self.get_reader(),
+            "reader": reader_slug(self.reader, self.model, self.hybrid),
             "id": self.id,
             "datetime": self.datetime.isoformat(),
         }
