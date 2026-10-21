@@ -557,7 +557,21 @@ output, following the same format used by `paper2table` and `tablemerge`:
 paper2pipeline pipeline.json
 ```
 
-The pipeline runs four optional steps in order — **normalize → extract → merge → gather** — and skips any section that is absent from the file.
+The pipeline runs the following steps in order:
+
+  1. normalize
+  2. extract
+  3. merge
+  4. gather
+  5. readme
+
+### Working example
+
+Run the example that comes out of the box
+
+```bash
+GEMINI_API_KEY=... paper2pipeline tests/data/pipeline/pipeline.jsonc
+```
 
 #### Directory layout
 
