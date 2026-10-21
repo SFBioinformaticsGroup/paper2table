@@ -1,9 +1,10 @@
-import json
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 from tablevalidate.schema import TablesFile
+from utils.column_schema import ColumnSchema
+from utils.jsonc import load_jsonc
 
 from .pipeline import Pipeline
 
@@ -30,17 +31,8 @@ def get_package_version(package: str) -> str:
 
 
 def parse_schema_columns(schema_path: str) -> list[tuple[str, str]]:
-    columns = []
-    for line in Path(schema_path).read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        if ":" in line:
-            name, type_ = line.split(":", 1)
-            columns.append((name.strip(), type_.strip()))
-        else:
-            columns.append((line, ""))
-    return columns
+    content = Path(schema_path).read_text(encoding="utf-8")
+    return list(ColumnSchema.parse(content).serialize().items())
 
 
 def list_tools(pipeline: Pipeline) -> list[str]:
@@ -99,16 +91,13 @@ def load_column_aliases(pipeline: Pipeline) -> dict[str, str]:
 
 
 def read_tables_json_citation(path: Path) -> str:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    citation = data.get("citation")
+    tablesfile = TablesFile.model_validate(load_jsonc(path))
+    citation = tablesfile.citation
+    if citation is None:
+        return "[...]"
     if isinstance(citation, str):
         return citation
-    if isinstance(citation, list) and citation:
-        first = citation[0]
-        if isinstance(first, dict):
-            return str(first.get("value", "[...]"))
-        return str(first)
-    return "[...]"
+    return str(citation[0].value) if citation else "[...]"
 
 
 def list_paper_citations(working_path: str) -> list[tuple[str, str]]:
