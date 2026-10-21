@@ -7,10 +7,9 @@
   "extract": {
     "runs": [
       {
-        "reader": "pdfplumber"
-      },
-      {
-        "reader": "pymupdf"
+        "reader": "pymupdf",
+        "model": "google-gla:gemini-2.5-flash",
+        "hybrid": true
       },
       {
         "reader": "agent",
