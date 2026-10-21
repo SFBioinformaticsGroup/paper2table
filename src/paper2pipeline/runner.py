@@ -11,6 +11,7 @@ from .pipeline import (
     NormalizeConfig,
     Pipeline,
 )
+from .readme import write_readme
 
 
 class PipelineError(Exception):
@@ -435,3 +436,6 @@ def run_pipeline(pipeline: Pipeline) -> None:
 
     if pipeline.gather:
         run_gather(pipeline.gather, working_path, schema_path, pretty=pipeline.pretty)
+
+    if pipeline.readme is not None:
+        write_readme(pipeline, schema_path, override=pipeline.readme.override)
