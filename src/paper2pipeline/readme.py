@@ -3,6 +3,8 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
+from tablevalidate.schema import TablesFile
+
 from .pipeline import Pipeline
 
 READER_PACKAGES = {
@@ -113,9 +115,9 @@ def list_paper_citations(working_path: str) -> list[tuple[str, str]]:
     merges_dir = Path(working_path) / "merges"
     if merges_dir.exists():
         entries = sorted(
-            (f.stem, read_tables_json_citation(f))
+            (f.name.removesuffix(".tables.json"), read_tables_json_citation(f))
             for f in merges_dir.glob("*.tables.json")
-            if f.stem != "tables.metadata"
+            if f.name != "tables.metadata.json"
         )
         if entries:
             return entries
