@@ -161,3 +161,46 @@ def test_get_curation_type_automatic():
 
 def test_get_curation_type_manual():
     assert Row(family="Apiaceae", curation_type_="manual").get_curation_type() == "manual"
+
+
+def test_get_convergence_level_manual_curation():
+    assert Row(family="Apiaceae", curation_type_="manual").get_convergence_level() == 5
+
+
+def test_get_convergence_level_automatic_curation():
+    assert Row(family="Apiaceae", curation_type_="automatic").get_convergence_level() == 4
+
+
+def test_get_convergence_level_multi_source_all_convergent():
+    assert Row(
+        family="Apiaceae",
+        sources_=["uuid1", "uuid2"],
+        agreement_level_=2,
+    ).get_convergence_level() == 3
+
+
+def test_get_convergence_level_multi_source_some_non_convergent():
+    assert Row(
+        family=[
+            ValueWithAgreement(value="Apiaceae", agreement_level=1),
+            ValueWithAgreement(value="Fabaceae", agreement_level=1),
+        ],
+        sources_=["uuid1", "uuid2"],
+        agreement_level_=2,
+    ).get_convergence_level() == 2
+
+
+def test_get_convergence_level_single_source():
+    assert Row(family="Apiaceae", sources_=["uuid1"]).get_convergence_level() == 1
+
+
+def test_get_convergence_level_no_sources():
+    assert Row(family="Apiaceae").get_convergence_level() == 0
+
+
+def test_get_convergence_level_sources_agreement_mismatch():
+    assert Row(
+        family="Apiaceae",
+        sources_=["uuid1", "uuid2"],
+        agreement_level_=1,
+    ).get_convergence_level() == 0

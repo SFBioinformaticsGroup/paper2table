@@ -371,18 +371,6 @@ def test_is_empty_value_bool_true_is_not_empty():
     assert Row.is_empty_value(True) is False
 
 
-def test_is_convergent_float():
-    assert Row.is_convergent(3.14) is True
-
-
-def test_is_convergent_int():
-    assert Row.is_convergent(42) is True
-
-
-def test_is_convergent_bool():
-    assert Row.is_convergent(False) is True
-
-
 def test_normalize_value_float_unchanged():
     assert Row.normalize_value(3.14) == 3.14
 

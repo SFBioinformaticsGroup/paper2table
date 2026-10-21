@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
@@ -109,6 +109,24 @@ class Row(BaseModel):
             ),
         )
 
+    def get_convergence_level(self) -> Literal[0, 1, 2, 3, 4, 5]:
+        if self.get_curation_type() == "manual":
+            return 5
+
+        if self.get_curation_type() == "automatic":
+            return 4
+
+        if len(self.sources_ or []) == self.get_agreement_level():
+            if self.get_agreement_level() == 1:
+                return 1
+
+            if any(not Row.is_convergent(value) for value in self.get_column_values()):
+                return 2
+
+            return 3
+
+        return 0
+
     def clone(
         self,
         agreement_level: Optional[int] = None,
@@ -157,13 +175,11 @@ class Row(BaseModel):
         if isinstance(value, str):
             return not normalize_column_value(value)
 
-        return False  # int, float, bool — never empty
+        return False
 
     @staticmethod
     def is_convergent(value: ColumnValue) -> bool:
-        if not isinstance(value, list):
-            return True
-        return len(value) == 1
+        return not isinstance(value, list) or len(value) == 1
 
     @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
@@ -250,11 +266,7 @@ class TableFragment(BaseModel):
 
     def get_convergent_rows(self) -> List[Row]:
         """Return rows that have a single unique value"""
-        return [
-            row
-            for row in self.rows
-            if all([Row.is_convergent(v) for v in row.get_column_values()])
-        ]
+        return [row for row in self.rows if row.get_convergence_level() > 0]
 
 
 class Table(ABC):
