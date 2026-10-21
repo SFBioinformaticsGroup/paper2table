@@ -130,7 +130,7 @@ docker build --build-arg SPACY_MODELS="en_core_web_md" -f docker/Dockerfile -t p
 docker build --build-arg SPACY_MODELS="" -f docker/Dockerfile -t paper2table .
 ```
 
-All commands below have Docker equivalents. Mount the directory containing your PDFs or result files to `/data` inside the container — the working directory is `/data`, so paths starting with `/data/` work naturally.
+All commands below have Docker equivalents. Mount the directory containing your PDFs or result files to `/data` inside the container - the working directory is `/data`, so paths starting with `/data/` work naturally.
 
 ###  1.2. <a name='Preparingfiles'></a>Preparing files
 
@@ -653,22 +653,22 @@ ${working_path}/
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `reader` | `str` | `"pdfplumber"` | Extraction backend: `pdfplumber`, `camelot`, `agent`, `hybrid`, `pymupdf`, `img2table` |
-| `model` | `str` | — | Language model (`-m`) |
-| `model_sleep` | `int` | — | Seconds between model calls (`-z`) |
+| `model` | `str` | - | Language model (`-m`) |
+| `model_sleep` | `int` | - | Seconds between model calls (`-z`) |
 | `verbose` | `bool` | `false` | Enable verbose logging (`-vv`) |
 | `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`); mappings are stored in `${working_path}/mappings/` |
 | `override_mappings` | `bool` | `false` | Regenerate mapping even if cached (`--override-mappings` / `-F`). Does not affect `override`; `override` only wipes `tables/`, never `mappings/`. |
-| `schema` | `str` | — | Inline schema string (overrides `${working_path}/schema.txt` for this run) |
-| `column_hints` | `str` | — | Inline column name hints (overrides `${working_path}/column_hints.txt` and `column_hints_path` for this run) |
-| `column_hints_path` | `str` | — | Explicit path to column name hints file (`-c`); if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
-| `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
+| `schema` | `str` | - | Inline schema string (overrides `${working_path}/schema.txt` for this run) |
+| `column_hints` | `str` | - | Inline column name hints (overrides `${working_path}/column_hints.txt` and `column_hints_path` for this run) |
+| `column_hints_path` | `str` | - | Explicit path to column name hints file (`-c`); if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
+| `split_pages` | `int` | - | Max pages per agent call (`--split-pages`) |
 | `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
 
 The `page_ranges`, `stats`, `validate`, `export`, and `override` fields apply to the extract step as a whole:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `page_ranges` | `dict[str, str]` | — | Restrict per-paper page ranges. Keys are paper basenames (without `.pdf`); values are `"FROM:TO"` (1-indexed, inclusive). Papers not listed are extracted in full. Unknown basenames produce a warning. |
+| `page_ranges` | `dict[str, str]` | - | Restrict per-paper page ranges. Keys are paper basenames (without `.pdf`); values are `"FROM:TO"` (1-indexed, inclusive). Papers not listed are extracted in full. Unknown basenames produce a warning. |
 | `stats` | `bool` | `false` | Run `tablestats` and write output to `${uuid}/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the extracted tables |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` → `table2csv`, `"html"` → `table2html` |
@@ -688,24 +688,24 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `column_name_semantic_alignment` | `bool` | `false` | Load-time NLP column alignment |
 | `column_value_semantic_alignment` | `bool` | `false` | Merge-time NLP column alignment |
 | `semantic_language` | `str` | `"en"` | spaCy language: `"en"` or `"es"` |
-| `hints_column_alignment` | `str` | — | `"safe"` or `"unsafe"` |
+| `hints_column_alignment` | `str` | - | `"safe"` or `"unsafe"` |
 | `fix_reversed_column_values` | `bool` | `false` | Detect and correct reversed cell values |
 | `strip_leading_row_numbers` | `bool` | `false` | Strip leading sequential numbers from cells |
 | `normalize_punctuation` | `bool` | `false` | Normalize punctuation in cell values |
 | `split_conjunction_columns` | `bool` | `false` | Split conjunction columns |
-| `transform_tablesfile` | `str` | — | `"explode"`, `"safe-compact"`, or `"unsafe-compact"` |
+| `transform_tablesfile` | `str` | - | `"explode"`, `"safe-compact"`, or `"unsafe-compact"` |
 | `filter_schema_columns` | `bool` | `false` | Drop tables with no schema columns |
 | `order_schema_columns` | `bool` | `false` | Reorder columns by schema order |
 | `coerce_schema_column_types` | `bool` | `false` | Normalize cell types to schema types |
 | `filter_semantic_columns` | `bool` | `false` | Remove numeric-named columns |
 | `drop_empty_columns` | `bool` | `true` | Drop entirely empty columns |
 | `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
-| `column_aliases` | `str` | — | Inline alias map (e.g. `"familia:family"`) |
-| `column_aliases_path` | `str` | — | Explicit path to alias map file; if omitted, `${working_path}/column_aliases.txt` is used when present and non-empty |
-| `column_hints` | `str` | — | Inline column name hints |
-| `column_hints_path` | `str` | — | Explicit path to hints file; if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
-| `paper_aliases` | `str` | — | Inline paper alias map |
-| `paper_aliases_path` | `str` | — | Explicit path to paper alias map file; if omitted, `${working_path}/paper_aliases.txt` is used when present and non-empty |
+| `column_aliases` | `str` | - | Inline alias map (e.g. `"familia:family"`) |
+| `column_aliases_path` | `str` | - | Explicit path to alias map file; if omitted, `${working_path}/column_aliases.txt` is used when present and non-empty |
+| `column_hints` | `str` | - | Inline column name hints |
+| `column_hints_path` | `str` | - | Explicit path to hints file; if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
+| `paper_aliases` | `str` | - | Inline paper alias map |
+| `paper_aliases_path` | `str` | - | Explicit path to paper alias map file; if omitted, `${working_path}/paper_aliases.txt` is used when present and non-empty |
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
@@ -716,7 +716,7 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `convergence` | `str` | `"none"` | `"none"`, `"rows"`, `"fragments"`, or `"tables"` |
-| `key_columns` | `list[str]` | — | Column names to sort gathered rows by |
+| `key_columns` | `list[str]` | - | Column names to sort gathered rows by |
 | `filter_schema_columns` | `bool` | `false` | Drop tables with no schema columns |
 | `order_schema_columns` | `bool` | `false` | Reorder columns by schema order |
 | `coerce_schema_column_types` | `bool` | `false` | Normalize cell types to schema types |
@@ -865,7 +865,7 @@ necessarily for every tool downstream. It is expected and fine for a tool to ign
 meta-columns it doesn't recognize or doesn't need - for example, `tablemerge` deliberately does
 not propagate `tablegather`'s `citation_`/`path_`/`page_`/`fragment_` columns, because
 `tablemerge` runs upstream of `tablegather` in the normal pipeline and has no use for them. If a meta-column ever does need to survive a
-transformation, use `row.clone()` — it preserves all meta-columns by default, unlike a bare
+transformation, use `row.clone()` - it preserves all meta-columns by default, unlike a bare
 `Row(...)` constructor which only carries the fields you explicitly pass.
 
 Current meta-columns, by the tool that produces them:
