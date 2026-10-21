@@ -289,6 +289,11 @@
           "default": "none",
           "enum": ["none", "rows", "fragments", "tables"]
         },
+        "convergence_level": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
         "key_columns": {
           "anyOf": [
             { "type": "array", "items": { "type": "string" } },

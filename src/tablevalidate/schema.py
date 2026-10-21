@@ -109,14 +109,22 @@ class Row(BaseModel):
             ),
         )
 
-    def get_convergence_level(self) -> Literal[0, 1, 2, 3, 4, 5]:
+    def get_convergence_level(self, sources_count: int) -> Literal[0, 1, 2, 3, 4, 5]:
+        """
+        0 = sources/agreement mismatch
+        1 = single source
+        2 = multi-source with cell conflicts
+        3 = multi-source convergent
+        4 = automatic curation
+        5 = manual curation
+        """
         if self.get_curation_type() == "manual":
             return 5
 
         if self.get_curation_type() == "automatic":
             return 4
 
-        if len(self.sources_ or []) == self.get_agreement_level():
+        if sources_count == self.get_agreement_level():
             if self.get_agreement_level() == 1:
                 return 1
 
@@ -264,9 +272,15 @@ class TableFragment(BaseModel):
     def is_empty(self) -> bool:
         return all(row.is_empty() for row in self.rows)
 
-    def get_convergent_rows(self) -> List[Row]:
-        """Return rows that have a single unique value"""
-        return [row for row in self.rows if row.get_convergence_level() > 0]
+    def get_convergent_rows(self, level: int = 1) -> List[Row]:
+        sources_count = len(
+            {source for row in self.rows for source in row.sources_ or []}
+        )
+        return [
+            row
+            for row in self.rows
+            if row.get_convergence_level(sources_count) >= level
+        ]
 
 
 class Table(ABC):
@@ -276,11 +290,11 @@ class Table(ABC):
     @abstractmethod
     def is_empty(self) -> bool: ...
 
-    def get_convergent_fragments(self) -> List[TableFragment]:
+    def get_convergent_fragments(self, level: int = 1) -> List[TableFragment]:
         return [
             f
             for f in self.get_table_fragments()
-            if len(f.get_convergent_rows()) == len(f.rows)
+            if len(f.get_convergent_rows(level)) == len(f.rows)
         ]
 
 
@@ -332,11 +346,11 @@ class TablesFile(BaseModel):
     def has_curations(self) -> bool:
         return bool(self.metadata and self.metadata.curations)
 
-    def get_convergent_tables(self) -> List[Table]:
+    def get_convergent_tables(self, level: int = 1) -> List[Table]:
         return [
             t
             for t in self.tables
-            if len(t.get_convergent_fragments()) == len(t.get_table_fragments())
+            if len(t.get_convergent_fragments(level)) == len(t.get_table_fragments())
         ]
 
     def clone(

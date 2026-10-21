@@ -364,7 +364,15 @@ def build_gather_args(
     merges_dir = working_path / "merges"
     gathers_dir = working_path / "gathers"
 
-    args = ["tablegather", "-o", str(gathers_dir), "--convergence", config.convergence]
+    args = [
+        "tablegather",
+        "-o",
+        str(gathers_dir),
+        "--convergence",
+        config.convergence,
+        "--convergence-level",
+        str(config.convergence_level),
+    ]
 
     if schema_path:
         args += ["-p", schema_path]

@@ -155,33 +155,25 @@ def test_infer_type_native_float():
 
 
 def test_row_value_strings_int_value():
-    paper = make_paper(
-        [{"page": 1, "rows": [{"count": 42, "row_": 1}]}]
-    )
+    paper = make_paper([{"page": 1, "rows": [{"count": 42, "row_": 1}]}])
     row = paper.tables[0].get_table_fragments()[0].rows[0]
     assert row_value_strings(row) == frozenset({("count", "42")})
 
 
 def test_row_value_strings_float_value():
-    paper = make_paper(
-        [{"page": 1, "rows": [{"ratio": 3.14, "row_": 1}]}]
-    )
+    paper = make_paper([{"page": 1, "rows": [{"ratio": 3.14, "row_": 1}]}])
     row = paper.tables[0].get_table_fragments()[0].rows[0]
     assert row_value_strings(row) == frozenset({("ratio", "3.14")})
 
 
 def test_row_value_strings_bool_false_is_not_skipped():
-    paper = make_paper(
-        [{"page": 1, "rows": [{"active": False, "row_": 1}]}]
-    )
+    paper = make_paper([{"page": 1, "rows": [{"active": False, "row_": 1}]}])
     row = paper.tables[0].get_table_fragments()[0].rows[0]
     assert row_value_strings(row) == frozenset({("active", "False")})
 
 
 def test_row_value_strings_int_zero_is_not_skipped():
-    paper = make_paper(
-        [{"page": 1, "rows": [{"count": 0, "row_": 1}]}]
-    )
+    paper = make_paper([{"page": 1, "rows": [{"count": 0, "row_": 1}]}])
     row = paper.tables[0].get_table_fragments()[0].rows[0]
     assert row_value_strings(row) == frozenset({("count", "0")})
 
@@ -805,9 +797,9 @@ def test_convergent_rows_all_unique():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Apiaceae", "row_": 1},
-                        {"family": "Rosaceae", "row_": 2},
-                        {"family": "Lamiaceae", "row_": 3},
+                        {"family": "Apiaceae", "row_": 1, "sources_": ["uuid1"]},
+                        {"family": "Rosaceae", "row_": 2, "sources_": ["uuid1"]},
+                        {"family": "Lamiaceae", "row_": 3, "sources_": ["uuid1"]},
                     ],
                 }
             ]
@@ -824,20 +816,34 @@ def test_convergent_rows_some_duplicate():
                     "page": 1,
                     "rows": [
                         {
+                            "family": "Apiaceae",
+                            "row_": 1,
+                            "agreement_level_": 1,
+                            "sources_": ["uuid1"],
+                        },
+                        {
                             "family": [
                                 ValueWithAgreement(value="Apiaceae", agreement_level=1),
-                                ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                                ValueWithAgreement(
+                                    value="Apiaceaes", agreement_level=1
+                                ),
                             ],
                             "row_": 1,
+                            "agreement_level_": 2,
+                            "sources_": ["uuid1", "uuid2"],
                         },
-                        {"family": "Lamiaceae", "row_": 2},
+                        {
+                            "family": "Lamiaceae",
+                            "row_": 2,
+                            "agreement_level_": 2,
+                            "sources_": ["uuid1", "uuid2"],
+                        },
                     ],
                 }
             ]
         )
     )
-    assert stats.convergent_rows == 1
-
+    assert stats.convergent_rows == 2
 
 
 def test_update_papers_stats_counts_papers_with_curations():
@@ -901,7 +907,13 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
                 "page": 1,
                 "rows": [
                     {"family": "Apiaceae", "row_": 1},
-                    {"family": [ValueWithAgreement(value="Rosaceae", agreement_level=1), ValueWithAgreement(value="Apiaceae", agreement_level=1)], "row_": 2},
+                    {
+                        "family": [
+                            ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                            ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                        ],
+                        "row_": 2,
+                    },
                 ],
             }
         ]
@@ -1136,16 +1148,18 @@ def test_sort_stats_by_rows_convergence_desc():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": [
-                            ValueWithAgreement(value="Apiaceae", agreement_level=1),
-                            ValueWithAgreement(value="Rosaceae", agreement_level=1)
-                        ], "row_": 1},
+                        {
+                            "family": [
+                                ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                                ValueWithAgreement(value="Rosaceae", agreement_level=1),
+                            ],
+                            "row_": 1,
+                        },
                     ],
                 }
             ]
         )
     )
-
 
     paper_b = compute_paper_stats(
         make_paper(
@@ -1167,13 +1181,23 @@ def test_sort_stats_by_rows_convergence_desc():
     assert list(stats.papers_stats.keys()) == ["b.tables.json", "a.tables.json"]
 
 
-
 def test_sort_stats_by_rows_convergence_none_last_desc():
     paper_a = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": [
-            ValueWithAgreement(value="Apiaceae", agreement_level=1),
-            ValueWithAgreement(value="", agreement_level=1)
-        ]}]}])
+        make_paper(
+            [
+                {
+                    "page": 1,
+                    "rows": [
+                        {
+                            "family": [
+                                ValueWithAgreement(value="Apiaceae", agreement_level=1),
+                                ValueWithAgreement(value="", agreement_level=1),
+                            ]
+                        }
+                    ],
+                }
+            ]
+        )
     )
     paper_b = compute_paper_stats(
         make_paper([{"page": 1, "rows": [{"family": "Lamiaceae"}]}])

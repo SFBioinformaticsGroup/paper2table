@@ -80,6 +80,7 @@ class GatherConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     convergence: str = "none"
+    convergence_level: int = 1
     key_columns: list[str] | None = None
     filter_schema_columns: bool = False
     order_schema_columns: bool = False

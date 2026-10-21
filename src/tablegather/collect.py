@@ -11,19 +11,19 @@ from tablevalidate.schema import (
 Convergence = Literal["none", "rows", "fragments", "tables"]
 
 
-def apply_tables_convergence(tablesfile: TablesFile) -> list[Row]:
+def apply_tables_convergence(tablesfile: TablesFile, level: int) -> list[Row]:
     return [
         row.clone(page=fragment.page, fragment=fragment_index)
-        for table in tablesfile.get_convergent_tables()
+        for table in tablesfile.get_convergent_tables(level)
         for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1)
         for row in fragment.rows
     ]
 
 
-def apply_fragments_convergence(tablesfile: TablesFile) -> list[Row]:
+def apply_fragments_convergence(tablesfile: TablesFile, level: int) -> list[Row]:
     result: list[Row] = []
     for table in tablesfile.tables:
-        convergent_ids = {id(f) for f in table.get_convergent_fragments()}
+        convergent_ids = {id(f) for f in table.get_convergent_fragments(level)}
         for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1):
             if id(fragment) in convergent_ids:
                 result.extend(
@@ -33,12 +33,12 @@ def apply_fragments_convergence(tablesfile: TablesFile) -> list[Row]:
     return result
 
 
-def apply_rows_convergence(tablesfile: TablesFile) -> list[Row]:
+def apply_rows_convergence(tablesfile: TablesFile, level: int) -> list[Row]:
     return [
         row.clone(page=fragment.page, fragment=fragment_index)
         for table in tablesfile.tables
         for fragment_index, fragment in enumerate(table.get_table_fragments(), start=1)
-        for row in fragment.get_convergent_rows()
+        for row in fragment.get_convergent_rows(level)
     ]
 
 
@@ -46,6 +46,7 @@ def gather_tablesfiles(
     tablesfiles_with_paths: list[tuple[TablesFile, Path]],
     key_columns: list[str],
     convergence: Convergence = "none",
+    level: int = 1,
 ) -> TablesFile:
     all_rows: list[Row] = []
 
@@ -54,11 +55,11 @@ def gather_tablesfiles(
         citation: str | None = Row.to_text(raw_citation) or None
 
         if convergence == "tables":
-            source_rows = apply_tables_convergence(tablesfile)
+            source_rows = apply_tables_convergence(tablesfile, level)
         elif convergence == "fragments":
-            source_rows = apply_fragments_convergence(tablesfile)
+            source_rows = apply_fragments_convergence(tablesfile, level)
         elif convergence == "rows":
-            source_rows = apply_rows_convergence(tablesfile)
+            source_rows = apply_rows_convergence(tablesfile, level)
         else:
             source_rows = [
                 row.clone(page=fragment.page, fragment=fragment_index)
