@@ -1,0 +1,39 @@
+Global Stats:
+  Papers: 1
+  Convergent Papers (Level=1):
+    tables: 0
+    fragments: 0
+    rows: 1
+  Convergent Papers (Level=3):
+    tables: 0
+    fragments: 0
+    rows: 1
+  Papers with curations: 0
+  Tables: 1
+  Fragments: 4
+  Rows: 142
+  Unique rows: 38
+  Rows with agreement > 1: 120
+  Global agreement percentage: 84.51%
+  Global shared values percentage: 0.00%
+
+Per-Paper Stats:
+- 85611977005.tables.json:
+    Tables: 1
+    Fragments: 4
+    Rows: 142
+    Unique rows: 38
+    Columns: 3
+    Rows with agreement > 1: 120
+    Agreement percentage: 84.51%
+    Empty rows percentage: 0.00%
+    Shared values percentage: 0.00%
+    Curations: 0
+    Convergent elements (Level=1):
+      tables: 0
+      fragments: 0
+      rows: 120
+    Convergent elements (Level=3):
+      tables: 0
+      fragments: 0
+      rows: 68

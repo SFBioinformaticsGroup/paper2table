@@ -189,9 +189,6 @@ def test_format_stats_with_columns():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     output = format_stats(stats, {"species": "str", "count": "int"})
@@ -211,9 +208,6 @@ def test_format_stats_without_columns():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     assert "Unique Columns:" not in format_stats(stats)
@@ -230,9 +224,6 @@ def test_global_agreement_percentage_no_rows():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     assert stats.global_agreement_percentage is None
@@ -249,9 +240,6 @@ def test_global_agreement_percentage_accumulates_across_papers():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     paper_a = make_paper(
@@ -294,9 +282,6 @@ def test_format_stats_shows_global_agreement_percentage():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
         global_agreement_percentage=50.0,
     )
@@ -315,9 +300,6 @@ def test_format_stats_omits_global_agreement_percentage_when_none():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     assert "Global agreement percentage" not in format_stats(stats)
@@ -666,9 +648,6 @@ def test_global_shared_values_percentage_accumulates():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     paper_a = make_paper(
@@ -711,9 +690,6 @@ def test_global_shared_values_percentage_none_when_no_groups():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     paper = make_paper([{"page": 1, "rows": [{"family": "Apiaceae", "row_": 1}]}])
@@ -732,9 +708,6 @@ def test_format_stats_shows_global_shared_values_percentage():
         rows_in_shared_groups=4,
         rows_with_shared_values=2,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
         global_shared_values_percentage=50.0,
     )
@@ -752,9 +725,6 @@ def test_format_stats_omits_global_shared_values_percentage_when_none():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     assert "Global shared values percentage" not in format_stats(stats)
@@ -805,7 +775,7 @@ def test_convergent_rows_all_unique():
             ]
         )
     )
-    assert stats.convergent_rows == 3
+    assert stats.convergent[1].rows == 3
 
 
 def test_convergent_rows_some_duplicate():
@@ -843,7 +813,7 @@ def test_convergent_rows_some_duplicate():
             ]
         )
     )
-    assert stats.convergent_rows == 2
+    assert stats.convergent[1].rows == 2
 
 
 def test_update_papers_stats_counts_papers_with_curations():
@@ -857,9 +827,6 @@ def test_update_papers_stats_counts_papers_with_curations():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     paper_with_curations = make_paper(
@@ -885,9 +852,6 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
     paper_full_convergence = make_paper(
@@ -895,8 +859,8 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
             {
                 "page": 1,
                 "rows": [
-                    {"family": "Apiaceae", "row_": 1},
-                    {"family": "Rosaceae", "row_": 2},
+                    {"family": "Apiaceae", "row_": 1, "sources_": ["uuid1"]},
+                    {"family": "Rosaceae", "row_": 2, "sources_": ["uuid1"]},
                 ],
             }
         ]
@@ -920,7 +884,7 @@ def test_update_papers_stats_counts_papers_with_full_convergence():
     )
     update_papers_stats(stats, "a.tables.json", paper_full_convergence)
     update_papers_stats(stats, "b.tables.json", paper_partial_convergence)
-    assert stats.papers_with_convergent_tables == 1
+    assert stats.papers_with_convergent[1].tables == 1
 
 
 def test_format_stats_shows_curations_and_convergence():
@@ -934,13 +898,10 @@ def test_format_stats_shows_curations_and_convergence():
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=1,
-        papers_with_convergent_tables=1,
-        papers_with_convergent_fragments=1,
-        papers_with_convergent_rows=1,
         papers_stats={
             "paper.tables.json": compute_paper_stats(
                 make_paper(
-                    [{"page": 1, "rows": [{"family": "Apiaceae", "row_": 1}]}],
+                    [{"page": 1, "rows": [{"family": "Apiaceae", "row_": 1, "sources_": ["uuid1"]}]}],
                     metadata={
                         "filename": "paper.pdf",
                         "curations": [{"curator": "Alice"}],
@@ -951,9 +912,9 @@ def test_format_stats_shows_curations_and_convergence():
     )
     output = format_stats(stats)
     assert "Papers with curations: 1" in output
-    assert "Papers with convergent tables: 1" in output
+    assert "Convergent Papers (Level=1):" in output
     assert "Curations: 1" in output
-    assert "Convergent rows count: 1" in output
+    assert "Convergent elements (Level=1):" in output
 
 
 def make_global_stats_with_papers(papers_stats: dict) -> GlobalStats:
@@ -967,9 +928,6 @@ def make_global_stats_with_papers(papers_stats: dict) -> GlobalStats:
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats=papers_stats,
     )
     return stats
@@ -1167,8 +1125,8 @@ def test_sort_stats_by_rows_convergence_desc():
                 {
                     "page": 1,
                     "rows": [
-                        {"family": "Lamiaceae", "row_": 1},
-                        {"family": "Asteraceae", "row_": 2},
+                        {"family": "Lamiaceae", "row_": 1, "sources_": ["uuid1"]},
+                        {"family": "Asteraceae", "row_": 2, "sources_": ["uuid1"]},
                     ],
                 }
             ]
@@ -1200,7 +1158,7 @@ def test_sort_stats_by_rows_convergence_none_last_desc():
         )
     )
     paper_b = compute_paper_stats(
-        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae"}]}])
+        make_paper([{"page": 1, "rows": [{"family": "Lamiaceae", "sources_": ["uuid1"]}]}])
     )
     stats = make_global_stats_with_papers(
         {"a.tables.json": paper_a, "b.tables.json": paper_b}
