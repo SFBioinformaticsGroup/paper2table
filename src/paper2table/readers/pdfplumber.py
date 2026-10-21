@@ -24,8 +24,8 @@ class PDFPlumberTable:
     def __init__(self, rows: TableFragment):
         self.rows = rows
 
-    def to_dataframe(self, column_names_hints: list[str], skip_first_row: bool) -> pd.DataFrame:
-        if skip_first_row or first_row_is_table_header(self.rows, column_names_hints):
+    def to_dataframe(self, column_hints: list[str], skip_first_row: bool) -> pd.DataFrame:
+        if skip_first_row or first_row_is_table_header(self.rows, column_hints):
             return pd.DataFrame(self.rows[1:], columns=self.rows[0])  # pyright: ignore[reportArgumentType]
         return pd.DataFrame(self.rows)
 
@@ -89,12 +89,12 @@ class PDFPlumberDocument(PDFDocument):
 
 def read_tables(
     pdf_path: str,
-    column_names_hints: Optional[str] = None,
+    column_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
     return document.read_tables(
         pdf_path,
-        column_names_hints=column_names_hints,
+        column_hints=column_hints,
         mapping=mapping,
         read_document=lambda pdf_path: PDFPlumberDocument(
             pdfplumber.open(pdf_path, unicode_norm="NFKC", repair=True)

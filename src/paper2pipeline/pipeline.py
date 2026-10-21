@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from utils.jsonc import load_jsonc
 
@@ -21,7 +21,8 @@ class ExtractRun(BaseModel):
     hybrid: bool = False
     override_mappings: bool = False
     schema_: str | None = Field(None, alias="schema")
-    column_names_hints_path: str | None = None
+    column_hints: str | None = None
+    column_hints_path: str | None = None
     split_pages: int | None = None
     quiet: bool = False
 
@@ -50,8 +51,8 @@ class MergeConfig(BaseModel):
     semantic_language: str = "en"
     column_aliases: str | None = None
     column_aliases_path: str | None = None
-    column_names_hints: str | None = None
-    column_names_hints_path: str | None = None
+    column_hints: str | None = None
+    column_hints_path: str | None = None
     hints_column_alignment: str | None = None
     paper_aliases: str | None = None
     paper_aliases_path: str | None = None
@@ -70,15 +71,6 @@ class MergeConfig(BaseModel):
     stats: bool = False
     export: list[str] = []
     override: bool = False
-
-    @model_validator(mode="after")
-    def hints_alignment_requires_hints(self) -> "MergeConfig":
-        if self.hints_column_alignment is not None:
-            if self.column_names_hints is None and self.column_names_hints_path is None:
-                raise ValueError(
-                    "hints_column_alignment requires column_names_hints or column_names_hints_path"
-                )
-        return self
 
 
 class GatherConfig(BaseModel):

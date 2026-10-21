@@ -71,7 +71,7 @@ def test_read_table_without_options():
 def test_read_table_with_hints():
     result = read_tables(
         "./tests/data/demo_table.pdf",
-        column_names_hints="""
+        column_hints="""
     common_names
     especie
     familia

@@ -31,8 +31,8 @@ def test_from_args_maps_fields_and_ignores_extras():
         column_aliases_path=None,
         paper_aliases=None,
         paper_aliases_path=None,
-        column_names_hints=None,
-        column_names_hints_path=None,
+        column_hints=None,
+        column_hints_path=None,
         schema="family:str",
         schema_path=None,
         paths=["dir1", "dir2"],
@@ -83,8 +83,8 @@ def test_from_args_reads_schema_from_path():
         column_aliases_path=None,
         paper_aliases=None,
         paper_aliases_path=None,
-        column_names_hints=None,
-        column_names_hints_path=None,
+        column_hints=None,
+        column_hints_path=None,
         schema=None,
         schema_path="tests/data/demo_schema.txt",
         paths=["dir1"],
@@ -126,8 +126,8 @@ def test_from_args_paths_stored_as_list():
         column_aliases_path=None,
         paper_aliases=None,
         paper_aliases_path=None,
-        column_names_hints=None,
-        column_names_hints_path=None,
+        column_hints=None,
+        column_hints_path=None,
         schema=None,
         schema_path=None,
         paths=["paper_a/output", "paper_b/output", "paper_c/output"],
@@ -166,7 +166,7 @@ def test_merge_settings_from_dict_defaults():
         drop_empty_tables=True,
         filter_semantic_columns=False,
         remove_header_rows=False,
-        column_names_hints=None,
+        column_hints=None,
         schema=None,
         paper_aliases=None,
     )
@@ -187,7 +187,7 @@ def test_merge_settings_from_dict_simple_fields():
             "drop_empty_tables": False,
             "filter_semantic_columns": True,
             "remove_header_rows": True,
-            "column_names_hints": ["species", "family"],
+            "column_hints": ["species", "family"],
             "schema": {"family": "str", "count": "int"},
         }
     )
@@ -196,7 +196,7 @@ def test_merge_settings_from_dict_simple_fields():
     assert settings.drop_empty_tables is False
     assert settings.filter_semantic_columns is True
     assert settings.remove_header_rows is True
-    assert settings.column_names_hints == ["species", "family"]
+    assert settings.column_hints == ["species", "family"]
     assert settings.schema == {"family": "str", "count": "int"}
 
 

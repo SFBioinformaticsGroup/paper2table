@@ -33,7 +33,7 @@ class FakePDFTable:
     def __init__(self, rows):
         self._rows = rows
 
-    def to_dataframe(self, column_names_hints, skip_first_row):
+    def to_dataframe(self, column_hints, skip_first_row):
         return pd.DataFrame(self._rows)
 
 

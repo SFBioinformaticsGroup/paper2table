@@ -115,9 +115,15 @@ def parse_args():
     )
     parser.add_argument(
         "-c",
-        "--column-names-hints-path",
+        "--column-hints-path",
         type=str,
         help="column name hints path. Only used by pdfplumber, img2table and pymupdf reader",
+    )
+    parser.add_argument(
+        "--column-hints",
+        type=str,
+        dest="column_hints",
+        help="inline column name hints string. Only used by pdfplumber, img2table and pymupdf reader",
     )
     parser.add_argument(
         "-o",
@@ -205,14 +211,10 @@ def get_tables_reader(args):
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
     elif args.reader == "pdfplumber":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_hints = read_column_hints(args)
 
         _logger.debug(
-            f"Using pdfplumber reader with column names hints {column_names_hints}"
+            f"Using pdfplumber reader with column hints {column_hints}"
         )
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
@@ -220,18 +222,14 @@ def get_tables_reader(args):
         ):
             _logger.debug(f"Processing paper {paper_path}...")
             return pdfplumber.read_tables(
-                paper_path, column_names_hints, mapping=mapping
+                paper_path, column_hints, mapping=mapping
             )
 
     elif args.reader == "img2table":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_hints = read_column_hints(args)
 
         _logger.debug(
-            f"Using img2table reader with column names hints {column_names_hints}"
+            f"Using img2table reader with column hints {column_hints}"
         )
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
@@ -239,25 +237,21 @@ def get_tables_reader(args):
         ):
             _logger.debug(f"Processing paper {paper_path}...")
             return img2table.read_tables(
-                paper_path, column_names_hints, mapping=mapping
+                paper_path, column_hints, mapping=mapping
             )
 
     elif args.reader == "pymupdf":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_hints = read_column_hints(args)
 
         _logger.debug(
-            f"Using pymupdf reader with column names hints {column_names_hints}"
+            f"Using pymupdf reader with column hints {column_hints}"
         )
 
         def read_tables(  # pyright: ignore[reportRedeclaration]
             paper_path: str, mapping: Optional[TablesMapping] = None
         ):
             _logger.debug(f"Processing paper {paper_path}...")
-            return pymupdf.read_tables(paper_path, column_names_hints, mapping=mapping)
+            return pymupdf.read_tables(paper_path, column_hints, mapping=mapping)
 
     elif args.reader == "camelot":
         _logger.debug(f"Using camelot reader {args.reader}-{args.model}")
@@ -328,6 +322,12 @@ def read_schema(args):
         if args.schema_path
         else args.schema
     )
+
+
+def read_column_hints(args) -> str:
+    if args.column_hints_path:
+        return Path(args.column_hints_path).read_text(encoding="utf-8")
+    return args.column_hints or ""
 
 
 def get_skip_predicate(args):

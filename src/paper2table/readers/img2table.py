@@ -20,7 +20,7 @@ class Img2TableTable:
         self.table = table
 
     def to_dataframe(
-        self, _column_names_hints: list[str], skip_first_row: bool
+        self, _column_hints: list[str], skip_first_row: bool
     ) -> pd.DataFrame:
         dataframe = self.table.df
         if skip_first_row:
@@ -61,13 +61,13 @@ class Img2TableDocument(PDFDocument):
 
 def read_tables(
     pdf_path: str,
-    column_names_hints: Optional[str] = None,
+    column_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
 
     return document.read_tables(
         pdf_path,
-        column_names_hints=column_names_hints,
+        column_hints=column_hints,
         mapping=mapping,
         read_document=lambda pdf_path: Img2TableDocument(open_pdf(pdf_path)),
     )

@@ -10,7 +10,7 @@ import pandas as pd
 
 from utils.column_names import normalize_column_name
 
-from ..hints import parse_column_names_hints
+from ..hints import parse_column_hints
 from ..mapping import TableMapping, TablesMapping
 from ..tables_reader import TablesReader
 from ..tables_reader.dataframe import DataFrameTableReader, DataFrameTablesReader
@@ -50,7 +50,7 @@ _logger = logging.getLogger("pape2table")
 def read_tables(
     pdf_path: str,
     read_document: Callable[[str], PDFDocument],
-    column_names_hints: Optional[str] = None,
+    column_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
     try:
@@ -62,7 +62,7 @@ def read_tables(
     if mapping:
         tables = read_mapped_tables(pdf_path, mapping, document)
     else:
-        tables = read_all_tables(pdf_path, column_names_hints, document)
+        tables = read_all_tables(pdf_path, column_hints, document)
 
     return DataFrameTablesReader(
         pdf_path, tables, citation=mapping.citation if mapping else None
@@ -133,12 +133,12 @@ def read_page_as_dataframe(
 
 def read_table(
     table_fragment: PDFTable,
-    column_names_hints: Optional[list[str]] = None,
+    column_hints: Optional[list[str]] = None,
     table_mapping: Optional[TableMapping] = None,
     page: Optional[int] = None,
 ) -> pd.DataFrame:
-    if column_names_hints is None:
-        column_names_hints = []
+    if column_hints is None:
+        column_hints = []
     skip_first_row = table_mapping is not None and (
         table_mapping.header_mode == "all_pages"
         or (
@@ -148,7 +148,7 @@ def read_table(
     )
 
     dataframe: pd.DataFrame = table_fragment.to_dataframe(
-        column_names_hints, skip_first_row
+        column_hints, skip_first_row
     )
 
     def index_renamer(column):
@@ -181,11 +181,11 @@ def read_table(
 
 
 def read_all_tables(
-    pdf_path: str, column_names_hints: Optional[str], document: PDFDocument
+    pdf_path: str, column_hints: Optional[str], document: PDFDocument
 ):
     tables = []
     parsed_hints = (
-        parse_column_names_hints(column_names_hints) if column_names_hints else []
+        parse_column_hints(column_hints) if column_hints else []
     )
     for page in document.pages:
         try:
@@ -193,7 +193,7 @@ def read_all_tables(
             for table_fragment in table_fragments:
                 dataframe = read_table(
                     table_fragment,
-                    column_names_hints=parsed_hints,
+                    column_hints=parsed_hints,
                 )
                 tables.append(DataFrameTableReader(page.page_number, dataframe))
         except Exception as e:
