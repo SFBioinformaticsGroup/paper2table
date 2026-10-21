@@ -91,6 +91,12 @@ class GatherConfig(BaseModel):
     override: bool = False
 
 
+class ReadmeConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    override: bool = False
+
+
 class Pipeline(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -100,6 +106,7 @@ class Pipeline(BaseModel):
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None
     gather: GatherConfig | None = None
+    readme: ReadmeConfig | None = None
 
 
 def load_pipeline(path: str) -> Pipeline:

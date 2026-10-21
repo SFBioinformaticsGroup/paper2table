@@ -12,6 +12,7 @@ from paper2pipeline.pipeline import (
     MergeConfig,
     NormalizeConfig,
     Pipeline,
+    ReadmeConfig,
     load_pipeline,
 )
 from paper2pipeline.readme import (
@@ -106,6 +107,19 @@ def test_override_defaults_to_false():
     assert ExtractConfig(runs=[ExtractRun()]).override is False
     assert MergeConfig().override is False
     assert GatherConfig().override is False
+
+
+def test_readme_config_override_defaults_to_false():
+    assert ReadmeConfig().override is False
+
+
+def test_pipeline_readme_defaults_to_none():
+    assert Pipeline(working_path="x").readme is None
+
+
+def test_pipeline_accepts_readme_config():
+    pipeline = Pipeline(working_path="x", readme=ReadmeConfig(override=True))
+    assert pipeline.readme.override is True
 
 
 def test_validate_only_prints_valid(tmp_path, capsys):
@@ -590,3 +604,12 @@ def test_write_readme_does_not_overwrite_existing_file(tmp_path):
     pipeline = Pipeline(working_path=str(tmp_path))
     write_readme(pipeline, None)
     assert readme_path.read_text(encoding="utf-8") == "custom content"
+
+
+def test_write_readme_override_replaces_existing_file(tmp_path):
+    readme_path = tmp_path / "README.md"
+    readme_path.write_text("custom content", encoding="utf-8")
+    pipeline = Pipeline(working_path=str(tmp_path))
+    write_readme(pipeline, None, override=True)
+    assert readme_path.read_text(encoding="utf-8") != "custom content"
+    assert "## Data model" in readme_path.read_text(encoding="utf-8")

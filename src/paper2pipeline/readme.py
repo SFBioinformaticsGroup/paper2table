@@ -223,8 +223,8 @@ What table was obtained and what it shows. Mention the result files.
 """
 
 
-def write_readme(pipeline: Pipeline, schema_path: str | None) -> None:
+def write_readme(pipeline: Pipeline, schema_path: str | None, override: bool = False) -> None:
     readme_path = Path(pipeline.working_path) / "README.md"
-    if readme_path.exists():
+    if readme_path.exists() and not override:
         return
     readme_path.write_text(generate_readme(pipeline, schema_path), encoding="utf-8")

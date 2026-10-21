@@ -30,9 +30,26 @@
     "gather": {
       "anyOf": [{ "$ref": "#/$defs/GatherConfig" }, { "type": "null" }],
       "default": null
+    },
+    "readme": {
+      "anyOf": [{ "$ref": "#/$defs/ReadmeConfig" }, { "type": "null" }],
+      "default": null,
+      "description": "When present, generate README.md in ${working_path}. Omit to skip README generation entirely."
     }
   },
   "$defs": {
+    "ReadmeConfig": {
+      "title": "ReadmeConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "override": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, overwrite README.md even if it already exists."
+        }
+      }
+    },
     "NormalizeConfig": {
       "title": "NormalizeConfig",
       "type": "object",

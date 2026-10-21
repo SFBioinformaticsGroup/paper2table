@@ -437,4 +437,5 @@ def run_pipeline(pipeline: Pipeline) -> None:
     if pipeline.gather:
         run_gather(pipeline.gather, working_path, schema_path, pretty=pipeline.pretty)
 
-    write_readme(pipeline, schema_path)
+    if pipeline.readme is not None:
+        write_readme(pipeline, schema_path, override=pipeline.readme.override)
