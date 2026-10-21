@@ -73,6 +73,7 @@ class MergeConfig(BaseModel):
     stats: bool = False
     export: list[str] = []
     override: bool = False
+    force_update: bool = False
 
 
 class GatherConfig(BaseModel):

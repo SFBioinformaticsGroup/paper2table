@@ -709,7 +709,8 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
-| `override` | `bool` | `false` | Wipe `${working_path}/merges/` before running |
+| `override` | `bool` | `false` | Wipe `${working_path}/merges/` before running. Deletes all files including curated ones -- use `force_update` instead to preserve files not in the current run. |
+| `force_update` | `bool` | `false` | Overwrite output files that contain curations. Only affects files produced by the current run; files from previous runs not in the current inputs are left untouched. Ignored when `override` is true (the directory is wiped before tablemerge runs). |
 
 #### `gather` fields
 

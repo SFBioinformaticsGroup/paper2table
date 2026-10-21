@@ -321,6 +321,8 @@ def build_merge_args(
         args += ["--no-drop-empty-columns"]
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
+    if config.force_update:
+        args += ["--force-update"]
 
     if pretty:
         args += ["--pretty"]
