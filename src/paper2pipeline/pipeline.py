@@ -31,6 +31,7 @@ class ExtractConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     runs: list[ExtractRun]
+    page_ranges: dict[str, str] | None = None
     stats: bool = False
     validate_: bool = Field(False, alias="validate")
     export: list[str] = []

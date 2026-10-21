@@ -122,8 +122,27 @@ def find_new_uuid_dir(tables_dir: Path, before: set[Path]) -> Path:
     return new_dirs.pop()
 
 
+def apply_page_ranges(
+    paper_files: list[str], page_ranges: dict[str, str] | None
+) -> list[str]:
+    if not page_ranges:
+        return paper_files
+    result = []
+    for f in paper_files:
+        stem = Path(f).stem
+        if stem in page_ranges:
+            result.append(f"{f}:{page_ranges[stem]}")
+        else:
+            result.append(f)
+    return result
+
+
 def build_extract_args(
-    run: ExtractRun, schema_path: str | None, working_path: Path, paper_files: list[str], pretty: bool = True
+    run: ExtractRun,
+    schema_path: str | None,
+    working_path: Path,
+    paper_files: list[str],
+    pretty: bool = True,
 ) -> list[str]:
     args = [
         "paper2table",
@@ -147,7 +166,9 @@ def build_extract_args(
         args += ["-p", schema_path]
     if run.column_hints:
         args += ["--column-hints", run.column_hints]
-    elif hints_path := (run.column_hints_path or find_file("column_hints.txt", working_path)):
+    elif hints_path := (
+        run.column_hints_path or find_file("column_hints.txt", working_path)
+    ):
         args += ["-c", hints_path]
     if run.split_pages is not None:
         args += ["--split-pages", str(run.split_pages)]
@@ -171,11 +192,27 @@ def run_extract(
     tables_dir = working_path / "tables"
     prepare_output_dir(tables_dir, config.override, "extract")
 
+    if config.page_ranges:
+        available = {Path(f).stem for f in paper_files}
+        for basename in config.page_ranges:
+            if basename not in available:
+                print(
+                    f"[pipeline] warning: page_ranges key '{basename}' does not match any paper",
+                    file=sys.stderr,
+                )
+    effective_paper_files = apply_page_ranges(paper_files, config.page_ranges)
+
     for i, run in enumerate(config.runs):
         before = set(d for d in tables_dir.iterdir() if d.is_dir())
-        print(f"[pipeline] extract (run {i + 1}/{len(config.runs)})", file=sys.stderr, flush=True)
+        print(
+            f"[pipeline] extract (run {i + 1}/{len(config.runs)})",
+            file=sys.stderr,
+            flush=True,
+        )
         run_subprocess(
-            build_extract_args(run, schema_path, working_path, paper_files, pretty=pretty),
+            build_extract_args(
+                run, schema_path, working_path, effective_paper_files, pretty=pretty
+            ),
             step_name=f"extract run {i + 1}",
         )
         uuid_dir = find_new_uuid_dir(tables_dir, before)
@@ -191,11 +228,18 @@ def run_extract(
 
 
 def build_merge_args(
-    config: MergeConfig, working_path: Path, schema_path: str | None, pretty: bool = True
+    config: MergeConfig,
+    working_path: Path,
+    schema_path: str | None,
+    pretty: bool = True,
 ) -> list[str]:
     tables_dir = working_path / "tables"
     merges_dir = working_path / "merges"
-    input_dirs = sorted(str(d) for d in tables_dir.iterdir() if d.is_dir()) if tables_dir.exists() else []
+    input_dirs = (
+        sorted(str(d) for d in tables_dir.iterdir() if d.is_dir())
+        if tables_dir.exists()
+        else []
+    )
 
     args = [
         "tablemerge",
@@ -223,19 +267,25 @@ def build_merge_args(
         args += ["--column-value-semantic-alignment"]
     if config.semantic_language != "en":
         args += ["--semantic-language", config.semantic_language]
-    column_aliases_path = config.column_aliases_path or find_file("column_aliases.txt", working_path)
+    column_aliases_path = config.column_aliases_path or find_file(
+        "column_aliases.txt", working_path
+    )
     if config.column_aliases:
         args += ["--column-aliases", config.column_aliases]
     elif column_aliases_path:
         args += ["--column-aliases-path", column_aliases_path]
-    column_hints_path = config.column_hints_path or find_file("column_hints.txt", working_path)
+    column_hints_path = config.column_hints_path or find_file(
+        "column_hints.txt", working_path
+    )
     if config.column_hints:
         args += ["--column-hints", config.column_hints]
     elif column_hints_path:
         args += ["--column-hints-path", column_hints_path]
     if config.hints_column_alignment:
         args += ["--hints-column-alignment", config.hints_column_alignment]
-    paper_aliases_path = config.paper_aliases_path or find_file("paper_aliases.txt", working_path)
+    paper_aliases_path = config.paper_aliases_path or find_file(
+        "paper_aliases.txt", working_path
+    )
     if config.paper_aliases:
         args += ["--paper-aliases", config.paper_aliases]
     elif paper_aliases_path:
@@ -269,13 +319,19 @@ def build_merge_args(
     return args
 
 
-def run_merge(config: MergeConfig, working_path: Path, schema_path: str | None, pretty: bool = True) -> None:
+def run_merge(
+    config: MergeConfig,
+    working_path: Path,
+    schema_path: str | None,
+    pretty: bool = True,
+) -> None:
     merges_dir = working_path / "merges"
     prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
-        build_merge_args(config, working_path, schema_path, pretty=pretty), step_name="merge"
+        build_merge_args(config, working_path, schema_path, pretty=pretty),
+        step_name="merge",
     )
 
     if config.stats:
@@ -289,7 +345,10 @@ def run_merge(config: MergeConfig, working_path: Path, schema_path: str | None, 
 
 
 def build_gather_args(
-    config: GatherConfig, working_path: Path, schema_path: str | None, pretty: bool = True
+    config: GatherConfig,
+    working_path: Path,
+    schema_path: str | None,
+    pretty: bool = True,
 ) -> list[str]:
     merges_dir = working_path / "merges"
     gathers_dir = working_path / "gathers"
@@ -320,14 +379,18 @@ def build_gather_args(
 
 
 def run_gather(
-    config: GatherConfig, working_path: Path, schema_path: str | None, pretty: bool = True
+    config: GatherConfig,
+    working_path: Path,
+    schema_path: str | None,
+    pretty: bool = True,
 ) -> None:
     gathers_dir = working_path / "gathers"
     prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
-        build_gather_args(config, working_path, schema_path, pretty=pretty), step_name="gather"
+        build_gather_args(config, working_path, schema_path, pretty=pretty),
+        step_name="gather",
     )
 
     if config.stats:
@@ -348,7 +411,13 @@ def run_pipeline(pipeline: Pipeline) -> None:
     paper_files = collect_pdfs([str(working_path / "papers")])
 
     if pipeline.extract:
-        run_extract(pipeline.extract, working_path, paper_files, schema_path, pretty=pipeline.pretty)
+        run_extract(
+            pipeline.extract,
+            working_path,
+            paper_files,
+            schema_path,
+            pretty=pipeline.pretty,
+        )
 
     # TODO validate that: there is at least one extract.
     # Also, if there is more than one extract and gather is present,

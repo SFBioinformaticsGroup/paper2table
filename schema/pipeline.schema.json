@@ -119,6 +119,17 @@
           "items": { "$ref": "#/$defs/ExtractRun" },
           "description": "One or more paper2table extraction passes."
         },
+        "page_ranges": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            { "type": "null" }
+          ],
+          "default": null,
+          "description": "Optional page ranges per paper. Keys are paper basenames (filename without .pdf); values are 'FROM:TO' (1-indexed, inclusive). Papers not listed are extracted in full."
+        },
         "stats": {
           "type": "boolean",
           "default": false,
