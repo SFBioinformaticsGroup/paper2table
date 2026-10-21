@@ -149,3 +149,15 @@ def test_is_empty_row_list_value_non_empty():
 def test_normalize_row_with_none_column_value():
     row = Row(**{"family": None, "scientific_name": "Apiaceae"})
     assert row.normalize() == Row(**{"family": None, "scientific_name": "apiaceae"})
+
+
+def test_get_curation_type_default_is_none():
+    assert Row(family="Apiaceae").get_curation_type() == "none"
+
+
+def test_get_curation_type_automatic():
+    assert Row(family="Apiaceae", curation_type_="automatic").get_curation_type() == "automatic"
+
+
+def test_get_curation_type_manual():
+    assert Row(family="Apiaceae", curation_type_="manual").get_curation_type() == "manual"

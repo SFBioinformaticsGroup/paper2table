@@ -16,9 +16,12 @@ class ValueWithAgreement(BaseModel):
 
 ColumnValue = None | ScalarValue | List[ValueWithAgreement]
 
+CurationType = Literal["none", "automatic", "manual"]
+
 _META_COLUMNS = frozenset(
     (
         "agreement_level_",
+        "curation_type_",
         "sources_",
         "row_",
         "citation_",
@@ -37,6 +40,7 @@ class Row(BaseModel):
     path_: Optional[str] = Field(None)
     page_: Optional[int] = Field(None)
     fragment_: Optional[int] = Field(None)
+    curation_type_: Optional[CurationType] = Field(None)
 
     model_config = ConfigDict(extra="allow")
 
@@ -86,6 +90,9 @@ class Row(BaseModel):
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
 
+    def get_curation_type(self):
+        return "none" if self.curation_type_ is None else self.curation_type_
+
     def normalize(
         self,
         calculate_agreement: bool = False,
@@ -111,6 +118,7 @@ class Row(BaseModel):
         path: Optional[str] = None,
         page: Optional[int] = None,
         fragment: Optional[int] = None,
+        curation_type: Optional[str] = None,
         columns: Optional[Dict[str, ColumnValue]] = None,
     ) -> "Row":
         return Row(
@@ -125,6 +133,9 @@ class Row(BaseModel):
             path_=path if path is not None else self.path_,
             page_=page if page is not None else self.page_,
             fragment_=fragment if fragment is not None else self.fragment_,
+            curation_type_=(
+                curation_type if curation_type is not None else self.curation_type_
+            ),
             **(columns if columns is not None else self.get_columns()),
         )
 
@@ -178,9 +189,7 @@ class Row(BaseModel):
         return value
 
     @staticmethod
-    def map_text(
-        value: ColumnValue, fn: Callable[[str], ScalarValue]
-    ) -> ColumnValue:
+    def map_text(value: ColumnValue, fn: Callable[[str], ScalarValue]) -> ColumnValue:
         """Transforms cell's string values"""
         if isinstance(value, str):
             return fn(value)
