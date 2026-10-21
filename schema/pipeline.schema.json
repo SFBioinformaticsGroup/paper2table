@@ -8,7 +8,7 @@
   "properties": {
     "working_path": {
       "type": "string",
-      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. Schema is read from ${working_path}/schema.txt if the file exists and is non-empty."
+      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. schema.txt, column_hints.txt, column_aliases.txt, and paper_aliases.txt are auto-read from ${working_path} when they exist and are non-empty."
     },
     "pretty": {
       "type": "boolean",
@@ -86,10 +86,15 @@
           "default": null,
           "description": "Inline schema string (-s); overrides ${working_path}/schema.txt for this run."
         },
+        "column_names_hints": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Inline column name hints; overrides column_names_hints_path and ${working_path}/column_hints.txt for this run."
+        },
         "column_names_hints_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null,
-          "description": "Path to column name hints file (-c)."
+          "description": "Explicit path to column name hints file (-c); if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_names_hints."
         },
         "split_pages": {
           "anyOf": [{ "type": "integer" }, { "type": "null" }],
@@ -169,7 +174,8 @@
         },
         "column_aliases_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
-          "default": null
+          "default": null,
+          "description": "Explicit path to alias map file; if omitted, ${working_path}/column_aliases.txt is used when present and non-empty. Overridden by column_aliases."
         },
         "column_names_hints": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -177,7 +183,8 @@
         },
         "column_names_hints_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
-          "default": null
+          "default": null,
+          "description": "Explicit path to hints file; if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_names_hints."
         },
         "hints_column_alignment": {
           "anyOf": [
@@ -192,7 +199,8 @@
         },
         "paper_aliases_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
-          "default": null
+          "default": null,
+          "description": "Explicit path to paper alias map file; if omitted, ${working_path}/paper_aliases.txt is used when present and non-empty. Overridden by paper_aliases."
         },
         "fix_reversed_column_values": { "type": "boolean", "default": false },
         "strip_leading_row_numbers": { "type": "boolean", "default": false },

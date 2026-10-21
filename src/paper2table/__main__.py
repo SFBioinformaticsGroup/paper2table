@@ -120,6 +120,12 @@ def parse_args():
         help="column name hints path. Only used by pdfplumber, img2table and pymupdf reader",
     )
     parser.add_argument(
+        "--column-names-hints",
+        type=str,
+        dest="column_names_hints",
+        help="inline column name hints string. Only used by pdfplumber, img2table and pymupdf reader",
+    )
+    parser.add_argument(
         "-o",
         "--output-directory",
         type=str,
@@ -205,11 +211,7 @@ def get_tables_reader(args):
             return agent.read_tables(paper_path, model=args.model, schema=schema)
 
     elif args.reader == "pdfplumber":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_names_hints = read_column_names_hints(args)
 
         _logger.debug(
             f"Using pdfplumber reader with column names hints {column_names_hints}"
@@ -224,11 +226,7 @@ def get_tables_reader(args):
             )
 
     elif args.reader == "img2table":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_names_hints = read_column_names_hints(args)
 
         _logger.debug(
             f"Using img2table reader with column names hints {column_names_hints}"
@@ -243,11 +241,7 @@ def get_tables_reader(args):
             )
 
     elif args.reader == "pymupdf":
-        column_names_hints = (
-            Path(args.column_names_hints_path).read_text(encoding="utf-8")
-            if args.column_names_hints_path
-            else ""
-        )
+        column_names_hints = read_column_names_hints(args)
 
         _logger.debug(
             f"Using pymupdf reader with column names hints {column_names_hints}"
@@ -328,6 +322,12 @@ def read_schema(args):
         if args.schema_path
         else args.schema
     )
+
+
+def read_column_names_hints(args) -> str:
+    if args.column_names_hints_path:
+        return Path(args.column_names_hints_path).read_text(encoding="utf-8")
+    return args.column_names_hints or ""
 
 
 def get_skip_predicate(args):

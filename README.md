@@ -565,6 +565,9 @@ The pipeline runs four optional steps in order — **normalize → extract → m
 ${working_path}/
   papers/          # input PDFs
   schema.txt       # optional schema; absent or empty = no schema
+  column_hints.txt  # optional column name hints; absent or empty = not used
+  column_aliases.txt # optional column aliases; absent or empty = not used
+  paper_aliases.txt  # optional paper aliases; absent or empty = not used
   tables/
     ${uuid}/       # one per extract run
       *.tables.json
@@ -632,7 +635,7 @@ ${working_path}/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `working_path` | `str` | Base directory. PDFs in `${working_path}/papers/`; schema auto-detected from `${working_path}/schema.txt` (absent or empty = no schema) |
+| `working_path` | `str` | Base directory. PDFs in `${working_path}/papers/`; schema auto-detected from `${working_path}/schema.txt` (absent or empty = no schema); `column_hints.txt`, `column_aliases.txt`, and `paper_aliases.txt` are also auto-detected when present and non-empty |
 | `normalize` | object | Optional. Run `filenorm` on `${working_path}/papers/` |
 | `extract` | object | Optional. Run one or more `paper2table` extraction passes |
 | `merge` | object | Optional. Run `tablemerge` across all extract runs |
@@ -655,7 +658,8 @@ ${working_path}/
 | `hybrid` | `bool` | `false` | Enable hybrid mode (`-H`); mappings are stored in `${working_path}/mappings/` |
 | `override_mappings` | `bool` | `false` | Regenerate mapping even if cached (`--override-mappings` / `-F`). Does not affect `override`; `override` only wipes `tables/`, never `mappings/`. |
 | `schema` | `str` | — | Inline schema string (overrides `${working_path}/schema.txt` for this run) |
-| `column_names_hints_path` | `str` | — | Path to column name hints file (`-c`) |
+| `column_names_hints` | `str` | — | Inline column name hints (overrides `${working_path}/column_hints.txt` and `column_names_hints_path` for this run) |
+| `column_names_hints_path` | `str` | — | Explicit path to column name hints file (`-c`); if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
 | `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
 | `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
 
@@ -695,11 +699,11 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `drop_empty_columns` | `bool` | `true` | Drop entirely empty columns |
 | `drop_empty_tables` | `bool` | `true` | Drop entirely empty tables |
 | `column_aliases` | `str` | — | Inline alias map (e.g. `"familia:family"`) |
-| `column_aliases_path` | `str` | — | Path to alias map file |
+| `column_aliases_path` | `str` | — | Explicit path to alias map file; if omitted, `${working_path}/column_aliases.txt` is used when present and non-empty |
 | `column_names_hints` | `str` | — | Inline column name hints |
-| `column_names_hints_path` | `str` | — | Path to hints file |
+| `column_names_hints_path` | `str` | — | Explicit path to hints file; if omitted, `${working_path}/column_hints.txt` is used when present and non-empty |
 | `paper_aliases` | `str` | — | Inline paper alias map |
-| `paper_aliases_path` | `str` | — | Path to paper alias map file |
+| `paper_aliases_path` | `str` | — | Explicit path to paper alias map file; if omitted, `${working_path}/paper_aliases.txt` is used when present and non-empty |
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |

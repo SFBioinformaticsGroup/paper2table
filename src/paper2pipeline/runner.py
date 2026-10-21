@@ -45,10 +45,10 @@ def collect_pdfs(paths: list[str]) -> list[str]:
     return files
 
 
-def find_schema_path(working_path: Path) -> str | None:
-    schema_file = working_path / "schema.txt"
-    if schema_file.exists() and schema_file.read_text(encoding="utf-8").strip():
-        return str(schema_file)
+def find_file(basename: str, working_path: Path) -> str | None:
+    f = working_path / basename
+    if f.exists() and f.read_text(encoding="utf-8").strip():
+        return str(f)
     return None
 
 
@@ -145,8 +145,10 @@ def build_extract_args(
         args += ["-s", run.schema_]
     elif schema_path:
         args += ["-p", schema_path]
-    if run.column_names_hints_path:
-        args += ["-c", run.column_names_hints_path]
+    if run.column_names_hints:
+        args += ["--column-names-hints", run.column_names_hints]
+    elif hints_path := (run.column_names_hints_path or find_file("column_hints.txt", working_path)):
+        args += ["-c", hints_path]
     if run.split_pages is not None:
         args += ["--split-pages", str(run.split_pages)]
     if run.verbose:
@@ -221,20 +223,23 @@ def build_merge_args(
         args += ["--column-value-semantic-alignment"]
     if config.semantic_language != "en":
         args += ["--semantic-language", config.semantic_language]
+    column_aliases_path = config.column_aliases_path or find_file("column_aliases.txt", working_path)
     if config.column_aliases:
         args += ["--column-aliases", config.column_aliases]
-    if config.column_aliases_path:
-        args += ["--column-aliases-path", config.column_aliases_path]
+    elif column_aliases_path:
+        args += ["--column-aliases-path", column_aliases_path]
+    column_names_hints_path = config.column_names_hints_path or find_file("column_hints.txt", working_path)
     if config.column_names_hints:
         args += ["--column-names-hints", config.column_names_hints]
-    if config.column_names_hints_path:
-        args += ["--column-names-hints-path", config.column_names_hints_path]
+    elif column_names_hints_path:
+        args += ["--column-names-hints-path", column_names_hints_path]
     if config.hints_column_alignment:
         args += ["--hints-column-alignment", config.hints_column_alignment]
+    paper_aliases_path = config.paper_aliases_path or find_file("paper_aliases.txt", working_path)
     if config.paper_aliases:
         args += ["--paper-aliases", config.paper_aliases]
-    if config.paper_aliases_path:
-        args += ["--paper-aliases-path", config.paper_aliases_path]
+    elif paper_aliases_path:
+        args += ["--paper-aliases-path", paper_aliases_path]
     if config.fix_reversed_column_values:
         args += ["--fix-reversed-column-values"]
     if config.strip_leading_row_numbers:
@@ -335,7 +340,7 @@ def run_pipeline(pipeline: Pipeline) -> None:
     working_path = Path(pipeline.working_path)
     working_path.mkdir(parents=True, exist_ok=True)
 
-    schema_path = find_schema_path(working_path)
+    schema_path = find_file("schema.txt", working_path)
 
     if pipeline.normalize:
         run_normalize(pipeline.normalize, working_path)
