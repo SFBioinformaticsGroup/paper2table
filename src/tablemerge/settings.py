@@ -18,7 +18,7 @@ class MergeSettings:
     column_aliases: Optional[str] = None
     column_alignment_threshold: float = 0.5
     column_name_semantic_alignment: bool = False
-    column_names_hints: Optional[str] = None
+    column_hints: Optional[str] = None
     column_value_semantic_alignment: bool = False
     drop_empty_columns: bool = True
     drop_empty_tables: bool = True
@@ -54,8 +54,8 @@ class MergeSettings:
                 "paper_aliases": read_path(
                     args.paper_aliases_path, inline=args.paper_aliases
                 ),
-                "column_names_hints": read_path(
-                    args.column_names_hints_path, inline=args.column_names_hints
+                "column_hints": read_path(
+                    args.column_hints_path, inline=args.column_hints
                 ),
                 "schema": read_path(args.schema_path, inline=args.schema),
             }

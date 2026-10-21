@@ -145,9 +145,9 @@ def build_extract_args(
         args += ["-s", run.schema_]
     elif schema_path:
         args += ["-p", schema_path]
-    if run.column_names_hints:
-        args += ["--column-names-hints", run.column_names_hints]
-    elif hints_path := (run.column_names_hints_path or find_file("column_hints.txt", working_path)):
+    if run.column_hints:
+        args += ["--column-hints", run.column_hints]
+    elif hints_path := (run.column_hints_path or find_file("column_hints.txt", working_path)):
         args += ["-c", hints_path]
     if run.split_pages is not None:
         args += ["--split-pages", str(run.split_pages)]
@@ -228,11 +228,11 @@ def build_merge_args(
         args += ["--column-aliases", config.column_aliases]
     elif column_aliases_path:
         args += ["--column-aliases-path", column_aliases_path]
-    column_names_hints_path = config.column_names_hints_path or find_file("column_hints.txt", working_path)
-    if config.column_names_hints:
-        args += ["--column-names-hints", config.column_names_hints]
-    elif column_names_hints_path:
-        args += ["--column-names-hints-path", column_names_hints_path]
+    column_hints_path = config.column_hints_path or find_file("column_hints.txt", working_path)
+    if config.column_hints:
+        args += ["--column-hints", config.column_hints]
+    elif column_hints_path:
+        args += ["--column-hints-path", column_hints_path]
     if config.hints_column_alignment:
         args += ["--hints-column-alignment", config.hints_column_alignment]
     paper_aliases_path = config.paper_aliases_path or find_file("paper_aliases.txt", working_path)

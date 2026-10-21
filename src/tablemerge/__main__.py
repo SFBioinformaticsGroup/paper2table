@@ -416,12 +416,12 @@ def parse_args():
         help="Path to a file with alias:target mappings (one per line)",
     )
     parser.add_argument(
-        "--column-names-hints",
+        "--column-hints",
         type=str,
         help="Inline column name hints, e.g. 'species family color'",
     )
     parser.add_argument(
-        "--column-names-hints-path",
+        "--column-hints-path",
         type=str,
         help="Path to a file with column name hints (one per line, # comments allowed)",
     )
@@ -432,7 +432,7 @@ def parse_args():
         help=(
             "Rename columns by matching the first row's values against hints. "
             "'safe' renames only non-semantic columns; 'unsafe' also renames semantic columns. "
-            "Requires --column-names-hints or --column-names-hints-path."
+            "Requires --column-hints or --column-hints-path."
         ),
     )
     parser.add_argument(
@@ -568,8 +568,8 @@ def main():
 
     if args.hints_column_alignment is not None and not hints:
         print(
-            "Error: --hints-column-alignment requires --column-names-hints or "
-            "--column-names-hints-path.",
+            "Error: --hints-column-alignment requires --column-hints or "
+            "--column-hints-path.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -650,7 +650,7 @@ def try_parse_paper_aliases(args):
 
 
 def try_parse_hints(args):
-    hints_str = read_path(args.column_names_hints_path, inline=args.column_names_hints)
+    hints_str = read_path(args.column_hints_path, inline=args.column_hints)
     if hints_str:
         return [normalize_column_name(h) for h in tokenize_schema(hints_str)]
     return []

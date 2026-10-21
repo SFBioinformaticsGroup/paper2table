@@ -8,11 +8,11 @@ from utils.column_names import normalize_column_name
 
 type Row = list[str | None]
 
-def first_row_is_table_header(rows: list[Row], column_names_hints: list[str]):
+def first_row_is_table_header(rows: list[Row], column_hints: list[str]):
     return (
         rows
-        and column_names_hints
-        and any(normalize_column_name(key) in column_names_hints for key in rows[0])
+        and column_hints
+        and any(normalize_column_name(key) in column_hints for key in rows[0])
     )
 
 

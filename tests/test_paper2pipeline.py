@@ -107,14 +107,14 @@ def test_validate_only_prints_valid(tmp_path, capsys):
 
 def test_merge_config_hints_alignment_accepts_inline_hints():
     config = MergeConfig(
-        hints_column_alignment="safe", column_names_hints="species family"
+        hints_column_alignment="safe", column_hints="species family"
     )
     assert config.hints_column_alignment == "safe"
 
 
 def test_merge_config_hints_alignment_accepts_hints_path():
     config = MergeConfig(
-        hints_column_alignment="unsafe", column_names_hints_path="hints.txt"
+        hints_column_alignment="unsafe", column_hints_path="hints.txt"
     )
     assert config.hints_column_alignment == "unsafe"
 
@@ -208,26 +208,26 @@ def test_build_extract_args_no_hints_when_nothing_present(tmp_path):
 
 def test_build_extract_args_explicit_hints_path_overrides_auto_detected(tmp_path):
     (tmp_path / "column_hints.txt").write_text("species\n", encoding="utf-8")
-    run = ExtractRun(column_names_hints_path="/other/hints.txt")
+    run = ExtractRun(column_hints_path="/other/hints.txt")
     args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
     assert "-c" in args
     assert args[args.index("-c") + 1] == "/other/hints.txt"
 
 
 def test_build_extract_args_inline_hints_passes_flag(tmp_path):
-    run = ExtractRun(column_names_hints="species family")
+    run = ExtractRun(column_hints="species family")
     args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
-    assert "--column-names-hints" in args
-    assert args[args.index("--column-names-hints") + 1] == "species family"
+    assert "--column-hints" in args
+    assert args[args.index("--column-hints") + 1] == "species family"
     assert "-c" not in args
 
 
 def test_build_extract_args_inline_hints_takes_precedence_over_file(tmp_path):
     (tmp_path / "column_hints.txt").write_text("other\n", encoding="utf-8")
-    run = ExtractRun(column_names_hints="species family")
+    run = ExtractRun(column_hints="species family")
     args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
-    assert "--column-names-hints" in args
-    assert args[args.index("--column-names-hints") + 1] == "species family"
+    assert "--column-hints" in args
+    assert args[args.index("--column-hints") + 1] == "species family"
     assert "-c" not in args
 
 
@@ -260,25 +260,25 @@ def test_build_merge_args_uses_column_hints_txt_when_present(tmp_path):
     (tmp_path / "column_hints.txt").write_text("species\nfamily\n", encoding="utf-8")
     config = MergeConfig()
     args = build_merge_args(config, tmp_path, None)
-    assert "--column-names-hints-path" in args
-    assert args[args.index("--column-names-hints-path") + 1] == str(tmp_path / "column_hints.txt")
+    assert "--column-hints-path" in args
+    assert args[args.index("--column-hints-path") + 1] == str(tmp_path / "column_hints.txt")
 
 
-def test_build_merge_args_inline_column_names_hints_takes_precedence_over_file(tmp_path):
+def test_build_merge_args_inline_column_hints_takes_precedence_over_file(tmp_path):
     (tmp_path / "column_hints.txt").write_text("other\n", encoding="utf-8")
-    config = MergeConfig(column_names_hints="species family")
+    config = MergeConfig(column_hints="species family")
     args = build_merge_args(config, tmp_path, None)
-    assert "--column-names-hints" in args
-    assert args[args.index("--column-names-hints") + 1] == "species family"
-    assert "--column-names-hints-path" not in args
+    assert "--column-hints" in args
+    assert args[args.index("--column-hints") + 1] == "species family"
+    assert "--column-hints-path" not in args
 
 
-def test_build_merge_args_explicit_column_names_hints_path_takes_precedence_over_file(tmp_path):
+def test_build_merge_args_explicit_column_hints_path_takes_precedence_over_file(tmp_path):
     (tmp_path / "column_hints.txt").write_text("other\n", encoding="utf-8")
-    config = MergeConfig(column_names_hints_path="/other/hints.txt")
+    config = MergeConfig(column_hints_path="/other/hints.txt")
     args = build_merge_args(config, tmp_path, None)
-    assert "--column-names-hints-path" in args
-    assert args[args.index("--column-names-hints-path") + 1] == "/other/hints.txt"
+    assert "--column-hints-path" in args
+    assert args[args.index("--column-hints-path") + 1] == "/other/hints.txt"
 
 
 def test_build_merge_args_uses_paper_aliases_txt_when_present(tmp_path):

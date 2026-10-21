@@ -14,7 +14,7 @@ Row = list[Optional[str]]
 
 class PDFTable(Protocol):
     def to_dataframe(
-        self, column_names_hints: list[str], skip_first_row: bool
+        self, column_hints: list[str], skip_first_row: bool
     ) -> pd.DataFrame: ...
 
 
@@ -51,7 +51,7 @@ class TableMapper:
             and page_number == self._mapping.first_page
         )
         raw_df = extracted_tables[-1].to_dataframe(
-            column_names_hints=[], skip_first_row=skip_first_row
+            column_hints=[], skip_first_row=skip_first_row
         )
         rows = raw_df.values.tolist()
         rows = self._remove_bibliographic_rows(rows)
@@ -60,7 +60,7 @@ class TableMapper:
 
     def _transform_with_row_mappings(self, extracted_tables: list[PDFTable], row_mappings):
         raw_df = extracted_tables[-1].to_dataframe(
-            column_names_hints=[], skip_first_row=False
+            column_hints=[], skip_first_row=False
         )
         rows: list[Row] = raw_df.values.tolist()
         rows = self._remove_bibliographic_rows(rows)

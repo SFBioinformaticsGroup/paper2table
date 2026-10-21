@@ -19,7 +19,7 @@ class PyMuPDFTable:
         self.table = table
 
     def to_dataframe(
-        self, column_names_hints: list[str], skip_first_row: bool
+        self, column_hints: list[str], skip_first_row: bool
     ) -> pd.DataFrame:
         return self.table.to_pandas()
 
@@ -63,14 +63,14 @@ class PyMuPDFDocument(PDFDocument):
 
 def read_tables(
     pdf_path: str,
-    column_names_hints: Optional[str] = None,
+    column_hints: Optional[str] = None,
     mapping: Optional[TablesMapping] = None,
 ) -> TablesReader:
 
     with pymupdf.open(pdf_path) as pdf:
         return document.read_tables(
             pdf_path,
-            column_names_hints=column_names_hints,
+            column_hints=column_hints,
             mapping=mapping,
             read_document=lambda _: PyMuPDFDocument(pdf),
         )

@@ -86,15 +86,15 @@
           "default": null,
           "description": "Inline schema string (-s); overrides ${working_path}/schema.txt for this run."
         },
-        "column_names_hints": {
+        "column_hints": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null,
-          "description": "Inline column name hints; overrides column_names_hints_path and ${working_path}/column_hints.txt for this run."
+          "description": "Inline column name hints; overrides column_hints_path and ${working_path}/column_hints.txt for this run."
         },
-        "column_names_hints_path": {
+        "column_hints_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null,
-          "description": "Explicit path to column name hints file (-c); if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_names_hints."
+          "description": "Explicit path to column name hints file (-c); if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_hints."
         },
         "split_pages": {
           "anyOf": [{ "type": "integer" }, { "type": "null" }],
@@ -177,14 +177,14 @@
           "default": null,
           "description": "Explicit path to alias map file; if omitted, ${working_path}/column_aliases.txt is used when present and non-empty. Overridden by column_aliases."
         },
-        "column_names_hints": {
+        "column_hints": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null
         },
-        "column_names_hints_path": {
+        "column_hints_path": {
           "anyOf": [{ "type": "string" }, { "type": "null" }],
           "default": null,
-          "description": "Explicit path to hints file; if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_names_hints."
+          "description": "Explicit path to hints file; if omitted, ${working_path}/column_hints.txt is used when present and non-empty. Overridden by column_hints."
         },
         "hints_column_alignment": {
           "anyOf": [
