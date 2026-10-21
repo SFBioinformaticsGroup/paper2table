@@ -105,6 +105,11 @@
           "type": "boolean",
           "default": false,
           "description": "Suppress progress output (-q)."
+        },
+        "id": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Resultset directory name (--id). Defaults to a UUID v4 when omitted. If the directory already exists, the run is skipped."
         }
       }
     },
@@ -133,7 +138,7 @@
         "stats": {
           "type": "boolean",
           "default": false,
-          "description": "Run tablestats after each run and write output to ${uuid}/stats.txt."
+          "description": "Run tablestats after each run and write output to ${id}/stats.txt."
         },
         "validate": {
           "type": "boolean",

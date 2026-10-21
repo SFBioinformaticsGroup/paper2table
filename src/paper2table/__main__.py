@@ -5,7 +5,6 @@ import sys
 import time
 from pathlib import Path
 from typing import Optional
-from uuid import UUID
 import traceback
 
 from tqdm import tqdm
@@ -140,8 +139,16 @@ def parse_args():
     parser.add_argument(
         "--append",
         type=str,
-        metavar="UUID",
+        metavar="ID",
         help="Append to an existing resultset. Must be used with -t and -o",
+    )
+    parser.add_argument(
+        "--id",
+        dest="run_id",
+        type=str,
+        default=None,
+        metavar="ID",
+        help="Set the resultset directory name. Skips if it already exists. Must be used with -t and -o",
     )
     parser.add_argument(
         "--split-pages",
@@ -353,17 +360,30 @@ def get_table_writer(args):
         print("--append requires --tablemerge and --output-directory")
         sys.exit(1)
 
+    if args.run_id and not (args.tablemerge and args.output_directory):
+        print("--id requires --tablemerge and --output-directory")
+        sys.exit(1)
+
+    if args.append and args.run_id:
+        print("--id and --append cannot be used together")
+        sys.exit(1)
+
     indent = 2 if args.pretty else None
 
     if args.tablemerge:
         if args.append:
             validate_existing_resultset(args)
-            uuid = UUID(args.append)
+            run_id = args.append
+        elif args.run_id:
+            run_id = args.run_id
+            if os.path.isdir(os.path.join(args.output_directory, run_id)):
+                print(f"Skipping: resultset '{run_id}' already exists")
+                sys.exit(0)
         else:
-            uuid = None
+            run_id = None
 
         metadata = TablemergeMetadata(
-            reader=args.reader, model=args.model, hybrid=args.hybrid, uuid=uuid
+            reader=args.reader, model=args.model, hybrid=args.hybrid, id=run_id
         )
 
         def write_tables(result: TablesReader, paper_path: str):  # pyright: ignore[reportRedeclaration]

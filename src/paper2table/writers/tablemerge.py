@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Literal, Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 from datetime import datetime as dt
 
 from paper2table.tables_reader import TablesReader
@@ -17,19 +17,19 @@ class TablemergeMetadata:
     model: Optional[str]
     datetime: dt
     hybrid: bool
-    uuid: UUID
+    id: str
 
     def __init__(
         self,
         reader: Reader,
         model: Optional[str],
         hybrid=False,
-        uuid: Optional[UUID] = None,
+        id: Optional[str] = None,
     ):
         self.reader = reader
         self.model = model
         self.hybrid = hybrid
-        self.uuid = uuid if uuid is not None else uuid4()
+        self.id = id if id is not None else str(uuid4())
         self.datetime = dt.now()
 
     def get_reader(self):
@@ -42,14 +42,14 @@ class TablemergeMetadata:
     def to_dict(self):
         return {
             "reader": self.get_reader(),
-            "uuid": str(self.uuid),
+            "id": self.id,
             "datetime": self.datetime.isoformat(),
         }
 
 
-def load_metadata(output_directory: str, uuid: str) -> dict:
+def load_metadata(output_directory: str, id: str) -> dict:
     # TODO refactor: this code is everywhere
-    path = os.path.join(output_directory, uuid, "tables.metadata.json")
+    path = os.path.join(output_directory, id, "tables.metadata.json")
     if not os.path.exists(path):
         raise FileNotFoundError(f"No resultset found at {path}")
     return load_jsonc(Path(path))
@@ -62,7 +62,7 @@ def write_tables(
     metadata: TablemergeMetadata,
     indent: int | None = None,
 ):
-    tablemerge_path = os.path.join(output_directory, str(metadata.uuid))
+    tablemerge_path = os.path.join(output_directory, metadata.id)
     metadata_path = os.path.join(tablemerge_path, "tables.metadata.json")
 
     os.makedirs(tablemerge_path, exist_ok=True)

@@ -7,11 +7,13 @@
   "extract": {
     "runs": [
       {
+        "id": "pymupdf-hybrid",
         "reader": "pymupdf",
         "model": "google-gla:gemini-2.5-flash",
         "hybrid": true
       },
       {
+        "id": "gemini",
         "reader": "agent",
         "model": "google-gla:gemini-2.5-flash",
         "model_sleep": 10
@@ -19,7 +21,7 @@
     ],
     "stats": true,
     "validate": true,
-    "override": true,
+    "override": false,
     "export": [
       "csv",
       "html"
