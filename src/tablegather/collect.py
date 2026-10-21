@@ -85,6 +85,8 @@ def gather_tablesfiles(
             key=lambda r: tuple(str(r.get_columns().get(k, "")) for k in key_columns)
         )
 
+    all_rows = [row.clone(row=i) for i, row in enumerate(all_rows, start=1)]
+
     fragment = TableFragment(rows=all_rows, page=1)
     return TablesFile(
         tables=[TableWithFragments(table_fragments=[fragment])],

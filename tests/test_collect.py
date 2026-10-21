@@ -38,6 +38,7 @@ def test_single_file_adds_citation_and_path_columns():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         )
     ]
@@ -54,6 +55,7 @@ def test_gathers_two_different_rows():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -61,6 +63,7 @@ def test_gathers_two_different_rows():
             path_=str(path_b),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Carum carvi",
         ),
     ]
@@ -77,6 +80,7 @@ def test_same_citation_files_are_both_included():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -84,6 +88,7 @@ def test_same_citation_files_are_both_included():
             path_=str(path_b),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Ammi majus",
         ),
     ]
@@ -108,6 +113,7 @@ def test_missing_citation_outputs_no_citation_column():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         )
     ]
@@ -127,6 +133,7 @@ def test_key_column_sorts_rows():
             path_=str(path_b),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -134,6 +141,7 @@ def test_key_column_sorts_rows():
             path_=str(path_a),
             page_=1,
             fragment_=1,
+            row_=2,
             species="Zea mays",
         ),
     ]
@@ -164,6 +172,7 @@ def test_multi_table_file_is_properly_gathered():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -171,6 +180,7 @@ def test_multi_table_file_is_properly_gathered():
             path_=str(path),
             page_=2,
             fragment_=1,
+            row_=2,
             species="Carum carvi",
         ),
     ]
@@ -198,6 +208,7 @@ def test_multi_fragment_file_is_properly_gathered():
             path_=str(path),
             page_=1,
             fragment_=1,
+            row_=1,
             species="Ammi majus",
         ),
         Row(
@@ -205,6 +216,7 @@ def test_multi_fragment_file_is_properly_gathered():
             path_=str(path),
             page_=2,
             fragment_=2,
+            row_=2,
             species="Carum carvi",
         ),
         Row(
@@ -212,12 +224,13 @@ def test_multi_fragment_file_is_properly_gathered():
             path_=str(path),
             page_=2,
             fragment_=3,
+            row_=3,
             species="Zea mays",
         ),
     ]
 
 
-def test_convergence_rows_keeps_singleton_row_ids():
+def test_convergence_rows_assigns_sequential_row_ids():
     tablesfile, path = wrap(
         [Row(species="Ammi majus", row_=1), Row(species="Carum carvi", row_=2)],
         citation="Mamani 2020",
@@ -281,10 +294,49 @@ def test_convergence_rows_excludes_multivalued_rows():
             path_=str(path),
             page_=1,
             fragment_=1,
-            row_=2,
+            row_=1,
             species="Zea mays",
         )
     ]
+
+def test_gathered_rows_get_sequential_ids_regardless_of_source():
+    file_a, path_a = wrap(
+        [Row(species="Ammi majus", row_=5), Row(species="Carum carvi", row_=10)],
+        citation="Mamani 2020",
+    )
+    file_b, path_b = wrap(
+        [Row(species="Zea mays", row_=3)],
+        citation="Jones 2021",
+    )
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            row_=1,
+            species="Ammi majus",
+        ),
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            row_=2,
+            species="Carum carvi",
+        ),
+        Row(
+            citation_="Jones 2021",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            row_=3,
+            species="Zea mays",
+        ),
+    ]
+
 
 def test_convergence_rows_computed_per_file_not_globally():
     file_a, path_a = wrap([Row(species="Ammi majus", row_=1)], citation="Mamani 2020")
@@ -309,7 +361,7 @@ def test_convergence_rows_computed_per_file_not_globally():
             path_=str(path_b),
             page_=1,
             fragment_=1,
-            row_=1,  # original row_
+            row_=2,
             species="Carum carvi",
         ),
     ]
