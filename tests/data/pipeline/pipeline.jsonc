@@ -16,11 +16,6 @@
         "id": "gemini",
         "reader": "agent",
         "model": "google-gla:gemini-2.5-flash",
-      },
-      {
-        "id": "xingchen",
-        "reader": "agent",
-        "model": "openrouter:xingchen-agi/xing4.0-29b-a4b:free",
       }
     ],
     "stats": true,
