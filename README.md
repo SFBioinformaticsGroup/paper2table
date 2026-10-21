@@ -608,6 +608,7 @@ ${working_path}/
         "reader": "pdfplumber"
       }
     ],
+    "page_ranges": { "long_paper": "5:20" },
     "stats": true,
     "validate": true,
     "export": ["csv", "html"]
@@ -663,10 +664,11 @@ ${working_path}/
 | `split_pages` | `int` | — | Max pages per agent call (`--split-pages`) |
 | `quiet` | `bool` | `false` | Suppress progress output (`-q`) |
 
-The `stats`, `validate`, `export`, and `override` fields apply to the extract step as a whole:
+The `page_ranges`, `stats`, `validate`, `export`, and `override` fields apply to the extract step as a whole:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
+| `page_ranges` | `dict[str, str]` | — | Restrict per-paper page ranges. Keys are paper basenames (without `.pdf`); values are `"FROM:TO"` (1-indexed, inclusive). Papers not listed are extracted in full. Unknown basenames produce a warning. |
 | `stats` | `bool` | `false` | Run `tablestats` and write output to `${uuid}/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the extracted tables |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` → `table2csv`, `"html"` → `table2html` |

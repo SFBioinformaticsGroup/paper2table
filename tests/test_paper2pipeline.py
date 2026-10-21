@@ -14,7 +14,7 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
-from paper2pipeline.runner import build_extract_args, build_merge_args, find_file
+from paper2pipeline.runner import apply_page_ranges, build_extract_args, build_merge_args, find_file
 from paper2table import __version__
 
 
@@ -304,3 +304,22 @@ def test_build_merge_args_explicit_paper_aliases_path_takes_precedence_over_file
     args = build_merge_args(config, tmp_path, None)
     assert "--paper-aliases-path" in args
     assert args[args.index("--paper-aliases-path") + 1] == "/other/aliases.txt"
+
+
+def test_extract_config_page_ranges_defaults_to_none():
+    assert ExtractConfig(runs=[ExtractRun()]).page_ranges is None
+
+
+def test_apply_page_ranges_appends_range_to_matching_file():
+    result = apply_page_ranges(["/papers/alpha.pdf", "/papers/beta.pdf"], {"alpha": "5:10"})
+    assert result == ["/papers/alpha.pdf:5:10", "/papers/beta.pdf"]
+
+
+def test_apply_page_ranges_leaves_all_files_unchanged_when_no_match():
+    result = apply_page_ranges(["/papers/alpha.pdf"], {"gamma": "1:3"})
+    assert result == ["/papers/alpha.pdf"]
+
+
+def test_apply_page_ranges_returns_original_list_when_none():
+    result = apply_page_ranges(["/papers/alpha.pdf"], None)
+    assert result == ["/papers/alpha.pdf"]
