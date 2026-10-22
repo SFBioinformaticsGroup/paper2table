@@ -271,7 +271,8 @@ def build_fragment_html(
     columns.extend(common_cols)
     columns.extend(extra_cols)
     if has_sources:
-        columns.append("readers_")
+        if uuid_to_reader:
+            columns.append("readers_")
         columns.append("sources_")
     html.append("<div class='table-wrapper'><table class='table'>")
     html.append("<tr>" + "".join(f"<th>{col}</th>" for col in columns) + "</tr>")

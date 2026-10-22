@@ -49,10 +49,13 @@ def gather_tablesfiles(
     level: int = 1,
 ) -> TablesFile:
     all_rows: list[Row] = []
+    all_citations: list[str] = []
 
     for tablesfile, path in tablesfiles_with_paths:
         raw_citation = tablesfile.citation
         citation: str | None = Row.to_text(raw_citation) or None
+        if citation:
+            all_citations.append(citation)
 
         if convergence == "tables":
             source_rows = apply_tables_convergence(tablesfile, level)
@@ -88,8 +91,9 @@ def gather_tablesfiles(
 
     all_rows = [row.clone(row=i) for i, row in enumerate(all_rows, start=1)]
 
+    joined_citation: str | None = "; ".join(all_citations) if all_citations else None
     fragment = TableFragment(rows=all_rows, page=1)
     return TablesFile(
         tables=[TableWithFragments(table_fragments=[fragment])],
-        citation="",
+        citation=joined_citation,
     )

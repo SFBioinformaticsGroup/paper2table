@@ -33,11 +33,19 @@ def test_fragment_renders_header_and_row():
 
 def test_fragment_readers_before_sources():
     fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1"])])
-    out = joined(build_fragment_html(1, fragment))
+    uuid_to_reader = {"s1": "pdfplumber"}
+    out = joined(build_fragment_html(1, fragment, uuid_to_reader))
     headers = [h.strip() for h in out.split("<th>")[1:]]
     assert headers[0].startswith("species")
     assert headers[-2].startswith("readers_")
     assert headers[-1].startswith("sources_")
+
+
+def test_fragment_readers_hidden_without_uuid_mapping():
+    fragment = TableFragment(page=1, rows=[Row(species="Rosa", sources_=["s1"])])
+    out = joined(build_fragment_html(1, fragment))
+    assert "readers_" not in out
+    assert "sources_" in out
 
 
 def test_fragment_agreement_level_column_shown_first():

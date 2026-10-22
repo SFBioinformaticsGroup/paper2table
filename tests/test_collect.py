@@ -893,6 +893,33 @@ def test_gather_tablesfiles_prints_row_count_per_file(capsys):
     )
 
 
+def test_gathered_tablesfile_citation_single_source():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    result = gather_tablesfiles([(file_a, path_a)], key_columns=[])
+    assert result.citation == "Mamani 2020"
+
+
+def test_gathered_tablesfile_citation_joins_multiple_sources():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
+    assert result.citation == "Mamani 2020; Jones 2021"
+
+
+def test_gathered_tablesfile_citation_skips_empty_citations():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="")
+    file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
+    assert result.citation == "Jones 2021"
+
+
+def test_gathered_tablesfile_citation_none_when_all_empty():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="")
+    file_b, path_b = wrap([Row(species="Carum carvi")], citation="")
+    result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
+    assert result.citation is None
+
+
 def test_compute_sources_includes_gathered_files():
     file_a = TablesFile(
         tables=[
