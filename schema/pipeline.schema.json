@@ -270,7 +270,12 @@
         "override": {
           "type": "boolean",
           "default": false,
-          "description": "Wipe ${working_path}/merges/ before running. When false, a warning is printed if the directory already has contents."
+          "description": "Wipe ${working_path}/merges/ before running. When false, a warning is printed if the directory already has contents. Deletes all files including curated ones — use force_update instead to preserve files not in the current run."
+        },
+        "force_update": {
+          "type": "boolean",
+          "default": false,
+          "description": "Pass --force-update to tablemerge: overwrite output files that contain curations. Only affects files produced by the current run; files from previous runs not in the current inputs are left untouched. Ignored when override is true (the directory is wiped before tablemerge runs)."
         }
       }
     },
@@ -283,6 +288,11 @@
           "type": "string",
           "default": "none",
           "enum": ["none", "rows", "fragments", "tables"]
+        },
+        "convergence_level": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
         },
         "key_columns": {
           "anyOf": [

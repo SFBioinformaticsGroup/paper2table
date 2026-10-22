@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tablevalidate.schema import ColumnValue, Row, TablesFile
 from utils.jsonc import load_jsonc
-from .stats import GlobalStats, PaperStats, update_papers_stats
+from .stats import GlobalStats, PaperStats, update_papers_stats, CONVERGENCE_LEVELS
 from paper2table import __version__
 
 VALID_SORT_KEYS = {"tables-count", "tables-convergence", "curations-count"}
@@ -28,9 +28,6 @@ def compute_papers_stats(path: str) -> GlobalStats:
         rows_in_shared_groups=0,
         rows_with_shared_values=0,
         papers_with_curations=0,
-        papers_with_convergent_tables=0,
-        papers_with_convergent_fragments=0,
-        papers_with_convergent_rows=0,
         papers_stats={},
     )
 
@@ -53,8 +50,7 @@ def sort_stats(stats: GlobalStats, sort_keys: list[tuple[str, str]]) -> None:
             if key == "tables-count":
                 result.append(multiplier * paper_stats.tables)
             elif key == "tables-convergence":
-                v = paper_stats.convergent_tables
-                result.append(multiplier * v if v is not None else float("inf"))
+                result.append(multiplier * paper_stats.convergent[1].tables)
             elif key == "curations-count":
                 result.append(multiplier * paper_stats.curations)
         return result
@@ -172,13 +168,12 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
     lines = []
     lines.append("Global Stats:")
     lines.append(f"  Papers: {stats.papers}")
-    lines.append(
-        f"  Papers with convergent tables: {stats.papers_with_convergent_tables}"
-    )
-    lines.append(
-        f"  Papers with convergent fragments: {stats.papers_with_convergent_fragments}"
-    )
-    lines.append(f"  Papers with convergent rows: {stats.papers_with_convergent_rows}")
+    for level in CONVERGENCE_LEVELS:
+        c = stats.papers_with_convergent[level]
+        lines.append(f"  Convergent Papers (Level={level}):")
+        lines.append(f"    tables: {c.tables}")
+        lines.append(f"    fragments: {c.fragments}")
+        lines.append(f"    rows: {c.rows}")
     lines.append(f"  Papers with curations: {stats.papers_with_curations}")
     lines.append(f"  Tables: {stats.tables}")
     lines.append(f"  Fragments: {stats.fragments}")
@@ -216,11 +211,12 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
                 f"    Shared values percentage: {paper_stats.shared_values_percentage:.2f}%"
             )
         lines.append(f"    Curations: {paper_stats.curations}")
-        lines.append(f"    Convergent tables count: {paper_stats.convergent_tables}")
-        lines.append(
-            f"    Convergent fragments count: {paper_stats.convergent_fragments}"
-        )
-        lines.append(f"    Convergent rows count: {paper_stats.convergent_rows}")
+        for level in CONVERGENCE_LEVELS:
+            c = paper_stats.convergent[level]
+            lines.append(f"    Convergent elements (Level={level}):")
+            lines.append(f"      tables: {c.tables}")
+            lines.append(f"      fragments: {c.fragments}")
+            lines.append(f"      rows: {c.rows}")
     if columns is not None:
         lines.append("")
         lines.append("Unique Columns:")

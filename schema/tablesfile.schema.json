@@ -208,6 +208,12 @@
             {"type": "null"},
             {"type": "integer"}
           ]
+        },
+        "curation_type_": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "enum": ["none", "automatic", "manual"]}
+          ]
         }
       },
       "patternProperties": {

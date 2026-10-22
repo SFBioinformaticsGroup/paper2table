@@ -557,7 +557,21 @@ output, following the same format used by `paper2table` and `tablemerge`:
 paper2pipeline pipeline.json
 ```
 
-The pipeline runs four optional steps in order — **normalize → extract → merge → gather** — and skips any section that is absent from the file.
+The pipeline runs the following steps in order:
+
+  1. normalize
+  2. extract
+  3. merge
+  4. gather
+  5. readme
+
+### Working example
+
+Run the example that comes out of the box
+
+```bash
+GEMINI_API_KEY=... paper2pipeline tests/data/pipeline/pipeline.jsonc
+```
 
 #### Directory layout
 
@@ -709,7 +723,8 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `stats` | `bool` | `false` | Run `tablestats` and write to `merges/stats.txt` |
 | `validate` | `bool` | `false` | Run `tablevalidate` on the merged output |
 | `export` | `list[str]` | `[]` | Export formats: `"csv"` and/or `"html"` |
-| `override` | `bool` | `false` | Wipe `${working_path}/merges/` before running |
+| `override` | `bool` | `false` | Wipe `${working_path}/merges/` before running. Deletes all files including curated ones -- use `force_update` instead to preserve files not in the current run. |
+| `force_update` | `bool` | `false` | Overwrite output files that contain curations. Only affects files produced by the current run; files from previous runs not in the current inputs are left untouched. Ignored when `override` is true (the directory is wiped before tablemerge runs). |
 
 #### `gather` fields
 

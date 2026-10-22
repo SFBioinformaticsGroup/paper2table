@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from pydantic import ValidationError
+
 from tablevalidate.validate import validate_file
 from tablevalidate.schema import Curation, Row, TablesFile, TableWithFragments, TableFragment
 
@@ -103,3 +105,48 @@ def test_tablesfile_model_validate_bool_false_not_treated_as_empty():
     tablesfile = TablesFile.model_validate(data)
     row = tablesfile.tables[0].get_table_fragments()[0].rows[0]
     assert row.is_empty() is False
+
+
+def test_curation_type_absent_is_valid():
+    data = {
+        "citation": None,
+        "tables": [{"page": 1, "rows": [{"family": "Apiaceae"}]}],
+    }
+    tablesfile = TablesFile.model_validate(data)
+    assert tablesfile.tables[0].get_table_fragments()[0].rows[0].curation_type_ is None
+
+
+def test_curation_type_manual_is_valid():
+    data = {
+        "citation": None,
+        "tables": [{"page": 1, "rows": [{"family": "Apiaceae", "curation_type_": "manual"}]}],
+    }
+    tablesfile = TablesFile.model_validate(data)
+    assert tablesfile.tables[0].get_table_fragments()[0].rows[0].curation_type_ == "manual"
+
+
+def test_curation_type_automatic_is_valid():
+    data = {
+        "citation": None,
+        "tables": [{"page": 1, "rows": [{"family": "Apiaceae", "curation_type_": "automatic"}]}],
+    }
+    tablesfile = TablesFile.model_validate(data)
+    assert tablesfile.tables[0].get_table_fragments()[0].rows[0].curation_type_ == "automatic"
+
+
+def test_curation_type_none_is_valid():
+    data = {
+        "citation": None,
+        "tables": [{"page": 1, "rows": [{"family": "Apiaceae", "curation_type_": "none"}]}],
+    }
+    tablesfile = TablesFile.model_validate(data)
+    assert tablesfile.tables[0].get_table_fragments()[0].rows[0].curation_type_ == "none"
+
+
+def test_curation_type_invalid_value_is_rejected():
+    data = {
+        "citation": None,
+        "tables": [{"page": 1, "rows": [{"family": "Apiaceae", "curation_type_": "unknown"}]}],
+    }
+    with pytest.raises(ValidationError):
+        TablesFile.model_validate(data)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr, model_validator
 
 from utils.column_values import normalize_column_value
@@ -16,9 +16,12 @@ class ValueWithAgreement(BaseModel):
 
 ColumnValue = None | ScalarValue | List[ValueWithAgreement]
 
+CurationType = Literal["none", "automatic", "manual"]
+
 _META_COLUMNS = frozenset(
     (
         "agreement_level_",
+        "curation_type_",
         "sources_",
         "row_",
         "citation_",
@@ -37,6 +40,7 @@ class Row(BaseModel):
     path_: Optional[str] = Field(None)
     page_: Optional[int] = Field(None)
     fragment_: Optional[int] = Field(None)
+    curation_type_: Optional[CurationType] = Field(None)
 
     model_config = ConfigDict(extra="allow")
 
@@ -86,6 +90,9 @@ class Row(BaseModel):
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
 
+    def get_curation_type(self):
+        return "none" if self.curation_type_ is None else self.curation_type_
+
     def normalize(
         self,
         calculate_agreement: bool = False,
@@ -102,6 +109,32 @@ class Row(BaseModel):
             ),
         )
 
+    def get_convergence_level(self, sources_count: int) -> Literal[0, 1, 2, 3, 4, 5]:
+        """
+        0 = sources/agreement mismatch
+        1 = single source
+        2 = multi-source with cell conflicts
+        3 = multi-source convergent
+        4 = automatic curation
+        5 = manual curation
+        """
+        if self.get_curation_type() == "manual":
+            return 5
+
+        if self.get_curation_type() == "automatic":
+            return 4
+
+        if sources_count == self.get_agreement_level():
+            if self.get_agreement_level() == 1:
+                return 1
+
+            if any(not Row.is_convergent(value) for value in self.get_column_values()):
+                return 2
+
+            return 3
+
+        return 0
+
     def clone(
         self,
         agreement_level: Optional[int] = None,
@@ -111,6 +144,7 @@ class Row(BaseModel):
         path: Optional[str] = None,
         page: Optional[int] = None,
         fragment: Optional[int] = None,
+        curation_type: Optional[CurationType] = None,
         columns: Optional[Dict[str, ColumnValue]] = None,
     ) -> "Row":
         return Row(
@@ -125,6 +159,9 @@ class Row(BaseModel):
             path_=path if path is not None else self.path_,
             page_=page if page is not None else self.page_,
             fragment_=fragment if fragment is not None else self.fragment_,
+            curation_type_=(
+                curation_type if curation_type is not None else self.curation_type_
+            ),
             **(columns if columns is not None else self.get_columns()),
         )
 
@@ -146,13 +183,11 @@ class Row(BaseModel):
         if isinstance(value, str):
             return not normalize_column_value(value)
 
-        return False  # int, float, bool — never empty
+        return False
 
     @staticmethod
     def is_convergent(value: ColumnValue) -> bool:
-        if not isinstance(value, list):
-            return True
-        return len(value) == 1
+        return not isinstance(value, list) or len(value) == 1
 
     @staticmethod
     def normalize_value(value: ColumnValue) -> ColumnValue:
@@ -178,9 +213,7 @@ class Row(BaseModel):
         return value
 
     @staticmethod
-    def map_text(
-        value: ColumnValue, fn: Callable[[str], ScalarValue]
-    ) -> ColumnValue:
+    def map_text(value: ColumnValue, fn: Callable[[str], ScalarValue]) -> ColumnValue:
         """Transforms cell's string values"""
         if isinstance(value, str):
             return fn(value)
@@ -239,12 +272,14 @@ class TableFragment(BaseModel):
     def is_empty(self) -> bool:
         return all(row.is_empty() for row in self.rows)
 
-    def get_convergent_rows(self) -> List[Row]:
-        """Return rows that have a single unique value"""
+    def get_convergent_rows(self, level: int = 1) -> List[Row]:
+        sources_count = len(
+            {source for row in self.rows for source in row.sources_ or []}
+        )
         return [
             row
             for row in self.rows
-            if all([Row.is_convergent(v) for v in row.get_column_values()])
+            if row.get_convergence_level(sources_count) >= level
         ]
 
 
@@ -255,11 +290,11 @@ class Table(ABC):
     @abstractmethod
     def is_empty(self) -> bool: ...
 
-    def get_convergent_fragments(self) -> List[TableFragment]:
+    def get_convergent_fragments(self, level: int = 1) -> List[TableFragment]:
         return [
             f
             for f in self.get_table_fragments()
-            if len(f.get_convergent_rows()) == len(f.rows)
+            if len(f.get_convergent_rows(level)) == len(f.rows)
         ]
 
 
@@ -311,11 +346,11 @@ class TablesFile(BaseModel):
     def has_curations(self) -> bool:
         return bool(self.metadata and self.metadata.curations)
 
-    def get_convergent_tables(self) -> List[Table]:
+    def get_convergent_tables(self, level: int = 1) -> List[Table]:
         return [
             t
             for t in self.tables
-            if len(t.get_convergent_fragments()) == len(t.get_table_fragments())
+            if len(t.get_convergent_fragments(level)) == len(t.get_table_fragments())
         ]
 
     def clone(

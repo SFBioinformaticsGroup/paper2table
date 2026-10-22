@@ -321,6 +321,8 @@ def build_merge_args(
         args += ["--no-drop-empty-columns"]
     if not config.drop_empty_tables:
         args += ["--no-drop-empty-tables"]
+    if config.force_update:
+        args += ["--force-update"]
 
     if pretty:
         args += ["--pretty"]
@@ -362,7 +364,15 @@ def build_gather_args(
     merges_dir = working_path / "merges"
     gathers_dir = working_path / "gathers"
 
-    args = ["tablegather", "-o", str(gathers_dir), "--convergence", config.convergence]
+    args = [
+        "tablegather",
+        "-o",
+        str(gathers_dir),
+        "--convergence",
+        config.convergence,
+        "--convergence-level",
+        str(config.convergence_level),
+    ]
 
     if schema_path:
         args += ["-p", schema_path]

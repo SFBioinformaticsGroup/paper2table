@@ -95,11 +95,16 @@ class HintsLoadTimeAnalyzer:
 
     def _normalized_values(self, row: Row, columns: list[str]) -> dict[str, str]:
         result: dict[str, str] = {}
+        hints_set = set(self.hints)
         for column in columns:
             val = row.get_columns().get(column)
             strings = [s.strip() for s in Row.to_texts(val) if s.strip()]
             if strings:
-                result[column] = normalize_column_name(strings[0])
+                normalized = normalize_column_name(strings[0])
+                if normalized and normalized[::-1] in hints_set:
+                    result[column] = normalized[::-1]
+                else:
+                    result[column] = normalized
         return result
 
 

@@ -672,6 +672,30 @@ def test_hints_normalizes_accented_value_to_ascii_hint():
     assert result == {"0": "preparacion"}
 
 
+def test_hints_matches_reversed_value_against_hint():
+    left = wrap([Row(**{"0": "etad"})])
+    result = HintsLoadTimeAnalyzer(["date"]).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {"0": "date"}
+
+
+def test_hints_renames_all_columns_when_reversed_value_triggers_match():
+    left = wrap([Row(**{"0": "etad", "1": "Apiaceae"})])
+    result = HintsLoadTimeAnalyzer(["date", "family"]).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {"0": "date", "1": "apiaceae"}
+
+
+def test_hints_matches_multiple_reversed_values_against_hints():
+    left = wrap([Row(**{"0": "etad", "1": "ylimaf"})])
+    result = HintsLoadTimeAnalyzer(["date", "family"]).build_mapping(
+        left.get_column_names(), left.rows
+    )
+    assert result == {"0": "date", "1": "family"}
+
+
 def test_hints_skips_empty_rows_before_header_row():
     left = wrap(
         [

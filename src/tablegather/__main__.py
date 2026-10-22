@@ -74,6 +74,13 @@ def main():
         help="Convergence filter: none (default), rows, fragments, tables",
     )
     parser.add_argument(
+        "--convergence-level",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Minimum convergence level to include (default: 1)",
+    )
+    parser.add_argument(
         "-o",
         "--output-directory",
         metavar="DIR",
@@ -101,6 +108,7 @@ def main():
         tablesfiles_with_paths,
         key_columns,
         convergence=args.convergence,
+        level=args.convergence_level,
     )
 
     for postprocessor in postprocessors:
@@ -119,6 +127,7 @@ def main():
         settings = {
             "key_columns": key_columns,
             "convergence": args.convergence,
+            "convergence_level": args.convergence_level,
         }
         write_gather_metadata(output_dir, sources, settings)
     else:
