@@ -51,16 +51,16 @@ def merge_rows(
     right_sources = right.sources_ or []
     sources = list(dict.fromkeys(left_sources + right_sources)) or None
 
-    return Row(
-        citation_=None,
-        fragment_=None,
-        page_=None,
-        path_=None,
-        agreement_level_=agreement_level,
-        sources_=sources,
-        row_=left.row_,
-        **columns
-    )
+    return Row.model_validate({
+        "citation_": None,
+        "fragment_": None,
+        "page_": None,
+        "path_": None,
+        "agreement_level_": agreement_level,
+        "sources_": sources,
+        "row_": left.row_,
+        **columns,
+    })
 
 
 class TableFragmentBuilder:

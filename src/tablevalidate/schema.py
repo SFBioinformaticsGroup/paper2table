@@ -144,7 +144,7 @@ class Row(BaseModel):
         path: Optional[str] = None,
         page: Optional[int] = None,
         fragment: Optional[int] = None,
-        curation_type: Optional[str] = None,
+        curation_type: Optional[CurationType] = None,
         columns: Optional[Dict[str, ColumnValue]] = None,
     ) -> "Row":
         return Row(
