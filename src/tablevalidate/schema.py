@@ -65,6 +65,9 @@ class Row(BaseModel):
     def get_columns(self) -> Dict[str, ColumnValue]:
         return {k: v for k, v in self if k not in _META_COLUMNS}
 
+    def serialize_columns(self) -> Dict[str, str]:
+        return {k: "\n".join(Row.to_texts(v)) for k, v in self.get_columns().items()}
+
     def get_column_values(self):
         return self.get_columns().values()
 

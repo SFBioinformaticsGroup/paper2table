@@ -18,7 +18,7 @@ def build_dataframes(papers: dict[str, TablesFile]) -> dict[str, list[pd.DataFra
                         {
                             "$page": fragment.page,
                             **row.get_meta_columns(),
-                            **row.get_columns(),
+                            **row.serialize_columns(),
                         }
                     )
             csvs[basename].append(pd.DataFrame(rows).dropna(axis="columns", how="all"))
