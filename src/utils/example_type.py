@@ -8,7 +8,13 @@ class ExampleColumnType(ColumnType):
     value-based column detection and as hints in agent Pydantic models.
     """
 
-    def __init__(self, examples: list[str]):
+    @classmethod
+    def instantiate(cls, *args):
+        if len(args) < 1:
+            raise ValueError(f"ExampleColumnType takes one or more examples")
+        return cls(args[0])
+
+    def __init__(self, *examples: str):
         self._examples = frozenset(examples)
         self._examples_str = ",".join(examples)
 

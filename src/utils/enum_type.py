@@ -7,7 +7,13 @@ class EnumColumnType(ColumnType):
     All values contribute to value-based column detection.
     """
 
-    def __init__(self, values: list[str]):
+    @classmethod
+    def instantiate(cls, *args):
+        if len(args) < 1:
+            raise ValueError(f"EnumColumnType takes one or more values")
+        return cls(args[0])
+
+    def __init__(self, *values: str):
         self._values = frozenset(values)
         self._values_str = ",".join(values)
 

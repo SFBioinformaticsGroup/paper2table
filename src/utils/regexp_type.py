@@ -9,6 +9,11 @@ class RegexpColumnType(ColumnType):
     Values that do not match are nullified during coercion.
     Values matching the pattern contribute to value-based column detection.
     """
+    @classmethod
+    def instantiate(cls, *args):
+        if len(args) != 1:
+            raise ValueError(f"RegexpColumnType takes exactly one regex")
+        return cls(args[0])
 
     def __init__(self, pattern: str):
         self._pattern = re.compile(pattern)

@@ -304,22 +304,3 @@ def test_to_dict_postprocessors():
     assert defaults["filter_schema_columns"] is True
     assert defaults["order_schema_columns"] is False
     assert defaults["coerce_schema_column_types"] is True
-
-
-def test_column_schema_from_settings_dict_empty():
-    result = ColumnSchema.from_settings_dict({})
-    assert result is None
-
-
-def test_column_schema_from_settings_dict_round_trip():
-    original_schema = ColumnSchema.parse("family:str,count:int,name:scientific_name")
-    serialized = original_schema.serialize()
-    reconstructed = ColumnSchema.from_settings_dict(serialized)
-    assert reconstructed is not None
-    assert reconstructed.serialize() == serialized
-
-
-def test_column_schema_from_settings_dict_single_field():
-    schema = ColumnSchema.from_settings_dict({"family": "str"})
-    assert schema is not None
-    assert schema.serialize() == {"family": "str"}

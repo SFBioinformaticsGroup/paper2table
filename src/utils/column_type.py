@@ -13,6 +13,12 @@ class ColumnType(ABC):
     value-detection hints, and Pydantic field metadata for the column.
     """
 
+    @classmethod
+    def instantiate(cls, *args):
+        if args:
+            raise ValueError(f"${cls.__name__} does not take arguments")
+        return cls()
+
     @abstractmethod
     def as_type(self) -> type: ...
 

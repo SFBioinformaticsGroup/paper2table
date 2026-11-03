@@ -18,7 +18,7 @@ _logger = logging.getLogger("pape2table")
 def build_instructions(schema):
     parsed_schema = ColumnSchema.parse(schema)
     column_listing = ", ".join(
-        f"{name} ({desc})" if (desc := parsed_schema.pydantic_field_description(name)) else name
+        f"{name} ({desc})" if (desc := parsed_schema.column_type(name).type_description()) else name
         for name in parsed_schema.column_names()
     )
     return (
