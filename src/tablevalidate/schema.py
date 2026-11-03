@@ -163,6 +163,8 @@ class Row(BaseModel):
             **(columns if columns is not None else self.get_columns()),
         )
 
+    # TODO some of its static methods should go into a separate module, e.g. ColumnValue
+
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
@@ -262,6 +264,16 @@ class Row(BaseModel):
             return False
         except ValueError:
             return True
+
+    @staticmethod
+    def get_non_empty_column_values(rows: list["Row"], column_name: str) -> list[str]:
+        values = []
+        for row in rows:
+            cell = row.get_column_value(column_name)
+            text = Row.to_text(cell).strip()
+            if text:
+                values.append(text)
+        return values
 
 
 class TableFragment(BaseModel):

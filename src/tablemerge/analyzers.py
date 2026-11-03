@@ -13,16 +13,6 @@ from utils.jaccard import jaccard
 REMOVE_COLUMN = "<remove>"
 
 
-def sample_column_values(rows: list[Row], column_name: str) -> list[str]:
-    values = []
-    for row in rows:
-        cell = row.get_column_value(column_name)
-        text = Row.to_text(cell).strip()
-        if text:
-            values.append(text)
-    return values
-
-
 def renamable_source_columns(
     columns: list[str], schema: Optional[ColumnSchema]
 ) -> list[str]:
@@ -195,7 +185,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
         scores = []
 
         for candidate in candidates:
-            values = sample_column_values(rows, candidate)
+            values = Row.get_non_empty_column_values(rows, candidate)
             if not values:
                 continue
             column_name_score = (
@@ -390,7 +380,7 @@ class ColumnValueSemanticMergeTimeAnalyzer:
         nlp = self.load_model()
         scores = []
         for source_column in source_columns:
-            values = sample_column_values(source_rows, source_column)
+            values = Row.get_non_empty_column_values(source_rows, source_column)
             if not values:
                 continue
             for target_column in target_column_names:
