@@ -16,7 +16,7 @@ REMOVE_COLUMN = "<remove>"
 def sample_column_values(rows: list[Row], column_name: str) -> list[str]:
     values = []
     for row in rows:
-        cell = row.get_columns().get(column_name)
+        cell = row.get_column_value(column_name)
         text = Row.to_text(cell).strip()
         if text:
             values.append(text)
@@ -97,7 +97,7 @@ class HintsLoadTimeAnalyzer:
         result: dict[str, str] = {}
         hints_set = set(self.hints)
         for column in columns:
-            val = row.get_columns().get(column)
+            val = row.get_column_value(column)
             strings = [s.strip() for s in Row.to_texts(val) if s.strip()]
             if strings:
                 normalized = normalize_column_name(strings[0])
@@ -332,7 +332,7 @@ class JaccardMergeTimeAnalyzer:
     def column_value_set(self, rows: list[Row], column: str) -> set[str]:
         result: set[str] = set()
         for row in rows:
-            val = row.get_columns().get(column)
+            val = row.get_column_value(column)
             if val is not None:
                 result.update(self.extract_column_str_values(val))
         return result

@@ -71,16 +71,11 @@ class Row(BaseModel):
     def get_column_values(self):
         return self.get_columns().values()
 
+    def get_column_value(self, column_name: str):
+        return self.get_columns().get(column_name)
+
     def get_meta_columns(self) -> Dict[str, Any]:
         return {k: v for k, v in self if k in _META_COLUMNS}
-
-    @staticmethod
-    def is_semantic_column(name: str) -> bool:
-        try:
-            float(name)
-            return False
-        except ValueError:
-            return True
 
     def get_semantic_columns(self) -> Dict[str, ColumnValue]:
         return {
@@ -259,6 +254,14 @@ class Row(BaseModel):
         if isinstance(value, list):
             return value
         return [ValueWithAgreement(value=value, agreement_level=1)]
+
+    @staticmethod
+    def is_semantic_column(name: str) -> bool:
+        try:
+            float(name)
+            return False
+        except ValueError:
+            return True
 
 
 class TableFragment(BaseModel):

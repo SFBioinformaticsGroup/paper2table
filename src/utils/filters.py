@@ -85,7 +85,7 @@ def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
                 col
                 for col in all_cols
                 if all(
-                    Row.is_empty_value(row.get_columns().get(col))
+                    Row.is_empty_value(row.get_column_value(col))
                     for row in fragment.rows
                 )
             }
