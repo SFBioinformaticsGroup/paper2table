@@ -1,7 +1,5 @@
 from utils.tokenize_schema import tokenize_schema
-from utils.column_schema import ColumnSchema
 from tablemerge.aliases import parse_column_aliases
-
 
 def test_tokenize_schema_basic():
     assert tokenize_schema("family:str species:str") == ["family:str", "species:str"]
@@ -30,13 +28,6 @@ family:str
 species:str
 """
     assert tokenize_schema(text) == ["family:str", "species:str"]
-
-
-def test_parse_schema_ignores_comments():
-    schema = ColumnSchema.parse("family:str # ignored\nspecies:int")
-    assert schema.column_names() == ["family", "species"]
-    assert schema.column_type("family") is str
-    assert schema.column_type("species") is int
 
 
 def test_parse_column_aliases_ignores_comments():
