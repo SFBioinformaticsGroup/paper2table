@@ -16,7 +16,7 @@
 
 | Title | DOI or link | License |
 |---|---|---|
-| 85611977005 | Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. *Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas*, *8*(5), 389-401. | [...] |
+| 85611977005 | Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas, 8(5), 389-401. | [...] |
 
 ## Tools and version
 
