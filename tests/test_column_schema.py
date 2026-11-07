@@ -79,7 +79,7 @@ def test_parse_scientific_name_type():
     assert isinstance(schema.column_type("species"), ScientificNameColumnType)
 
 def test_parse_enum_type():
-    schema = ColumnSchema.parse("color:enum:red,blue,green")
+    schema = ColumnSchema.parse("color:enum:red;blue;green")
     color_type = schema.column_type("color")
     assert isinstance(color_type, EnumColumnType)
     assert color_type.matches_value("red") is True
@@ -87,7 +87,7 @@ def test_parse_enum_type():
 
 
 def test_parse_example_type():
-    schema = ColumnSchema.parse("color:example:red,blue,green")
+    schema = ColumnSchema.parse("color:example:red;blue;green")
     color_type = schema.column_type("color")
     assert isinstance(color_type, ExampleColumnType)
     assert color_type.matches_value("red") is True
@@ -103,8 +103,8 @@ def test_parse_regexp_type():
 
 
 def test_parse_enum_preserves_values_in_order():
-    schema = ColumnSchema.parse("color:enum:red,blue,green")
-    assert schema.serialize() == {"color": "enum:red,blue,green"}
+    schema = ColumnSchema.parse("color:enum:red;blue;green")
+    assert schema.serialize() == {"color": "enum:red;blue;green"}
 
 
 def test_parse_regexp_round_trips():
@@ -128,7 +128,7 @@ def test_parse_regexp_missing_params_raises_value_error():
 
 
 def test_parse_multiple_columns_with_enum():
-    schema = ColumnSchema.parse("color:enum:red,blue family:str")
+    schema = ColumnSchema.parse("color:enum:red;blue family:str")
     assert isinstance(schema.column_type("color"), EnumColumnType)
     assert isinstance(schema.column_type("family"), StrColumnType)
     assert schema.column_type("color").matches_value("red") is True
@@ -136,7 +136,7 @@ def test_parse_multiple_columns_with_enum():
 
 
 def test_parse_enum_and_str_comma_separated():
-    schema = ColumnSchema.parse("color:enum:red,blue,family:str")
+    schema = ColumnSchema.parse("color:enum:red;blue,family:str")
     assert isinstance(schema.column_type("color"), EnumColumnType)
     assert isinstance(schema.column_type("family"), StrColumnType)
 
@@ -148,7 +148,7 @@ def test_unsupported_type_raises_value_error():
 
 def test_from_settings_dict_with_enum():
     schema = ColumnSchema.from_settings_dict(
-        {"color": "enum:red,blue,green", "family": "str"}
+        {"color": "enum:red;blue;green", "family": "str"}
     )
     assert schema is not None
     assert isinstance(schema.column_type("color"), EnumColumnType)

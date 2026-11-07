@@ -60,7 +60,7 @@ class ColumnSchema:
                 )
             [name, type_name, *args] = tokens.split(":", 3)
             columns[name] = ColumnSchema._parse_column_type(
-                type_name, args[0].split(",") if args else []
+                type_name, args[0].split(";") if args else []
             )
         return ColumnSchema(columns)
 

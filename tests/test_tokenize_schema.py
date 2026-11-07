@@ -9,8 +9,8 @@ def test_tokenize_schema_basic():
 
 def test_tokenize_schema_parameterized_types():
     assert tokenize_schema(
-        "status:enum:preserved,endangered,extinct name:example:dog,horse"
-    ) == ["status:enum:preserved,endangered,extinct", "name:example:dog,horse"]
+        "status:enum:preserved;endangered;extinct name:example:dog;horse"
+    ) == ["status:enum:preserved;endangered;extinct", "name:example:dog;horse"]
 
 
 def test_tokenize_schema_comma_separated():

@@ -15,7 +15,7 @@ class EnumColumnType(ColumnType):
 
     def __init__(self, *values: str):
         self._values = frozenset(values)
-        self._values_str = ",".join(values)
+        self._values_str = ";".join(values)
 
     def coerce(self, value: str) -> str | None:
         return value if value in self._values else None

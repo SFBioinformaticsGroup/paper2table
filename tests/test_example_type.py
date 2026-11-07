@@ -22,7 +22,7 @@ def test_matches_value_returns_false_for_unknown_value():
 
 
 def test_schema_type_str_preserves_order():
-    assert str(ExampleColumnType("red", "blue")) == "example:red,blue"
+    assert str(ExampleColumnType("red", "blue")) == "example:red;blue"
 
 
 def test_type_description_lists_examples():

@@ -30,13 +30,13 @@ def test_matches_value_returns_false_for_empty_string():
 
 
 def test_schema_type_str_preserves_order():
-    assert str(EnumColumnType("red", "blue", "green")) == "enum:red,blue,green"
+    assert str(EnumColumnType("red", "blue", "green")) == "enum:red;blue;green"
 
 
 def test_type_description_lists_values():
     assert (
         EnumColumnType("red", "blue", "green").type_description()
-        == "Must be one of: red,blue,green"
+        == "Must be one of: red;blue;green"
     )
 
 

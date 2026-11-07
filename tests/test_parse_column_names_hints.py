@@ -1,4 +1,5 @@
 from paper2table.hints import parse_column_hints
+from utils.tokenize_schema import tokenize_schema
 
 
 def test_simple_comma_separated():
