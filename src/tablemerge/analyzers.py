@@ -33,6 +33,22 @@ def renamable_target_columns(
     return [c for c in columns if Row.is_semantic_column(c)]
 
 
+def assign_by_score(scores: list[tuple[float, str, str]]) -> dict[str, str]:
+    """Resolves (score, source, target) candidates into a 1-to-1 mapping.
+
+    When one source matches multiple targets, the highest-scoring target wins.
+    When multiple sources match the same target, the highest-scoring source wins.
+    """
+    sorted_scores = sorted(scores, key=lambda x: -x[0])
+    mapping: dict[str, str] = {}
+    used_targets: set[str] = set()
+    for _, source, target in sorted_scores:
+        if source not in mapping and target not in used_targets:
+            mapping[source] = target
+            used_targets.add(target)
+    return mapping
+
+
 # ====================
 # Load Time Analyzers
 # ===================
@@ -201,24 +217,7 @@ class ColumnNameSemanticLoadTimeAnalyzer:
                     continue
                 scores.append((score, candidate, schema_column))
 
-        return self._greedy_assignment(scores)
-
-    def _greedy_assignment(
-        self, scores: list[tuple[float, str, str]]
-    ) -> dict[str, str]:
-        """Resolves (score, source, target) candidates into a 1-to-1 mapping.
-
-        When one source matches multiple targets, the highest-scoring target wins.
-        When multiple sources match the same target, the highest-scoring source wins.
-        """
-        sorted_scores = sorted(scores, key=lambda x: -x[0])
-        mapping: dict[str, str] = {}
-        used_targets: set[str] = set()
-        for _, source, target in sorted_scores:
-            if source not in mapping and target not in used_targets:
-                mapping[source] = target
-                used_targets.add(target)
-        return mapping
+        return assign_by_score(scores)
 
     def load_model(self):
         if self._nlp is None:
@@ -237,6 +236,43 @@ class ColumnNameSemanticLoadTimeAnalyzer:
             if value_doc.has_vector:
                 scores.append(column_name_doc.similarity(value_doc))
         return sum(scores) / len(scores) if scores else 0.0
+
+
+class EnumValueLoadTimeAnalyzer:
+    """Enabled by --value-based-column-detection. Runs at load time via LoadTimeColumnAligner.
+
+    Renames fragment columns not in the schema by checking whether their cell values
+    match known values/patterns of schema columns with enum, example, or regexp types.
+    Uses greedy assignment by match fraction. Runs after alias and hints analyzers so
+    already-resolved columns are not re-evaluated.
+    """
+
+    def __init__(self, schema: ColumnSchema, threshold: float = 0.5):
+        self.schema = schema
+        self.threshold = threshold
+
+    def build_mapping(
+        self,
+        column_names: list[str],
+        rows: list[Row],
+    ) -> dict[str, str]:
+        candidates = [col for col in column_names if col not in self.schema]
+        if not candidates:
+            return {}
+
+        scores: list[tuple[float, str, str]] = []
+        for candidate in candidates:
+            values = Row.get_non_empty_column_values(rows, candidate)
+            if not values:
+                continue
+            for schema_col in self.schema.column_names():
+                col_type = self.schema.column_type(schema_col)
+                match_count = sum(1 for v in values if col_type.matches_value(v))
+                score = match_count / len(values)
+                if score >= self.threshold:
+                    scores.append((score, candidate, schema_col))
+
+        return assign_by_score(scores)
 
 
 # ====================

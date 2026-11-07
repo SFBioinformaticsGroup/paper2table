@@ -22,7 +22,7 @@ class ColumnType(ABC):
     @abstractmethod
     def as_type(self) -> type: ...
 
-    def coerce(self, value: str) -> ScalarValue | None:
+    def coerce(self, value: str) -> ScalarValue:
         """Coerce a raw string. Return None to nullify the cell."""
         try:
             return self.as_type()(value)

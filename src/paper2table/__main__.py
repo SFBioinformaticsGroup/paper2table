@@ -430,7 +430,6 @@ def validate_existing_resultset(args):
 def get_paper_paths(args):
     return args.paths if args.quiet else tqdm(args.paths, miniters=1, mininterval=0)
 
-
 def main():
     handle_sigint()
 

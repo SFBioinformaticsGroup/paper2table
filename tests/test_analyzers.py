@@ -4,12 +4,16 @@ import pytest
 from test_columns_aligner import (FOUR_COLUMNS_MAPPING, SPECIES,
                                   SPECIES_WITH_EDITS)
 
-from tablemerge.analyzers import (REMOVE_COLUMN, AliasLoadTimeAnalyzer,
-                                  ColumnNameSemanticLoadTimeAnalyzer,
-                                  ColumnValueSemanticMergeTimeAnalyzer,
-                                  EnumValueLoadTimeAnalyzer,
-                                  HintsLoadTimeAnalyzer,
-                                  JaccardMergeTimeAnalyzer)
+from tablemerge.analyzers import (
+    REMOVE_COLUMN,
+    AliasLoadTimeAnalyzer,
+    ColumnNameSemanticLoadTimeAnalyzer,
+    ColumnValueSemanticMergeTimeAnalyzer,
+    EnumValueLoadTimeAnalyzer,
+    HintsLoadTimeAnalyzer,
+    JaccardMergeTimeAnalyzer,
+    assign_by_score,
+)
 from tablemerge.columns_aligner import (LoadTimeColumnAligner,
                                         MergeTimeColumnAligner)
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
@@ -63,16 +67,14 @@ def wrap(rows: list[Row]) -> TableFragment:
     return TableFragment(rows=rows, page=1)
 
 
-def test_greedy_assignment_one_source_multiple_targets_highest_score_wins():
-    analyzer = ColumnNameSemanticLoadTimeAnalyzer()
-    scores = [(0.9, "0", "color"), (0.7, "0", "animal")]
-    assert analyzer._greedy_assignment(scores) == {"0": "color"}
+def test_assign_by_score_one_source_multiple_targets_highest_score_wins():
+    assert assign_by_score([(0.9, "0", "color"), (0.7, "0", "animal")]) == {
+        "0": "color"
+    }
 
 
-def test_greedy_assignment_multiple_sources_same_target_highest_score_wins():
-    analyzer = ColumnNameSemanticLoadTimeAnalyzer()
-    scores = [(0.9, "0", "color"), (0.7, "1", "color")]
-    assert analyzer._greedy_assignment(scores) == {"0": "color"}
+def test_assign_by_score_multiple_sources_same_target_highest_score_wins():
+    assert assign_by_score([(0.9, "0", "color"), (0.7, "1", "color")]) == {"0": "color"}
 
 
 def test_jaccard_numeric_to_semantic():

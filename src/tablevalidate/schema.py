@@ -6,15 +6,14 @@ from utils.column_values import normalize_column_value
 from utils.str import normalize_str
 
 
-ScalarValue = str | int | float | bool
-
+ScalarValue = None | str | int | float | bool
 
 class ValueWithAgreement(BaseModel):
     value: ScalarValue
     agreement_level: int
 
 
-ColumnValue = None | ScalarValue | List[ValueWithAgreement]
+ColumnValue = ScalarValue | List[ValueWithAgreement]
 
 CurationType = Literal["none", "automatic", "manual"]
 

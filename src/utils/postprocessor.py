@@ -148,7 +148,6 @@ class SchemaPostProcessor:
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
 
-
 def build_postprocessors(
     schema: Optional[ColumnSchema],
     filter_columns: bool,
