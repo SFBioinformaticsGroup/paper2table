@@ -9,10 +9,10 @@ class ExampleColumnType(ColumnType):
     """
 
     @classmethod
-    def instantiate(cls, *args):
+    def build(cls, *args):
         if len(args) < 1:
             raise ValueError(f"ExampleColumnType takes one or more examples")
-        return cls(args[0])
+        return cls(*args)
 
     def __init__(self, *examples: str):
         self._examples = frozenset(examples)

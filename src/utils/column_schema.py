@@ -58,7 +58,7 @@ class ColumnSchema:
                 raise ValueError(
                     f"Invalid field specifier: {tokens}. Verify your schema"
                 )
-            [name, type_name, *args] = tokens.split(":", 2)
+            [name, type_name, *args] = tokens.split(":", 3)
             columns[name] = ColumnSchema._parse_column_type(
                 type_name, args[0].split(",") if args else []
             )
@@ -67,7 +67,7 @@ class ColumnSchema:
     @staticmethod
     def _parse_column_type(type_name: str, args: list[str]) -> ColumnType:
         if type_name in _types_map:
-            return _types_map[type_name].instantiate(*args)
+            return _types_map[type_name].build(*args)
 
         raise ValueError(f"Unsupported type: '{type_name}'. Verify your schema")
 

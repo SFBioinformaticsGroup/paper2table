@@ -14,9 +14,9 @@ class ColumnType(ABC):
     """
 
     @classmethod
-    def instantiate(cls, *args):
+    def build(cls, *args):
         if args:
-            raise ValueError(f"${cls.__name__} does not take arguments")
+            raise ValueError(f"{cls.__name__} does not take arguments")
         return cls()
 
     @abstractmethod

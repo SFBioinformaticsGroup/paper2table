@@ -118,7 +118,7 @@ def test_parse_enum_missing_params_raises_value_error():
 
 
 def test_parse_example_missing_params_raises_value_error():
-    with pytest.raises(ValueError, match="takes one or more values"):
+    with pytest.raises(ValueError, match="takes one or more examples"):
         ColumnSchema.parse("color:example")
 
 

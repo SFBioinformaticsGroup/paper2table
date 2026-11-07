@@ -10,7 +10,7 @@ class RegexpColumnType(ColumnType):
     Values matching the pattern contribute to value-based column detection.
     """
     @classmethod
-    def instantiate(cls, *args):
+    def build(cls, *args):
         if len(args) != 1:
             raise ValueError(f"RegexpColumnType takes exactly one regex")
         return cls(args[0])

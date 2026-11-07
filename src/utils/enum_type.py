@@ -8,10 +8,10 @@ class EnumColumnType(ColumnType):
     """
 
     @classmethod
-    def instantiate(cls, *args):
+    def build(cls, *args):
         if len(args) < 1:
             raise ValueError(f"EnumColumnType takes one or more values")
-        return cls(args[0])
+        return cls(*args)
 
     def __init__(self, *values: str):
         self._values = frozenset(values)
