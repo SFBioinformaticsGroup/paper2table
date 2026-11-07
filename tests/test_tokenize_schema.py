@@ -2,11 +2,22 @@ from utils.tokenize_schema import tokenize_schema
 from tablemerge.aliases import parse_column_aliases
 
 def test_tokenize_schema_basic():
-    assert tokenize_schema("family:str species:str") == ["family:str", "species:str"]
+    assert tokenize_schema("family:str species:str") == [
+        "family:str",
+        "species:str",
+    ]
+
+def test_tokenize_schema_parameterized_types():
+    assert tokenize_schema(
+        "status:enum:preserved,endangered,extinct name:example:dog,horse"
+    ) == ["status:enum:preserved,endangered,extinct", "name:example:dog,horse"]
 
 
 def test_tokenize_schema_comma_separated():
-    assert tokenize_schema("family:str,species:str") == ["family:str", "species:str"]
+    assert tokenize_schema("family:str,species:str") == [
+        "family:str",
+        "species:str",
+    ]
 
 
 def test_tokenize_schema_ignores_full_line_comment():

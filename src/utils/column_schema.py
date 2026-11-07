@@ -13,7 +13,7 @@ from utils.example_type import ExampleColumnType
 from utils.regexp_type import RegexpColumnType
 from utils.read_path import read_path
 from utils.scientific_name_type import ScientificNameColumnType
-from utils.tokenize_schema import tokenize_schema_columns
+from utils.tokenize_schema import tokenize_schema
 
 
 _types_map: dict[str, type[ColumnType]] = {
@@ -53,7 +53,7 @@ class ColumnSchema:
     @staticmethod
     def parse(schema_str: str) -> "ColumnSchema":
         columns: dict[str, ColumnType] = {}
-        for tokens in tokenize_schema_columns(schema_str):
+        for tokens in tokenize_schema(schema_str):
             if ":" not in tokens:
                 raise ValueError(
                     f"Invalid field specifier: {tokens}. Verify your schema"
