@@ -254,8 +254,6 @@ def build_merge_args(
         "tablemerge",
         "-o",
         str(merges_dir),
-        "--agreement-method",
-        config.agreement_method,
     ]
 
     if schema_path:

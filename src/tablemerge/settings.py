@@ -13,7 +13,6 @@ from utils.column_schema import ColumnSchema
 @dataclass
 class MergeSettings:
     paths: list = field(default_factory=list)
-    agreement_method: str = "simple-count"
     coerce_schema_column_types: bool = False
     column_aliases: Optional[str] = None
     column_alignment_threshold: float = 0.5

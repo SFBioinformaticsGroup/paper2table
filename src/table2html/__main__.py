@@ -20,8 +20,6 @@ def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, Ta
     metadata_file = directory / "tables.metadata.json"
     if metadata_file.exists():
         metadata = load_jsonc(metadata_file)
-    if metadata.get("reader") == "tablemerge" and "agreement_method" not in metadata:
-        metadata = {**metadata, "agreement_method": "simple-count"}
 
     settings: dict = {}
     settings_file = directory / "settings.tablemerge.json"
@@ -92,7 +90,7 @@ def flatten_dict(data: dict, prefix: str, rows: list[tuple[str, str]]) -> None:
 def flatten_metadata_rows(metadata: dict) -> list[tuple[str, str]]:
     rows = []
     for key, value in metadata.items():
-        if key in ("sources", "settings", "agreement_method"):
+        if key in ("sources", "settings"):
             continue
         if isinstance(value, dict):
             flatten_dict(value, "", rows)

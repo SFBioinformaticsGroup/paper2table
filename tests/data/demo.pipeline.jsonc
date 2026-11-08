@@ -25,7 +25,6 @@
   },
   // if present and non empty, previous paper2table runs with -t
   "merge": {
-    "agreement_method": "distinct-readers",
     "jaccard_column_alignment": true,
     "semantic_language": "es",
     // if present and true, run tablestats after run and redirect it to ${working_path}/merges/stats.txt

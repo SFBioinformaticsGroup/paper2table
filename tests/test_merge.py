@@ -25,7 +25,6 @@ from utils.filters import (
     value_matches_header,
     value_matches_hints,
 )
-from tablemerge.agreement import DistinctReadersAgreement, SimpleCountAgreement
 from tablemerge.fragments_builder import merge_rows
 from tablemerge.tablesfile_merger import merge_tablesfiles
 from tablevalidate.schema import (
@@ -1006,104 +1005,6 @@ def test_is_title_row_false_when_value_does_not_match():
     assert not FilterTitleRowsTransformer().is_title_row(Row(**{"0": "Apiaceae"}))
 
 
-def test_distinct_readers_agreement_two_different_non_agent_readers():
-    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "camelot"})
-    left = Row(family="apiaceae", sources_=["uuid-1"])
-    right = Row(family="apiaceae", sources_=["uuid-2"])
-    assert agreement.calculate_level(left, right) == 2
-
-
-def test_distinct_readers_agreement_same_non_agent_reader():
-    agreement = DistinctReadersAgreement(
-        {"uuid-1": "pdfplumber", "uuid-2": "pdfplumber"}
-    )
-    left = Row(family="apiaceae", sources_=["uuid-1"])
-    right = Row(family="apiaceae", sources_=["uuid-2"])
-    assert agreement.calculate_level(left, right) == 1
-
-
-def test_distinct_readers_agreement_two_agent_readers():
-    agreement = DistinctReadersAgreement({"uuid-1": "gemini", "uuid-2": "openai"})
-    left = Row(family="apiaceae", sources_=["uuid-1"])
-    right = Row(family="apiaceae", sources_=["uuid-2"])
-    assert agreement.calculate_level(left, right) == 2
-
-
-def test_distinct_readers_agreement_agent_and_non_agent():
-    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "gemini"})
-    left = Row(family="apiaceae", sources_=["uuid-1"])
-    right = Row(family="apiaceae", sources_=["uuid-2"])
-    assert agreement.calculate_level(left, right) == 2
-
-
-def test_distinct_readers_agreement_no_sources():
-    agreement = DistinctReadersAgreement({})
-    left = Row(family="apiaceae")
-    right = Row(family="apiaceae")
-    assert agreement.calculate_level(left, right) == 1
-
-
-def test_distinct_readers_agreement_unknown_uuid_counts_as_agent():
-    agreement = DistinctReadersAgreement({})
-    left = Row(family="apiaceae", sources_=["unknown-uuid"])
-    right = Row(family="apiaceae")
-    assert agreement.calculate_level(left, right) == 1
-
-
-def test_merge_two_tables_distinct_non_agent_readers():
-    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "camelot"})
-    result = merge_tablesfiles(
-        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
-        agreement=agreement,
-    )
-    assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(
-            family="apiaceae",
-            scientific_name="ammi majus l.",
-            agreement_level_=2,
-            sources_=["uuid-1", "uuid-2"],
-            row_=0,
-        )
-    ]
-
-
-def test_merge_two_tables_same_non_agent_reader():
-    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    agreement = DistinctReadersAgreement(
-        {"uuid-1": "pdfplumber", "uuid-2": "pdfplumber"}
-    )
-    result = merge_tablesfiles(
-        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
-        agreement=agreement,
-    )
-    assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(
-            family="apiaceae",
-            scientific_name="ammi majus l.",
-            agreement_level_=1,
-            sources_=["uuid-1", "uuid-2"],
-            row_=0,
-        )
-    ]
-
-
-def test_merge_two_tables_agent_and_non_agent_reader():
-    table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    agreement = DistinctReadersAgreement({"uuid-1": "pdfplumber", "uuid-2": "gemini"})
-    result = merge_tablesfiles(
-        [wrap(table, uuid="uuid-1"), wrap(table, uuid="uuid-2")],
-        agreement=agreement,
-    )
-    assert result.tables[0].get_table_fragments()[0].rows == [
-        Row(
-            family="apiaceae",
-            scientific_name="ammi majus l.",
-            agreement_level_=2,
-            sources_=["uuid-1", "uuid-2"],
-            row_=0,
-        )
-    ]
 
 
 def test_merge_aligns_right_numeric_columns_multiple_rows():
@@ -2018,7 +1919,6 @@ def run_merge(
         sources=[(str(source_dir), basename, 0)],
         output_path=output_path,
         metadata_map={},
-        agreement=SimpleCountAgreement(),
         force_update=force_update,
     )
 

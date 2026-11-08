@@ -6,7 +6,6 @@ from utils.column_schema import ColumnSchema
 
 def test_from_args_maps_fields_and_ignores_extras():
     args = Namespace(
-        agreement_method="distinct-readers",
         drop_empty_columns=False,
         drop_empty_tables=True,
         filter_semantic_columns=True,
@@ -45,7 +44,6 @@ def test_from_args_maps_fields_and_ignores_extras():
         settings=False,
     )
     settings = MergeSettings.from_args(args)
-    assert settings.agreement_method == "distinct-readers"
     assert settings.drop_empty_columns is False
     assert settings.jaccard_column_alignment is True
     assert settings.column_alignment_threshold == 0.7
@@ -58,7 +56,6 @@ def test_from_args_maps_fields_and_ignores_extras():
 
 def test_from_args_reads_schema_from_path():
     args = Namespace(
-        agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
         filter_semantic_columns=False,
@@ -101,7 +98,6 @@ def test_from_args_reads_schema_from_path():
 
 def test_from_args_paths_stored_as_list():
     args = Namespace(
-        agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
         filter_semantic_columns=False,
@@ -161,7 +157,6 @@ def test_merge_settings_from_dict_defaults():
     settings = MergeSettings.from_dict({})
     assert settings == MergeSettings(
         paths=[],
-        agreement_method="simple-count",
         drop_empty_columns=True,
         drop_empty_tables=True,
         filter_semantic_columns=False,
@@ -174,15 +169,14 @@ def test_merge_settings_from_dict_defaults():
 
 def test_from_dict_ignores_unknown_attributes():
     settings = MergeSettings.from_dict(
-        {"agreement_method": "distinct-readers", "unknown_field": "ignored"}
+        {"unknown_field": "ignored", "drop_empty_columns": True}
     )
-    assert settings.agreement_method == "distinct-readers"
+    assert settings.drop_empty_columns == True
 
 
 def test_merge_settings_from_dict_simple_fields():
     settings = MergeSettings.from_dict(
         {
-            "agreement_method": "distinct-readers",
             "drop_empty_columns": False,
             "drop_empty_tables": False,
             "filter_semantic_columns": True,
@@ -191,7 +185,6 @@ def test_merge_settings_from_dict_simple_fields():
             "schema": {"family": "str", "count": "int"},
         }
     )
-    assert settings.agreement_method == "distinct-readers"
     assert settings.drop_empty_columns is False
     assert settings.drop_empty_tables is False
     assert settings.filter_semantic_columns is True
@@ -203,7 +196,6 @@ def test_merge_settings_from_dict_simple_fields():
 def test_to_dict_simple_fields():
     settings = MergeSettings.from_dict(
         {
-            "agreement_method": "distinct-readers",
             "drop_empty_columns": False,
             "drop_empty_tables": True,
             "filter_semantic_columns": True,
@@ -211,7 +203,6 @@ def test_to_dict_simple_fields():
         }
     )
     defaults = settings.to_dict()
-    assert defaults["agreement_method"] == "distinct-readers"
     assert defaults["drop_empty_columns"] is False
     assert defaults["drop_empty_tables"] is True
     assert defaults["filter_semantic_columns"] is True

@@ -42,7 +42,6 @@ class ExtractConfig(BaseModel):
 class MergeConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    agreement_method: str = "simple-count"
     filter_title_rows: bool = True
     remove_header_rows: bool = False
     jaccard_column_alignment: bool = False

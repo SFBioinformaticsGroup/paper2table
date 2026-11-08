@@ -52,7 +52,6 @@ def test_load_pipeline_full():
         export=["csv", "html"],
     )
     assert pipeline.merge == MergeConfig(
-        agreement_method="distinct-readers",
         jaccard_column_alignment=True,
         semantic_language="es",
         stats=True,

@@ -1,6 +1,5 @@
 from typing import Iterable, Optional
 
-from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablevalidate.schema import Row, ScalarValue, TableFragment, ValueWithAgreement
 
 
@@ -34,13 +33,12 @@ def _merge_multivalued_columns(left: Row, right: Row):
 def merge_rows(
     left: Row,
     right: Row,
-    agreement: Agreement = SimpleCountAgreement(),
     multivalued: bool = False,
 ) -> Row:
     """
     Merges already normalized columns
     """
-    agreement_level = agreement.calculate_level(left, right)
+    agreement_level = left.get_agreement_level() + right.get_agreement_level()
 
     if multivalued:
         columns = _merge_multivalued_columns(left, right)
@@ -66,7 +64,6 @@ def merge_rows(
 class TableFragmentBuilder:
     rows: list[Row]
     page: int
-    agreement: Agreement
     multivalued: bool
 
     def __init__(
@@ -74,10 +71,8 @@ class TableFragmentBuilder:
         page: int,
         initial_rows: Iterable[Row],
         initial_uuid: Optional[str],
-        agreement: Agreement,
         multivalued: bool,
     ):
-        self.agreement = agreement
         self.multivalued = multivalued
         self.page = page
 
@@ -104,7 +99,6 @@ class TableFragmentBuilder:
             merge_rows(
                 self._stamp(left, self.row_),
                 self._stamp(right, self.row_, right_source),
-                agreement=self.agreement,
                 multivalued=self.multivalued,
             )
         )

@@ -15,7 +15,6 @@ from tablevalidate.schema import (
 )
 from tablemerge.columns_aligner import MergeTimeColumnAligner
 from tablemerge.analyzers import MergeTimeAnalyzer
-from tablemerge.agreement import Agreement, SimpleCountAgreement
 from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
 
@@ -86,12 +85,10 @@ def make_fragments_clusters(
 class TablesFileMerger:
     def __init__(
         self,
-        agreement: Agreement = SimpleCountAgreement(),
         multivalued: bool = False,
         analyzers: list[MergeTimeAnalyzer] = [],
         row_similarity_threshold: float = 0.6,
     ):
-        self.agreement = agreement
         self.multivalued = multivalued
         self.analyzers = analyzers
         self.row_similarity_threshold = row_similarity_threshold
@@ -194,7 +191,6 @@ class TablesFileMerger:
                     ),
                     initial_uuid=left_tablesfile.uuid,
                     page=left_fragment.page,
-                    agreement=self.agreement,
                     multivalued=self.multivalued,
                 )
 
@@ -228,14 +224,12 @@ class TablesFileMerger:
 
 def merge_tablesfiles(
     tablesfiles: list[TablesFile],
-    agreement: Agreement = SimpleCountAgreement(),
     multivalued: bool = False,
     analyzers: list[MergeTimeAnalyzer] = [],
     page_offsets: list[int] | None = None,
     row_similarity_threshold: float = 0.6,
 ) -> TablesFile:
     return TablesFileMerger(
-        agreement=agreement,
         multivalued=multivalued,
         analyzers=analyzers,
         row_similarity_threshold=row_similarity_threshold,

@@ -33,7 +33,6 @@ from .analyzers import (
     ColumnValueSemanticMergeTimeAnalyzer,
     EnumValueLoadTimeAnalyzer,
 )
-from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger, merge_tablesfiles
@@ -183,7 +182,6 @@ def merge_tablesfiles_paths(
     sources: list[TablesFileSource],
     output_path,
     metadata_map: dict[str, dict],
-    agreement,
     pretty: bool = False,
     pretransformers: list[FragmentTransformer] = [],
     posttransformers: list[FragmentTransformer] = [],
@@ -227,7 +225,6 @@ def merge_tablesfiles_paths(
     try:
         merged_tablesfile: TablesFile = merge_tablesfiles(
             tablesfiles,
-            agreement=agreement,
             analyzers=merge_analyzers,
             page_offsets=page_offsets,
             multivalued=True,
@@ -254,7 +251,6 @@ def merge_resultsets(
     resultset_dirs: list[str],
     output_dir: str,
     metadata_only=False,
-    agreement_method: str = "simple-count",
     remove_header_rows: bool = False,
     hints: list[str] = [],
     pretty: bool = False,
@@ -281,17 +277,6 @@ def merge_resultsets(
     if metadata_only:
         return
 
-    agreement = (
-        DistinctReadersAgreement(
-            {
-                meta["id"]: meta["reader"]
-                for meta in resultset_metadata.values()
-                if "id" in meta and "reader" in meta
-            }
-        )
-        if agreement_method == "distinct-readers"
-        else SimpleCountAgreement()
-    )
 
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -306,7 +291,6 @@ def merge_resultsets(
         merge_tablesfiles_paths,
         output_path=output_path,
         metadata_map=resultset_metadata,
-        agreement=agreement,
         pretransformers=pretransformers,
         posttransformers=posttransformers,
         pretty=pretty,
@@ -342,12 +326,6 @@ def parse_args():
     )
     parser.add_argument(
         "paths", nargs="+", help="Input directories containing .tables.json files"
-    )
-    parser.add_argument(
-        "--agreement-method",
-        choices=["simple-count", "distinct-readers"],
-        default="simple-count",
-        help="How to compute agreement level (default: simple-count)",
     )
     parser.add_argument(
         "--no-filter-title-rows",
@@ -619,7 +597,6 @@ def main():
         args.paths,
         args.output_directory,
         metadata_only=args.metadata_only,
-        agreement_method=args.agreement_method,
         remove_header_rows=args.remove_header_rows,
         hints=hints,
         pretty=args.pretty,
