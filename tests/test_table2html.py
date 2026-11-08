@@ -343,10 +343,11 @@ def test_build_data_rows_multivalued_expands():
 
 def test_build_data_rows_multivalued_agreement_css():
     row = Row(
+        agreement_level_=4,
         species=[
             ValueWithAgreement(value="Ammi majus", agreement_level=1),
             ValueWithAgreement(value="Carum carvi", agreement_level=2),
-        ]
+        ],
     )
     out = joined(build_data_rows(row, ["species"]))
     assert "class='low'" in out

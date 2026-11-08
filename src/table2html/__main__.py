@@ -152,6 +152,14 @@ def agreement_css_class(level: int) -> str:
         return "medium"
     return "high"
 
+def relative_agreement_css_class(level: float) -> str:
+    if level <= 0.33:
+        return "low"
+    if level <= 0.66:
+        return "medium"
+    return "high"
+
+
 
 def build_data_rows(
     row: Row,
@@ -173,7 +181,7 @@ def build_data_rows(
                 values = multivalued[col]
                 if i < len(values):
                     val_entry = values[i]
-                    css_class = agreement_css_class(val_entry.agreement_level)
+                    css_class = relative_agreement_css_class(val_entry.agreement_level / (row.agreement_level_ or 1))
                     html.append(f"<td class='{css_class}'>{val_entry.value}</td>")
                 else:
                     html.append("<td></td>")
