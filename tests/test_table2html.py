@@ -6,9 +6,17 @@ from table2html.__main__ import (
     build_fragment_html,
     build_html,
     build_metadata_html,
+    build_paper_curations_html,
     render_citation,
 )
-from tablevalidate.schema import Row, TableFragment, TablesFile, ValueWithAgreement
+from tablevalidate.schema import (
+    Curation,
+    Metadata,
+    Row,
+    TableFragment,
+    TablesFile,
+    ValueWithAgreement,
+)
 
 
 def joined(parts):
@@ -270,6 +278,44 @@ def test_build_data_rows_applies_css_class():
     row = Row(x="v", agreement_level_=2)
     out = joined(build_data_rows(row, ["x", "agreement_level_"]))
     assert "class='medium'" in out
+
+
+def test_paper_curations_html_empty_omits_section():
+    assert build_paper_curations_html([]) == []
+
+
+def test_paper_curations_html_renders_rows():
+    curations = [
+        Curation(curator="alice", timestamp="2026-01-02", description="fixed units"),
+        Curation(curator="bob", timestamp=None, description=None),
+    ]
+    out = joined(build_paper_curations_html(curations))
+    assert "<summary>Curations (2)</summary>" in out
+    assert "<th>curator</th><th>timestamp</th><th>description</th>" in out
+    assert "<td>alice</td><td>2026-01-02</td><td>fixed units</td>" in out
+    assert "<td>bob</td><td></td><td></td>" in out
+
+
+def test_build_html_renders_paper_curations_from_metadata():
+    papers = {
+        "paper.tables.json": TablesFile(
+            citation="Smith 2020",
+            tables=[],
+            metadata=Metadata(
+                filename=None,
+                curations=[Curation(curator="alice", description="review", timestamp="2026-01-02")],
+            ),
+        )
+    }
+    out = build_html({}, {}, papers)
+    assert "<summary>Curations (1)</summary>" in out
+    assert "<td>alice</td><td>2026-01-02</td><td>review</td>" in out
+
+
+def test_build_html_omits_paper_curations_when_metadata_missing():
+    papers = {"paper.tables.json": TablesFile(citation="Smith 2020", tables=[])}
+    out = build_html({}, {}, papers)
+    assert "<details class='paper-curations'>" not in out
 
 
 def test_build_data_rows_readers_column():

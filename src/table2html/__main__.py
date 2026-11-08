@@ -7,6 +7,7 @@ from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
 from tablevalidate.schema import (
     Citation,
+    Curation,
     Row,
     TablesFile,
     TableFragment,
@@ -238,6 +239,25 @@ def build_paper_sources_html(sources: list[dict]) -> list[str]:
     return html
 
 
+def build_paper_curations_html(curations: list[Curation]) -> list[str]:
+    if not curations:
+        return []
+    html = ["<details class='paper-curations'>"]
+    html.append(f"<summary>Curations ({len(curations)})</summary>")
+    html.append("<div class='table-wrapper'><table class='table'>")
+    html.append("<tr><th>curator</th><th>timestamp</th><th>description</th></tr>")
+    for curation in curations:
+        html.append(
+            "<tr>"
+            f"<td>{curation.curator}</td>"
+            f"<td>{curation.timestamp or ''}</td>"
+            f"<td>{curation.description or ''}</td>"
+            "</tr>"
+        )
+    html.append("</table></div></details>")
+    return html
+
+
 def build_fragment_html(
     idx: int,
     fragment: TableFragment,
@@ -338,6 +358,8 @@ def build_css() -> list[str]:
         ".metadata-table th { text-align: left; width: 120px; }",
         ".paper-sources { margin: 0.5em 0 1em; }",
         ".paper-sources summary { cursor: pointer; color: #555; font-size: 0.85em; }",
+        ".paper-curations { margin: 0.5em 0 1em; }",
+        ".paper-curations summary { cursor: pointer; color: #555; font-size: 0.85em; }",
         ".low { background-color: #fdd; }",
         ".medium { background-color: #ffd; }",
         ".high { background-color: #dfd; }",
@@ -383,6 +405,8 @@ def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) ->
             s for s in metadata.get("sources", []) if s.get("id") in paper_uuids
         ]
         html.extend(build_paper_sources_html(paper_sources))
+        curations = content.metadata.curations if content.metadata else None
+        html.extend(build_paper_curations_html(curations or []))
         for idx, table in enumerate(content.tables, 1):
             for fragment in table.get_table_fragments():
                 frag_id = f"paper-{paper_i}-table-{idx}-page-{fragment.page}"
