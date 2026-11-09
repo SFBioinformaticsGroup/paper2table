@@ -15,6 +15,7 @@
 - `tablegather`: a command for combining multiple `paper2table` and `tablemerge` resultsets into one
 - `table2html`: a command for generating simple extracted data visualizations
 - `table2csv`: a command for exporting tables to csv files
+- `table2example`: a command for sampling example values per column
 - `tablevalidate`: a command for validating tables files
 
 
@@ -33,12 +34,13 @@
 		* 1.4.5. [Compacting consecutive fragments](#Compactingconsecutivefragments)
 	* 1.5. [Querying stats](#Queryingstats)
 	* 1.6. [Visualizing data](#Visualizingdata)
-	* 1.7. [ Gathering](#Gathering)
-		* 1.7.1. [Key columns](#Keycolumns)
-		* 1.7.2. [Meta-columns](#Metacolumnsintablegather)
-		* 1.7.3. [Convergence filter](#Convergencefilter)
-		* 1.7.4. [Metadata](#Metadata)
-	* 1.8. [Running a pipeline](#Runningapipeline)
+	* 1.7. [Sampling examples](#Samplingexamples)
+	* 1.8. [ Gathering](#Gathering)
+		* 1.8.1. [Key columns](#Keycolumns)
+		* 1.8.2. [Meta-columns](#Metacolumnsintablegather)
+		* 1.8.3. [Convergence filter](#Convergencefilter)
+		* 1.8.4. [Metadata](#Metadata)
+	* 1.9. [Running a pipeline](#Runningapipeline)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -446,7 +448,35 @@ table2html tests/data/merges
 docker run --rm -v /path/to/data:/data paper2table table2html /data/merges
 ```
 
-###  1.7. <a name='Gathering'></a> Gathering
+###  1.7. <a name='Samplingexamples'></a>Sampling examples
+
+`table2example` prints random example values for each column in a tables directory. By default it samples 5 values per column and writes a report to stdout.
+
+```bash
+# show 5 random examples per column across all .tables.json files
+$ table2example tests/data/tables/
+
+# pick a different sample size
+$ table2example -N 10 tests/data/tables/
+
+# skip values longer than 80 characters
+$ table2example -L 80 tests/data/tables/
+
+# restrict output to columns declared in a schema
+$ table2example -p schema.txt tests/data/tables/
+
+# or pass the schema inline
+$ table2example --schema "species:str family:str" tests/data/tables/
+```
+
+Examples are drawn at random from the global pool, so two samples for the same column may come from the same `.tables.json` file or from different ones. Pass `--seed` for reproducible sampling.
+
+```bash
+# Docker equivalent
+docker run --rm -v /path/to/data:/data paper2table table2example /data/tables
+```
+
+###  1.8. <a name='Gathering'></a> Gathering
 
 `tablegather` collects *all* `.tables.json` files from one or more result directories into
 a single flat table. Unlike `tablemerge`, it does not pair files by name - it combines every
@@ -471,7 +501,7 @@ docker run --rm -v /path/to/data:/data paper2table tablegather \
     -o /data/gathered /data/tables/
 ```
 
-####  1.7.1. <a name='Keycolumns'></a>Key columns
+####  1.8.1. <a name='Keycolumns'></a>Key columns
 
 Pass `-p` with a schema string to declare which columns are keys. Key columns are used to
 sort (and thus visually group) rows across papers. Mark a column as a key by appending `:key`
@@ -490,7 +520,7 @@ $ tablegather -p "family:str:key species:str:key" tests/data/tables/
 
 The schema accepts a file path or an inline string, exactly like `tablemerge`.
 
-####  1.7.2. <a name='Metacolumnsintablegather'></a>Meta-columns
+####  1.8.2. <a name='Metacolumnsintablegather'></a>Meta-columns
 
 Every row `tablegather` outputs is always annotated with four fixed meta-columns (their names
 are not configurable - see [Meta-columns convention](#Metacolumnsconvention) for why):
@@ -511,7 +541,7 @@ $ tablegather tests/data/tables/
 {"citation_": "mamani_2020", "path_": "tests/data/tables/mamani_2020.tables.json", "page_": 3, "fragment_": 1, "row_": 1, "species": "Ammi majus"}
 ```
 
-####  1.7.3. <a name='Convergencefilter'></a>Convergence filter
+####  1.8.3. <a name='Convergencefilter'></a>Convergence filter
 
 `--convergence` filters which rows are included based on how consistently they were extracted across runs. Accepted values:
 
@@ -524,7 +554,7 @@ $ tablegather tests/data/tables/
 $ tablegather --convergence rows tests/data/tables/
 ```
 
-####  1.7.4. <a name='Metadata'></a>Metadata
+####  1.8.4. <a name='Metadata'></a>Metadata
 
 When `-o` is specified, `tablegather` writes a `tables.metadata.json` file alongside the
 output, following the same format used by `paper2table` and `tablemerge`:
@@ -549,7 +579,7 @@ output, following the same format used by `paper2table` and `tablemerge`:
 ```
 
 
-###  1.8. <a name='Runningapipeline'></a>Running a pipeline
+###  1.9. <a name='Runningapipeline'></a>Running a pipeline
 
 `paper2pipeline` runs a sequence of paper2table tools from a single declarative JSON file, replacing ad-hoc shell scripts with a reproducible, single-command workflow.
 
