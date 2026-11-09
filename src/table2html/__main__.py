@@ -198,7 +198,14 @@ def build_data_rows(
                 elif col == "agreement_level_":
                     val = str(row.agreement_level_) if row.agreement_level_ is not None else ""
                     css_class = agreement_css_class(row.agreement_level_ or 0)
-                    html.append(f"<td class='{css_class}'{rowspan_attr}>{val}</td>")
+                    curation_type = row.get_curation_type()
+                    if curation_type == "automatic":
+                        icon = " <span class='curation-icon' title='Automatically curated'>🤖</span>"
+                    elif curation_type == "manual":
+                        icon = " <span class='curation-icon' title='Manually curated'>✍️</span>"
+                    else:
+                        icon = ""
+                    html.append(f"<td class='{css_class}'{rowspan_attr}>{val}{icon}</td>")
                 elif col == "readers_":
                     source_ids = row.sources_ or []
                     mapping = uuid_to_reader or {}
@@ -371,6 +378,7 @@ def build_css() -> list[str]:
         ".low { background-color: #fdd; }",
         ".medium { background-color: #ffd; }",
         ".high { background-color: #dfd; }",
+        ".curation-icon { margin-left: 4px; }",
         ".row-0 { background-color: #aed6f1; }",
         ".row-1 { background-color: #a9dfbf; }",
         ".row-2 { background-color: #f9e79f; }",

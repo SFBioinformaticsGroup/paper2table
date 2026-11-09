@@ -280,6 +280,46 @@ def test_build_data_rows_applies_css_class():
     assert "class='medium'" in out
 
 
+def test_build_data_rows_automatic_curation_icon():
+    row = Row(agreement_level_=2, curation_type_="automatic")
+    out = build_data_rows(row, ["agreement_level_"])
+    assert out == [
+        "<tr>",
+        "<td class='medium'>2 <span class='curation-icon' title='Automatically curated'>🤖</span></td>",
+        "</tr>",
+    ]
+
+
+def test_build_data_rows_manual_curation_icon():
+    row = Row(agreement_level_=3, curation_type_="manual")
+    out = build_data_rows(row, ["agreement_level_"])
+    assert out == [
+        "<tr>",
+        "<td class='high'>3 <span class='curation-icon' title='Manually curated'>✍️</span></td>",
+        "</tr>",
+    ]
+
+
+def test_build_data_rows_no_curation_icon_when_none():
+    row = Row(agreement_level_=2, curation_type_="none")
+    out = build_data_rows(row, ["agreement_level_"])
+    assert out == [
+        "<tr>",
+        "<td class='medium'>2</td>",
+        "</tr>",
+    ]
+
+
+def test_build_data_rows_no_curation_icon_when_null():
+    row = Row(agreement_level_=2)
+    out = build_data_rows(row, ["agreement_level_"])
+    assert out == [
+        "<tr>",
+        "<td class='medium'>2</td>",
+        "</tr>",
+    ]
+
+
 def test_paper_curations_html_empty_omits_section():
     assert build_paper_curations_html([]) == []
 
