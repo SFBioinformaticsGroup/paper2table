@@ -74,7 +74,7 @@ class LeadingRowNumberTransformer:
     def should_strip_column(self, column: str, rows: list[Row]) -> bool:
         samples: list[str] = []
         for row in rows:
-            val = row.get_columns().get(column)
+            val = row.get_column_value(column)
             if val is None or Row.is_empty_value(val):
                 continue
             text = Row.to_text(val).strip()

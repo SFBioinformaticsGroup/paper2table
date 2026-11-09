@@ -38,6 +38,8 @@ class MergeSettings:
     split_conjunction_columns: bool = False
     strip_leading_row_numbers: bool = False
     transform_tablesfile: Optional[str] = None
+    value_based_column_detection: bool = False
+    value_based_detection_threshold: float = 0.5
 
     @classmethod
     def from_dict(cls, data: dict) -> "MergeSettings":

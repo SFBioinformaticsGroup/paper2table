@@ -31,6 +31,7 @@ from .analyzers import (
     AliasLoadTimeAnalyzer,
     ColumnNameSemanticLoadTimeAnalyzer,
     ColumnValueSemanticMergeTimeAnalyzer,
+    EnumValueLoadTimeAnalyzer,
 )
 from .agreement import SimpleCountAgreement, DistinctReadersAgreement
 from .errors import MergeError
@@ -119,6 +120,8 @@ def build_analyzers(
     schema: Optional[ColumnSchema] = None,
     hints: list[str] = [],
     hints_mode: str | None = None,
+    value_based_column_detection: bool = False,
+    value_based_detection_threshold: float = 0.5,
 ) -> tuple[list[LoadTimeAnalyzer], list[MergeTimeAnalyzer]]:
     load_time: list[LoadTimeAnalyzer] = []
     merge_time: list[MergeTimeAnalyzer] = []
@@ -127,6 +130,8 @@ def build_analyzers(
         load_time.append(HintsLoadTimeAnalyzer(hints, safe=(hints_mode == "safe")))
     if aliases:
         load_time.append(AliasLoadTimeAnalyzer(aliases))
+    if value_based_column_detection and schema:
+        load_time.append(EnumValueLoadTimeAnalyzer(schema, value_based_detection_threshold))
     if use_column_name_semantic:
         load_time.append(
             ColumnNameSemanticLoadTimeAnalyzer(threshold, language, schema)
@@ -532,6 +537,22 @@ def parse_args():
             "By default, files with curations are skipped with a warning."
         ),
     )
+    parser.add_argument(
+        "--value-based-column-detection",
+        action="store_true",
+        dest="value_based_column_detection",
+        help=(
+            "Rename columns whose cell values match schema enum/example/regexp types. "
+            "Requires --schema/--schema-path."
+        ),
+    )
+    parser.add_argument(
+        "--value-based-detection-threshold",
+        type=float,
+        default=0.5,
+        dest="value_based_detection_threshold",
+        help="Minimum fraction of matching values required for column detection (default: 0.5)",
+    )
 
     default_settings = parse_default_settings()
     if default_settings:
@@ -586,6 +607,8 @@ def main():
         aliases=aliases,
         schema=schema,
         hints=hints,
+        value_based_column_detection=args.value_based_column_detection,
+        value_based_detection_threshold=args.value_based_detection_threshold,
     )
 
     tablesfile_transformer = TRANSFORMER_MAP.get(

@@ -1,19 +1,24 @@
 # pyright: reportCallIssue=false
 # pyright: reportArgumentType=false
 import pytest
+from test_columns_aligner import (FOUR_COLUMNS_MAPPING, SPECIES,
+                                  SPECIES_WITH_EDITS)
 
 from tablemerge.analyzers import (
+    REMOVE_COLUMN,
     AliasLoadTimeAnalyzer,
     ColumnNameSemanticLoadTimeAnalyzer,
     ColumnValueSemanticMergeTimeAnalyzer,
+    EnumValueLoadTimeAnalyzer,
     HintsLoadTimeAnalyzer,
     JaccardMergeTimeAnalyzer,
-    REMOVE_COLUMN,
+    assign_by_score,
 )
-from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
+from tablemerge.columns_aligner import (LoadTimeColumnAligner,
+                                        MergeTimeColumnAligner)
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
 from utils.column_schema import ColumnSchema
-from test_columns_aligner import FOUR_COLUMNS_MAPPING, SPECIES, SPECIES_WITH_EDITS
+from utils.column_type import StrColumnType
 
 
 @pytest.fixture(scope="session")
@@ -40,29 +45,36 @@ def es_spacy_model():
         )
 
 
-COLOR_ANIMAL_SCHEMA = ColumnSchema({"color": str, "animal": str, "identifier": str})
-COLOR_ANIMAL_SCHEMA_ES = ColumnSchema(
-    {"color": str, "animal": str, "identificador": str}
-)
-SPECIES_SCHEMA = ColumnSchema(
-    {"scientific_name": str, "area": str, "family": str, "vernacular_name": str}
-)
+COLOR_ANIMAL_SCHEMA = ColumnSchema({
+    "color": StrColumnType(),
+    "animal": StrColumnType(),
+    "identifier": StrColumnType(),
+})
+COLOR_ANIMAL_SCHEMA_ES = ColumnSchema({
+    "color": StrColumnType(),
+    "animal": StrColumnType(),
+    "identificador": StrColumnType(),
+})
+SPECIES_SCHEMA = ColumnSchema({
+    "scientific_name": StrColumnType(),
+    "area": StrColumnType(),
+    "family": StrColumnType(),
+    "vernacular_name": StrColumnType(),
+})
 
 
 def wrap(rows: list[Row]) -> TableFragment:
     return TableFragment(rows=rows, page=1)
 
 
-def test_greedy_assignment_one_source_multiple_targets_highest_score_wins():
-    analyzer = ColumnNameSemanticLoadTimeAnalyzer()
-    scores = [(0.9, "0", "color"), (0.7, "0", "animal")]
-    assert analyzer._greedy_assignment(scores) == {"0": "color"}
+def test_assign_by_score_one_source_multiple_targets_highest_score_wins():
+    assert assign_by_score([(0.9, "0", "color"), (0.7, "0", "animal")]) == {
+        "0": "color"
+    }
 
 
-def test_greedy_assignment_multiple_sources_same_target_highest_score_wins():
-    analyzer = ColumnNameSemanticLoadTimeAnalyzer()
-    scores = [(0.9, "0", "color"), (0.7, "1", "color")]
-    assert analyzer._greedy_assignment(scores) == {"0": "color"}
+def test_assign_by_score_multiple_sources_same_target_highest_score_wins():
+    assert assign_by_score([(0.9, "0", "color"), (0.7, "1", "color")]) == {"0": "color"}
 
 
 def test_jaccard_numeric_to_semantic():
@@ -508,7 +520,7 @@ def test_semantic_does_not_rename_semantic_column_when_own_name_is_closer(en_spa
         "husky", "boxer", "dachshund",
     ]
     fragment = wrap([Row(**{"dog": breed}) for breed in dog_breeds])
-    schema = ColumnSchema({"canine": str})
+    schema = ColumnSchema({"canine": StrColumnType()})
     result = ColumnNameSemanticLoadTimeAnalyzer(
         threshold=0.3, schema=schema
     ).build_mapping(fragment.get_column_names(), fragment.rows)
@@ -842,7 +854,7 @@ def test_extract_column_str_values_returns_empty_for_none():
 
 
 def test_jaccard_renames_semantic_not_in_schema_to_schema_column():
-    schema = ColumnSchema({"family": str})
+    schema = ColumnSchema({"family": StrColumnType()})
     left = wrap([Row(**{"familia": "Apiaceae"}), Row(**{"familia": "Rosaceae"})])
     right = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
     result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
@@ -852,7 +864,7 @@ def test_jaccard_renames_semantic_not_in_schema_to_schema_column():
 
 
 def test_jaccard_renames_semantic_not_in_schema_to_schema_column_with_partial_overlap():
-    schema = ColumnSchema({"family": str})
+    schema = ColumnSchema({"family": StrColumnType()})
     left = wrap([
         Row(**{"familia": "Apiaceae"}),
         Row(**{"familia": "Rosaceae"}),
@@ -870,7 +882,7 @@ def test_jaccard_renames_semantic_not_in_schema_to_schema_column_with_partial_ov
 
 
 def test_jaccard_both_out_of_schema_with_schema_returns_empty():
-    schema = ColumnSchema({"family": str})
+    schema = ColumnSchema({"family": StrColumnType()})
     left = wrap([Row(**{"familia": "Apiaceae"})])
     right = wrap([Row(**{"especie": "Ammi"})])
     result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
@@ -880,7 +892,7 @@ def test_jaccard_both_out_of_schema_with_schema_returns_empty():
 
 
 def test_jaccard_schema_column_not_renamed_even_with_schema():
-    schema = ColumnSchema({"family": str})
+    schema = ColumnSchema({"family": StrColumnType()})
     left = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
     right = wrap([Row(family="Apiaceae"), Row(family="Rosaceae")])
     result = JaccardMergeTimeAnalyzer(schema=schema).build_mapping(
@@ -973,7 +985,7 @@ def test_column_value_semantic_maps_numeric_to_semantic_by_value_similarity(
 def test_column_value_semantic_renames_semantic_not_in_schema_to_schema_column(
     en_spacy_model,
 ):
-    schema = ColumnSchema({"color": str, "animal": str})
+    schema = ColumnSchema({"color": StrColumnType(), "animal": StrColumnType()})
     colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "brown"]
     animals = ["dog", "cat", "bird", "horse", "rabbit", "wolf", "deer", "fox"]
     left = wrap(

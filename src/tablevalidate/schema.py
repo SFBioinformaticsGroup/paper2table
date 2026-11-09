@@ -6,15 +6,14 @@ from utils.column_values import normalize_column_value
 from utils.str import normalize_str
 
 
-ScalarValue = str | int | float | bool
-
+ScalarValue = None | str | int | float | bool
 
 class ValueWithAgreement(BaseModel):
     value: ScalarValue
     agreement_level: int
 
 
-ColumnValue = None | ScalarValue | List[ValueWithAgreement]
+ColumnValue = ScalarValue | List[ValueWithAgreement]
 
 CurationType = Literal["none", "automatic", "manual"]
 
@@ -71,16 +70,11 @@ class Row(BaseModel):
     def get_column_values(self):
         return self.get_columns().values()
 
+    def get_column_value(self, column_name: str):
+        return self.get_columns().get(column_name)
+
     def get_meta_columns(self) -> Dict[str, Any]:
         return {k: v for k, v in self if k in _META_COLUMNS}
-
-    @staticmethod
-    def is_semantic_column(name: str) -> bool:
-        try:
-            float(name)
-            return False
-        except ValueError:
-            return True
 
     def get_semantic_columns(self) -> Dict[str, ColumnValue]:
         return {
@@ -167,6 +161,8 @@ class Row(BaseModel):
             ),
             **(columns if columns is not None else self.get_columns()),
         )
+
+    # TODO some of its static methods should go into a separate module, e.g. ColumnValue
 
     @staticmethod
     def column_names(rows: "List[Row]") -> "List[str]":
@@ -259,6 +255,24 @@ class Row(BaseModel):
         if isinstance(value, list):
             return value
         return [ValueWithAgreement(value=value, agreement_level=1)]
+
+    @staticmethod
+    def is_semantic_column(name: str) -> bool:
+        try:
+            float(name)
+            return False
+        except ValueError:
+            return True
+
+    @staticmethod
+    def get_non_empty_column_values(rows: list["Row"], column_name: str) -> list[str]:
+        values = []
+        for row in rows:
+            cell = row.get_column_value(column_name)
+            text = Row.to_text(cell).strip()
+            if text:
+                values.append(text)
+        return values
 
 
 class TableFragment(BaseModel):

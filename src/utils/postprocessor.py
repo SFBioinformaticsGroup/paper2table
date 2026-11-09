@@ -1,4 +1,4 @@
-from typing import Any, Optional, Protocol
+from typing import Optional, Protocol
 
 from tablevalidate.schema import (
     TablesFile,
@@ -7,8 +7,8 @@ from tablevalidate.schema import (
     Row,
     ColumnValue,
 )
-from utils.coerce import coerce_str
 from utils.column_schema import ColumnSchema
+from utils.column_type import ColumnType
 from utils.filters import (
     drop_empty_columns,
     drop_empty_tables,
@@ -123,16 +123,11 @@ class SchemaPostProcessor:
         return self._rebuild_tablesfile(tablesfile, tables)
 
     def _coerce_schema_column_types(self, tablesfile: TablesFile) -> TablesFile:
-        def coerce_column_value(value: ColumnValue, target_type: type) -> ColumnValue:
-            if isinstance(value, (int, float, bool)):
-                return coerce_str(str(value), target_type)
-            return Row.map_text(value, lambda s: coerce_str(s, target_type))
-
         def coerce_row(row: Row) -> Row:
             return row.clone(
                 columns={
                     col: (
-                        coerce_column_value(val, self.schema.column_type(col))
+                        Row.map_text(val, self.schema.column_type(col).coerce)
                         if col in self.schema
                         else val
                     )
@@ -152,7 +147,6 @@ class SchemaPostProcessor:
             for t in tablesfile.tables
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
-
 
 def build_postprocessors(
     schema: Optional[ColumnSchema],

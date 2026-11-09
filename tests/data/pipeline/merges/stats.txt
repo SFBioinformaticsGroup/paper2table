@@ -11,21 +11,21 @@ Global Stats:
   Papers with curations: 0
   Tables: 1
   Fragments: 4
-  Rows: 142
-  Unique rows: 38
+  Rows: 144
+  Unique rows: 39
   Rows with agreement > 1: 120
-  Global agreement percentage: 84.51%
+  Global agreement percentage: 83.33%
   Global shared values percentage: 0.00%
 
 Per-Paper Stats:
 - 85611977005.tables.json:
     Tables: 1
     Fragments: 4
-    Rows: 142
-    Unique rows: 38
+    Rows: 144
+    Unique rows: 39
     Columns: 3
     Rows with agreement > 1: 120
-    Agreement percentage: 84.51%
+    Agreement percentage: 83.33%
     Empty rows percentage: 0.00%
     Shared values percentage: 0.00%
     Curations: 0
@@ -36,4 +36,4 @@ Per-Paper Stats:
     Convergent elements (Level=3):
       tables: 0
       fragments: 0
-      rows: 68
+      rows: 67

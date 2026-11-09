@@ -1,0 +1,629 @@
+{
+  "tables": [
+    {
+      "table_fragments": [
+        {
+          "rows": [
+            {
+              "familia": "Amaranthceae",
+              "nombre_cientifico": "Alternanthera pungens Kunth",
+              "nombre_popular": "Yerba del pollo"
+            },
+            {
+              "familia": "Anacardiaceae",
+              "nombre_cientifico": "Lithraea molleoides (Vell.) Engl.",
+              "nombre_popular": "Molle"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Schinus areira L.",
+              "nombre_popular": "Aguaribay"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Schinus fasciculata (Griseb) I.Μ. Johnst.",
+              "nombre_popular": "Moradillo"
+            },
+            {
+              "familia": "Apiaceae",
+              "nombre_cientifico": "Foeniculum vulgare Mill..",
+              "nombre_popular": "Hinojo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Petroselium crispum (Mill.) A.W. Hill",
+              "nombre_popular": "Perejil"
+            },
+            {
+              "familia": "Apocynaceae",
+              "nombre_cientifico": "Aspidosperma quebracho-blanco Schltdl.",
+              "nombre_popular": "Quebracho blanco"
+            },
+            {
+              "familia": "Aristolochiaceae",
+              "nombre_cientifico": "Aristolochia argentina Griseb.",
+              "nombre_popular": "Charruga"
+            },
+            {
+              "familia": "Asclepiadaceae",
+              "nombre_cientifico": "Morrenia odorata (Hook. & Arn.) Lindl.",
+              "nombre_popular": "Tasi"
+            },
+            {
+              "familia": "Asteraceae",
+              "nombre_cientifico": "Achyrocline satureioides (Lam.) DC.",
+              "nombre_popular": "Vira-vira"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Achyrocline tomentosa Rusby",
+              "nombre_popular": "Marcela"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Artemisia annua L.",
+              "nombre_popular": "Ajenjo - Fernet"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Artemisia douglasiana Besser",
+              "nombre_popular": "Matico - Hepatalgina - Buscapina"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Baccharis articulata (Lam.) Pers.",
+              "nombre_popular": "Carquejilla"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Baccharis crispa Spreng.",
+              "nombre_popular": "Carqueja"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Bidens subalternans DC.",
+              "nombre_popular": "Manzanilla silvestre"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Conyza sp.",
+              "nombre_popular": "Pulmonaria"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Cyclolepis genistoides D. Don",
+              "nombre_popular": "Palo azul"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Jungia polita Griseb.",
+              "nombre_popular": "Zarzaparrilla"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lactuca sativa L.",
+              "nombre_popular": "Lechuga"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Matricaria recutita L.",
+              "nombre_popular": "Manzanilla"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Schkuhria pinnata (Lam.) Kuntze ex Thell.",
+              "nombre_popular": "Canchalagua"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Tagetes filifolia Lag.",
+              "nombre_popular": "Anisillo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Tagetes minuta L.",
+              "nombre_popular": "Suico"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Taraxacum officinale Weber ex F.H. Wigg.",
+              "nombre_popular": "Diente de león"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Tessaria dodoneifolia (Hook. et Arn.) Cabrera",
+              "nombre_popular": "Suncho"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Trixis divaricata (Kunth) Spreng.",
+              "nombre_popular": "Contrayerba"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Xanthium spinosum L.",
+              "nombre_popular": "Cepa caballo"
+            },
+            {
+              "familia": "Bignoniaceae",
+              "nombre_cientifico": "Dolichandra cynanchoides Cham.",
+              "nombre_popular": "Mil hombres"
+            },
+            {
+              "familia": "Boraginaceae",
+              "nombre_cientifico": "Borago officinalis L.",
+              "nombre_popular": "Borraja"
+            },
+            {
+              "familia": "Brassicaceae",
+              "nombre_cientifico": "Coronopus didymus (L.) Sm.",
+              "nombre_popular": "Quimpe"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lepidium bonariense L.",
+              "nombre_popular": "Bolsa de pastor"
+            }
+          ],
+          "page": 6
+        },
+        {
+          "rows": [
+            {
+              "familia": "Buddlejaceae",
+              "nombre_cientifico": "Buddleja cordobensis Griseb.",
+              "nombre_popular": "Salvialora"
+            },
+            {
+              "familia": "Cappareceae",
+              "nombre_cientifico": "Capparis atamisquea Kuntze",
+              "nombre_popular": "Atamisqui"
+            },
+            {
+              "familia": "Cecropiaceae",
+              "nombre_cientifico": "Cecropia pachystachya Trécul",
+              "nombre_popular": "Ambay"
+            },
+            {
+              "familia": "Celtidaceae",
+              "nombre_cientifico": "Celtis ehrenbergiana (Klotzsch) Liebm.",
+              "nombre_popular": "Tala"
+            },
+            {
+              "familia": "Commelinaceae",
+              "nombre_cientifico": "Commelina erecta L.",
+              "nombre_popular": "Santa Lucía"
+            },
+            {
+              "familia": "Chenopodiaceae",
+              "nombre_cientifico": "Atriplex undulata (Moq.) D. Dietr",
+              "nombre_popular": "Cachiyuyo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Chenopodium ambrosioides L.",
+              "nombre_popular": "Paico"
+            },
+            {
+              "familia": "Ephedraceae",
+              "nombre_cientifico": "Ephedra triandra Tul. emend. J.H. Hunz",
+              "nombre_popular": "Tramontana"
+            },
+            {
+              "familia": "Equisetaceae",
+              "nombre_cientifico": "Equisetum giganteum L.",
+              "nombre_popular": "Cola de caballo"
+            },
+            {
+              "familia": "Euphorbiaceae",
+              "nombre_cientifico": "Acalypha communis Müll. Arg.",
+              "nombre_popular": "Albaquilla"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Croton sarcopetalus Müll. Arg.",
+              "nombre_popular": "Cambalacho"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Euphorbia serpens Kunth",
+              "nombre_popular": "Yerba meona"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Ricinus communis L.",
+              "nombre_popular": "Castor"
+            },
+            {
+              "familia": "Fabaceae",
+              "nombre_cientifico": "Acacia aroma Gillies ex Hook & Arn.",
+              "nombre_popular": "Tusca"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Acacia caven (Mol.) Mol.",
+              "nombre_popular": "Espinillo - Churqui"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Acacia praecox Griseb.",
+              "nombre_popular": "Garabato"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Bauhinia forficata Link subsp. pruinosa (Vog.) Fortunato et Wonderlin",
+              "nombre_popular": "Pezuña de vaca"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Caeselpinia gilliesii (Wall. ex Hook.) D. Dietr.",
+              "nombre_popular": "Lagaña de perro"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Geoffraea decorticans (Gillies ex Hook. & Arn.) Burkart",
+              "nombre_popular": "Chañar"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Prosopis alba Griseb.",
+              "nombre_popular": "Algarrobo blanco"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Senna sp.",
+              "nombre_popular": "Sen"
+            },
+            {
+              "familia": "Gentianaceae",
+              "nombre_cientifico": "Gentianella spp.",
+              "nombre_popular": "Genciana"
+            },
+            {
+              "familia": "Hydnoraceae",
+              "nombre_cientifico": "Prosopanche americana (R.Br.) Baillon",
+              "nombre_popular": "Guaycurú - Flor de piedra"
+            },
+            {
+              "familia": "Hypericaceae",
+              "nombre_cientifico": "Hypericum connatum Lam.",
+              "nombre_popular": "Cabo torilo"
+            },
+            {
+              "familia": "Lamiaceae",
+              "nombre_cientifico": "Hedeoma multiflora Benth.",
+              "nombre_popular": "Tomillo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lavandula sp.",
+              "nombre_popular": "Lavanda"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lepechinia floribunda (Benth.) Epling",
+              "nombre_popular": "Salvia blanca"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Marrubium vulgare L.",
+              "nombre_popular": "Yerba del sapo Marrubio - Malva amarga"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Melissa officinalis L.",
+              "nombre_popular": "Toronjil-Melisa"
+            }
+          ],
+          "page": 7
+        },
+        {
+          "rows": [
+            {
+              "familia": "Lamiaceae",
+              "nombre_cientifico": "Mentha sp.",
+              "nombre_popular": "Menta"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Mentha sp.",
+              "nombre_popular": "Veramota"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Mentha sp.",
+              "nombre_popular": "Yerbabuena"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Minthostachys mollis (Kunth.) Griseb.",
+              "nombre_popular": "Peperina"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Ocimum basilicum L.",
+              "nombre_popular": "Albahaca"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Origanum sp.",
+              "nombre_popular": "Orégano"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Plectranthus madagascariense (Pers.) Benth.",
+              "nombre_popular": "Incienso"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Rosmarinus officinalis L.",
+              "nombre_popular": "Romero"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Salvia officinalis L.",
+              "nombre_popular": "Salvia"
+            },
+            {
+              "familia": "Lamoriopsidaceae",
+              "nombre_cientifico": "Elaphoglossum gayanum (Feé) T. Moore",
+              "nombre_popular": "Calaguala"
+            },
+            {
+              "familia": "Lauraceae",
+              "nombre_cientifico": "Cinnamomum sp.",
+              "nombre_popular": "Alcanfor"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Laurus nobilis L.",
+              "nombre_popular": "Laurel"
+            },
+            {
+              "familia": "Liliaceae",
+              "nombre_cientifico": "Aloe spp.",
+              "nombre_popular": "Aloe Vera"
+            },
+            {
+              "familia": "Loranthaceae",
+              "nombre_cientifico": "Ligaria cuneifolia (Ruiz et. Pav) Tiegh.",
+              "nombre_popular": "Liga"
+            },
+            {
+              "familia": "Lycopodiaceae",
+              "nombre_cientifico": "Huperzia saururus (Lam.) Trevis",
+              "nombre_popular": "Cola de quirquincho"
+            },
+            {
+              "familia": "Malvaceae",
+              "nombre_cientifico": "Malvastrum coromandelianum (L.) Garcke",
+              "nombre_popular": "Yerba del potro"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Sphaeralcea bonariensis (Cav.) Griseb.",
+              "nombre_popular": "Malvarisco"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Sphaeralcea cordobensis Krapov.",
+              "nombre_popular": "Malva - Malva dulce"
+            },
+            {
+              "familia": "Meliaceae",
+              "nombre_cientifico": "Melia azedarach L.",
+              "nombre_popular": "Paraíso"
+            },
+            {
+              "familia": "Myrtaceae",
+              "nombre_cientifico": "Eucalyptus spp.",
+              "nombre_popular": "Eucaliptus"
+            },
+            {
+              "familia": "Olacaceae",
+              "nombre_cientifico": "Ximena americana L.",
+              "nombre_popular": "Albarillo"
+            },
+            {
+              "familia": "Oleaceae",
+              "nombre_cientifico": "Fraxinus sp.",
+              "nombre_popular": "Fresno"
+            },
+            {
+              "familia": "Passifloraceae",
+              "nombre_cientifico": "Passiflora caerulea L.",
+              "nombre_popular": "Pasionaria"
+            },
+            {
+              "familia": "Phytolacaceae",
+              "nombre_cientifico": "Phytolacca dioica L.",
+              "nombre_popular": "Ombú"
+            },
+            {
+              "familia": "Plantaginaceae",
+              "nombre_cientifico": "Plantago major L.",
+              "nombre_popular": "Llantén"
+            },
+            {
+              "familia": "Poaceae",
+              "nombre_cientifico": "Tritucum sp., Paspalum sp.",
+              "nombre_popular": "Gramilla"
+            },
+            {
+              "familia": "Polygonaceae",
+              "nombre_cientifico": "Rumex crispus L.",
+              "nombre_popular": "Lengua de Vaca"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Polygonum sp.",
+              "nombre_popular": "Sanguinaria"
+            },
+            {
+              "familia": "Quenopodiaceae",
+              "nombre_cientifico": "Chenopodium album L.",
+              "nombre_popular": "Quina"
+            },
+            {
+              "familia": "Ramnaceae",
+              "nombre_cientifico": "Condalia buxifolia Reissek",
+              "nombre_popular": "Piquillín"
+            },
+            {
+              "familia": "Ranunculaceae",
+              "nombre_cientifico": "Clematis montevidensis Spreng.",
+              "nombre_popular": "Loconte"
+            }
+          ],
+          "page": 8
+        },
+        {
+          "rows": [
+            {
+              "familia": "Rhamnaceae",
+              "nombre_cientifico": "Ziziphus mistol Griseb.",
+              "nombre_popular": "Mistol"
+            },
+            {
+              "familia": "Rosaceae",
+              "nombre_cientifico": "Prunus persica (L) Batsch",
+              "nombre_popular": "Durazno (hoja)"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Eriobotrya japonica (Thunb.) Lindl.",
+              "nombre_popular": "Níspero"
+            },
+            {
+              "familia": "Rutaceae",
+              "nombre_cientifico": "Citrus limon (L.) Burm.",
+              "nombre_popular": "Limón"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Citrus sinensis (L.) Osbeck",
+              "nombre_popular": "Naranjo (hoja)"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Ruta chalepensis L.",
+              "nombre_popular": "Ruda"
+            },
+            {
+              "familia": "Salicaceae",
+              "nombre_cientifico": "Salix sp.",
+              "nombre_popular": "Sauce"
+            },
+            {
+              "familia": "Santalaceae",
+              "nombre_cientifico": "Jodinia rhombifolia (Hook. et Arn.) Reissex",
+              "nombre_popular": "Quebracho flojo - Sombra de toro"
+            },
+            {
+              "familia": "Schizaeaceae",
+              "nombre_cientifico": "Anemia tomentosa (Savigny) Sw.",
+              "nombre_popular": "Doradilla"
+            },
+            {
+              "familia": "Solanaceae",
+              "nombre_cientifico": "Cestrum parqui L'Hér.",
+              "nombre_popular": "Duraznillo negro"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lycium cestroides Schltdl.",
+              "nombre_popular": "Ruminico"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Nicotiana glauca Graham",
+              "nombre_popular": "Palán-palán"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Solanum argentinium Bitter & Lillo",
+              "nombre_popular": "Duraznillo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Solanum sisymbriifolium Lam.",
+              "nombre_popular": "Espina colorada"
+            },
+            {
+              "familia": "Tiliaceae",
+              "nombre_cientifico": "Tilia sp.",
+              "nombre_popular": "Tilo"
+            },
+            {
+              "familia": "Urticaceae",
+              "nombre_cientifico": "Urtica urens L.",
+              "nombre_popular": "Ortiga"
+            },
+            {
+              "familia": "Usneaceae",
+              "nombre_cientifico": "Usnea hieronymi Krempelh",
+              "nombre_popular": "Barba de piedra"
+            },
+            {
+              "familia": "Valerianaceae",
+              "nombre_cientifico": "Valeriana sp.",
+              "nombre_popular": "Valeriana"
+            },
+            {
+              "familia": "Verbenaceae",
+              "nombre_cientifico": "Aloysia citriodora Ortega ex Pers.",
+              "nombre_popular": "Cedrón"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Aloysia gratissima (Gillies & Hook. ex Hook.) Tronc.",
+              "nombre_popular": "Palo amarillo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Aloysia polystachya (Griseb.) Moldenke",
+              "nombre_popular": "Poleo de burro (Té de)"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Glandularia dissecta (Willd. ex Spreng.) Schnack & Covas",
+              "nombre_popular": "Verbena"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lippia integrifolia (Griseb.) Hieron.",
+              "nombre_popular": "Incayuyo"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Lippia turbinata Griseb.",
+              "nombre_popular": "Poleo del campo"
+            },
+            {
+              "familia": "Zygophyllaceae",
+              "nombre_cientifico": "Larrea divaricata Cav.",
+              "nombre_popular": "Jarilla"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "Porlieria microphylla (Baill.) Descole, O'Donell & Lourteig",
+              "nombre_popular": "Pan de cata - Cucharero - Guayacán"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "NI",
+              "nombre_popular": "Marquito"
+            },
+            {
+              "familia": "",
+              "nombre_cientifico": "NI.",
+              "nombre_popular": "Mimosa"
+            }
+          ],
+          "page": 9
+        }
+      ]
+    }
+  ],
+  "citation": "Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas, 8(5), 389-401."
+}

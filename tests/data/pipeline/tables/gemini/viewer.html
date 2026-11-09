@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>Paper2Table Viewer</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; display: flex; align-items: flex-start; margin: 0; }
+#toc { width: 240px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; border-right: 1px solid #ddd; background: #f5f5f5; padding: 12px; }
+#toc b { display: block; margin-bottom: 8px; color: #555; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.05em; }
+#toc ul { list-style: none; margin: 0; padding: 0; }
+#toc ul ul { padding-left: 12px; }
+#toc li { margin: 1px 0; }
+#toc a { display: block; padding: 3px 6px; border-radius: 3px; text-decoration: none; color: #333; font-size: 0.82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#toc a:hover { background: #e0e0e0; }
+#toc a.active { background: #cde; color: #036; font-weight: 600; }
+main { flex: 1; padding: 20px; min-width: 0; overflow-x: hidden; }
+.paper { margin-bottom: 2em; }
+.table-wrapper { overflow-x: auto; }
+.table { border-collapse: collapse; margin: 1em 0; }
+.table th, .table td { border: 1px solid #ddd; padding: 8px; }
+.metadata-table th { text-align: left; width: 120px; }
+.paper-sources { margin: 0.5em 0 1em; }
+.paper-sources summary { cursor: pointer; color: #555; font-size: 0.85em; }
+.low { background-color: #fdd; }
+.medium { background-color: #ffd; }
+.high { background-color: #dfd; }
+.row-0 { background-color: #aed6f1; }
+.row-1 { background-color: #a9dfbf; }
+.row-2 { background-color: #f9e79f; }
+.row-3 { background-color: #f5cba7; }
+.row-4 { background-color: #d7bde2; }
+</style>
+</head><body>
+<nav id="toc">
+<div id="toc-inner">
+<b>Contents</b>
+<ul>
+<li><a href="#paper-0">85611977005.tables.json</a>
+<ul>
+<li><a href="#paper-0-table-1-page-6">Table 1, p.&nbsp;6</a></li>
+<li><a href="#paper-0-table-1-page-7">Table 1, p.&nbsp;7</a></li>
+<li><a href="#paper-0-table-1-page-8">Table 1, p.&nbsp;8</a></li>
+<li><a href="#paper-0-table-1-page-9">Table 1, p.&nbsp;9</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+<main>
+<h1>Paper2Table Viewer</h1>
+<h2>Metadata</h2>
+<div class='table-wrapper'><table class='table metadata-table'>
+<tr><th>reader</th><td>google-gla:gemini-2.5-flash</td></tr>
+<tr><th>id</th><td>gemini</td></tr>
+<tr><th>datetime</th><td>2026-11-07T18:22:47.329866</td></tr>
+</table></div>
+<h2>Papers</h2>
+<div class='paper'><h3 id='paper-0'>85611977005.tables.json</h3>
+<p>Citation: Arias Toledo, B. (2009). Diversidad de usos, prácticas de recolección y diferencias según género y edad en el uso de plantas medicinales en Córdoba, Argentina. Boletín Latinoamericano y del Caribe de Plantas Medicinales y Aromáticas, 8(5), 389-401.</p>
+<h4 id="paper-0-table-1-page-6">Table 1, page 6</h4>
+<div class='table-wrapper'><table class='table'>
+<tr><th>familia</th><th>nombre_cientifico</th><th>nombre_popular</th></tr>
+<tr>
+<td>Amaranthceae</td>
+<td>Alternanthera pungens Kunth</td>
+<td>Yerba del pollo</td>
+</tr>
+<tr>
+<td>Anacardiaceae</td>
+<td>Lithraea molleoides (Vell.) Engl.</td>
+<td>Molle</td>
+</tr>
+<tr>
+<td></td>
+<td>Schinus areira L.</td>
+<td>Aguaribay</td>
+</tr>
+<tr>
+<td></td>
+<td>Schinus fasciculata (Griseb) I.Μ. Johnst.</td>
+<td>Moradillo</td>
+</tr>
+<tr>
+<td>Apiaceae</td>
+<td>Foeniculum vulgare Mill..</td>
+<td>Hinojo</td>
+</tr>
+<tr>
+<td></td>
+<td>Petroselium crispum (Mill.) A.W. Hill</td>
+<td>Perejil</td>
+</tr>
+<tr>
+<td>Apocynaceae</td>
+<td>Aspidosperma quebracho-blanco Schltdl.</td>
+<td>Quebracho blanco</td>
+</tr>
+<tr>
+<td>Aristolochiaceae</td>
+<td>Aristolochia argentina Griseb.</td>
+<td>Charruga</td>
+</tr>
+<tr>
+<td>Asclepiadaceae</td>
+<td>Morrenia odorata (Hook. & Arn.) Lindl.</td>
+<td>Tasi</td>
+</tr>
+<tr>
+<td>Asteraceae</td>
+<td>Achyrocline satureioides (Lam.) DC.</td>
+<td>Vira-vira</td>
+</tr>
+<tr>
+<td></td>
+<td>Achyrocline tomentosa Rusby</td>
+<td>Marcela</td>
+</tr>
+<tr>
+<td></td>
+<td>Artemisia annua L.</td>
+<td>Ajenjo - Fernet</td>
+</tr>
+<tr>
+<td></td>
+<td>Artemisia douglasiana Besser</td>
+<td>Matico - Hepatalgina - Buscapina</td>
+</tr>
+<tr>
+<td></td>
+<td>Baccharis articulata (Lam.) Pers.</td>
+<td>Carquejilla</td>
+</tr>
+<tr>
+<td></td>
+<td>Baccharis crispa Spreng.</td>
+<td>Carqueja</td>
+</tr>
+<tr>
+<td></td>
+<td>Bidens subalternans DC.</td>
+<td>Manzanilla silvestre</td>
+</tr>
+<tr>
+<td></td>
+<td>Conyza sp.</td>
+<td>Pulmonaria</td>
+</tr>
+<tr>
+<td></td>
+<td>Cyclolepis genistoides D. Don</td>
+<td>Palo azul</td>
+</tr>
+<tr>
+<td></td>
+<td>Jungia polita Griseb.</td>
+<td>Zarzaparrilla</td>
+</tr>
+<tr>
+<td></td>
+<td>Lactuca sativa L.</td>
+<td>Lechuga</td>
+</tr>
+<tr>
+<td></td>
+<td>Matricaria recutita L.</td>
+<td>Manzanilla</td>
+</tr>
+<tr>
+<td></td>
+<td>Schkuhria pinnata (Lam.) Kuntze ex Thell.</td>
+<td>Canchalagua</td>
+</tr>
+<tr>
+<td></td>
+<td>Tagetes filifolia Lag.</td>
+<td>Anisillo</td>
+</tr>
+<tr>
+<td></td>
+<td>Tagetes minuta L.</td>
+<td>Suico</td>
+</tr>
+<tr>
+<td></td>
+<td>Taraxacum officinale Weber ex F.H. Wigg.</td>
+<td>Diente de león</td>
+</tr>
+<tr>
+<td></td>
+<td>Tessaria dodoneifolia (Hook. et Arn.) Cabrera</td>
+<td>Suncho</td>
+</tr>
+<tr>
+<td></td>
+<td>Trixis divaricata (Kunth) Spreng.</td>
+<td>Contrayerba</td>
+</tr>
+<tr>
+<td></td>
+<td>Xanthium spinosum L.</td>
+<td>Cepa caballo</td>
+</tr>
+<tr>
+<td>Bignoniaceae</td>
+<td>Dolichandra cynanchoides Cham.</td>
+<td>Mil hombres</td>
+</tr>
+<tr>
+<td>Boraginaceae</td>
+<td>Borago officinalis L.</td>
+<td>Borraja</td>
+</tr>
+<tr>
+<td>Brassicaceae</td>
+<td>Coronopus didymus (L.) Sm.</td>
+<td>Quimpe</td>
+</tr>
+<tr>
+<td></td>
+<td>Lepidium bonariense L.</td>
+<td>Bolsa de pastor</td>
+</tr>
+</table></div>
+<h4 id="paper-0-table-1-page-7">Table 1, page 7</h4>
+<div class='table-wrapper'><table class='table'>
+<tr><th>familia</th><th>nombre_cientifico</th><th>nombre_popular</th></tr>
+<tr>
+<td>Buddlejaceae</td>
+<td>Buddleja cordobensis Griseb.</td>
+<td>Salvialora</td>
+</tr>
+<tr>
+<td>Cappareceae</td>
+<td>Capparis atamisquea Kuntze</td>
+<td>Atamisqui</td>
+</tr>
+<tr>
+<td>Cecropiaceae</td>
+<td>Cecropia pachystachya Trécul</td>
+<td>Ambay</td>
+</tr>
+<tr>
+<td>Celtidaceae</td>
+<td>Celtis ehrenbergiana (Klotzsch) Liebm.</td>
+<td>Tala</td>
+</tr>
+<tr>
+<td>Commelinaceae</td>
+<td>Commelina erecta L.</td>
+<td>Santa Lucía</td>
+</tr>
+<tr>
+<td>Chenopodiaceae</td>
+<td>Atriplex undulata (Moq.) D. Dietr</td>
+<td>Cachiyuyo</td>
+</tr>
+<tr>
+<td></td>
+<td>Chenopodium ambrosioides L.</td>
+<td>Paico</td>
+</tr>
+<tr>
+<td>Ephedraceae</td>
+<td>Ephedra triandra Tul. emend. J.H. Hunz</td>
+<td>Tramontana</td>
+</tr>
+<tr>
+<td>Equisetaceae</td>
+<td>Equisetum giganteum L.</td>
+<td>Cola de caballo</td>
+</tr>
+<tr>
+<td>Euphorbiaceae</td>
+<td>Acalypha communis Müll. Arg.</td>
+<td>Albaquilla</td>
+</tr>
+<tr>
+<td></td>
+<td>Croton sarcopetalus Müll. Arg.</td>
+<td>Cambalacho</td>
+</tr>
+<tr>
+<td></td>
+<td>Euphorbia serpens Kunth</td>
+<td>Yerba meona</td>
+</tr>
+<tr>
+<td></td>
+<td>Ricinus communis L.</td>
+<td>Castor</td>
+</tr>
+<tr>
+<td>Fabaceae</td>
+<td>Acacia aroma Gillies ex Hook & Arn.</td>
+<td>Tusca</td>
+</tr>
+<tr>
+<td></td>
+<td>Acacia caven (Mol.) Mol.</td>
+<td>Espinillo - Churqui</td>
+</tr>
+<tr>
+<td></td>
+<td>Acacia praecox Griseb.</td>
+<td>Garabato</td>
+</tr>
+<tr>
+<td></td>
+<td>Bauhinia forficata Link subsp. pruinosa (Vog.) Fortunato et Wonderlin</td>
+<td>Pezuña de vaca</td>
+</tr>
+<tr>
+<td></td>
+<td>Caeselpinia gilliesii (Wall. ex Hook.) D. Dietr.</td>
+<td>Lagaña de perro</td>
+</tr>
+<tr>
+<td></td>
+<td>Geoffraea decorticans (Gillies ex Hook. & Arn.) Burkart</td>
+<td>Chañar</td>
+</tr>
+<tr>
+<td></td>
+<td>Prosopis alba Griseb.</td>
+<td>Algarrobo blanco</td>
+</tr>
+<tr>
+<td></td>
+<td>Senna sp.</td>
+<td>Sen</td>
+</tr>
+<tr>
+<td>Gentianaceae</td>
+<td>Gentianella spp.</td>
+<td>Genciana</td>
+</tr>
+<tr>
+<td>Hydnoraceae</td>
+<td>Prosopanche americana (R.Br.) Baillon</td>
+<td>Guaycurú - Flor de piedra</td>
+</tr>
+<tr>
+<td>Hypericaceae</td>
+<td>Hypericum connatum Lam.</td>
+<td>Cabo torilo</td>
+</tr>
+<tr>
+<td>Lamiaceae</td>
+<td>Hedeoma multiflora Benth.</td>
+<td>Tomillo</td>
+</tr>
+<tr>
+<td></td>
+<td>Lavandula sp.</td>
+<td>Lavanda</td>
+</tr>
+<tr>
+<td></td>
+<td>Lepechinia floribunda (Benth.) Epling</td>
+<td>Salvia blanca</td>
+</tr>
+<tr>
+<td></td>
+<td>Marrubium vulgare L.</td>
+<td>Yerba del sapo Marrubio - Malva amarga</td>
+</tr>
+<tr>
+<td></td>
+<td>Melissa officinalis L.</td>
+<td>Toronjil-Melisa</td>
+</tr>
+</table></div>
+<h4 id="paper-0-table-1-page-8">Table 1, page 8</h4>
+<div class='table-wrapper'><table class='table'>
+<tr><th>familia</th><th>nombre_cientifico</th><th>nombre_popular</th></tr>
+<tr>
+<td>Lamiaceae</td>
+<td>Mentha sp.</td>
+<td>Menta</td>
+</tr>
+<tr>
+<td></td>
+<td>Mentha sp.</td>
+<td>Veramota</td>
+</tr>
+<tr>
+<td></td>
+<td>Mentha sp.</td>
+<td>Yerbabuena</td>
+</tr>
+<tr>
+<td></td>
+<td>Minthostachys mollis (Kunth.) Griseb.</td>
+<td>Peperina</td>
+</tr>
+<tr>
+<td></td>
+<td>Ocimum basilicum L.</td>
+<td>Albahaca</td>
+</tr>
+<tr>
+<td></td>
+<td>Origanum sp.</td>
+<td>Orégano</td>
+</tr>
+<tr>
+<td></td>
+<td>Plectranthus madagascariense (Pers.) Benth.</td>
+<td>Incienso</td>
+</tr>
+<tr>
+<td></td>
+<td>Rosmarinus officinalis L.</td>
+<td>Romero</td>
+</tr>
+<tr>
+<td></td>
+<td>Salvia officinalis L.</td>
+<td>Salvia</td>
+</tr>
+<tr>
+<td>Lamoriopsidaceae</td>
+<td>Elaphoglossum gayanum (Feé) T. Moore</td>
+<td>Calaguala</td>
+</tr>
+<tr>
+<td>Lauraceae</td>
+<td>Cinnamomum sp.</td>
+<td>Alcanfor</td>
+</tr>
+<tr>
+<td></td>
+<td>Laurus nobilis L.</td>
+<td>Laurel</td>
+</tr>
+<tr>
+<td>Liliaceae</td>
+<td>Aloe spp.</td>
+<td>Aloe Vera</td>
+</tr>
+<tr>
+<td>Loranthaceae</td>
+<td>Ligaria cuneifolia (Ruiz et. Pav) Tiegh.</td>
+<td>Liga</td>
+</tr>
+<tr>
+<td>Lycopodiaceae</td>
+<td>Huperzia saururus (Lam.) Trevis</td>
+<td>Cola de quirquincho</td>
+</tr>
+<tr>
+<td>Malvaceae</td>
+<td>Malvastrum coromandelianum (L.) Garcke</td>
+<td>Yerba del potro</td>
+</tr>
+<tr>
+<td></td>
+<td>Sphaeralcea bonariensis (Cav.) Griseb.</td>
+<td>Malvarisco</td>
+</tr>
+<tr>
+<td></td>
+<td>Sphaeralcea cordobensis Krapov.</td>
+<td>Malva - Malva dulce</td>
+</tr>
+<tr>
+<td>Meliaceae</td>
+<td>Melia azedarach L.</td>
+<td>Paraíso</td>
+</tr>
+<tr>
+<td>Myrtaceae</td>
+<td>Eucalyptus spp.</td>
+<td>Eucaliptus</td>
+</tr>
+<tr>
+<td>Olacaceae</td>
+<td>Ximena americana L.</td>
+<td>Albarillo</td>
+</tr>
+<tr>
+<td>Oleaceae</td>
+<td>Fraxinus sp.</td>
+<td>Fresno</td>
+</tr>
+<tr>
+<td>Passifloraceae</td>
+<td>Passiflora caerulea L.</td>
+<td>Pasionaria</td>
+</tr>
+<tr>
+<td>Phytolacaceae</td>
+<td>Phytolacca dioica L.</td>
+<td>Ombú</td>
+</tr>
+<tr>
+<td>Plantaginaceae</td>
+<td>Plantago major L.</td>
+<td>Llantén</td>
+</tr>
+<tr>
+<td>Poaceae</td>
+<td>Tritucum sp., Paspalum sp.</td>
+<td>Gramilla</td>
+</tr>
+<tr>
+<td>Polygonaceae</td>
+<td>Rumex crispus L.</td>
+<td>Lengua de Vaca</td>
+</tr>
+<tr>
+<td></td>
+<td>Polygonum sp.</td>
+<td>Sanguinaria</td>
+</tr>
+<tr>
+<td>Quenopodiaceae</td>
+<td>Chenopodium album L.</td>
+<td>Quina</td>
+</tr>
+<tr>
+<td>Ramnaceae</td>
+<td>Condalia buxifolia Reissek</td>
+<td>Piquillín</td>
+</tr>
+<tr>
+<td>Ranunculaceae</td>
+<td>Clematis montevidensis Spreng.</td>
+<td>Loconte</td>
+</tr>
+</table></div>
+<h4 id="paper-0-table-1-page-9">Table 1, page 9</h4>
+<div class='table-wrapper'><table class='table'>
+<tr><th>familia</th><th>nombre_cientifico</th><th>nombre_popular</th></tr>
+<tr>
+<td>Rhamnaceae</td>
+<td>Ziziphus mistol Griseb.</td>
+<td>Mistol</td>
+</tr>
+<tr>
+<td>Rosaceae</td>
+<td>Prunus persica (L) Batsch</td>
+<td>Durazno (hoja)</td>
+</tr>
+<tr>
+<td></td>
+<td>Eriobotrya japonica (Thunb.) Lindl.</td>
+<td>Níspero</td>
+</tr>
+<tr>
+<td>Rutaceae</td>
+<td>Citrus limon (L.) Burm.</td>
+<td>Limón</td>
+</tr>
+<tr>
+<td></td>
+<td>Citrus sinensis (L.) Osbeck</td>
+<td>Naranjo (hoja)</td>
+</tr>
+<tr>
+<td></td>
+<td>Ruta chalepensis L.</td>
+<td>Ruda</td>
+</tr>
+<tr>
+<td>Salicaceae</td>
+<td>Salix sp.</td>
+<td>Sauce</td>
+</tr>
+<tr>
+<td>Santalaceae</td>
+<td>Jodinia rhombifolia (Hook. et Arn.) Reissex</td>
+<td>Quebracho flojo - Sombra de toro</td>
+</tr>
+<tr>
+<td>Schizaeaceae</td>
+<td>Anemia tomentosa (Savigny) Sw.</td>
+<td>Doradilla</td>
+</tr>
+<tr>
+<td>Solanaceae</td>
+<td>Cestrum parqui L'Hér.</td>
+<td>Duraznillo negro</td>
+</tr>
+<tr>
+<td></td>
+<td>Lycium cestroides Schltdl.</td>
+<td>Ruminico</td>
+</tr>
+<tr>
+<td></td>
+<td>Nicotiana glauca Graham</td>
+<td>Palán-palán</td>
+</tr>
+<tr>
+<td></td>
+<td>Solanum argentinium Bitter & Lillo</td>
+<td>Duraznillo</td>
+</tr>
+<tr>
+<td></td>
+<td>Solanum sisymbriifolium Lam.</td>
+<td>Espina colorada</td>
+</tr>
+<tr>
+<td>Tiliaceae</td>
+<td>Tilia sp.</td>
+<td>Tilo</td>
+</tr>
+<tr>
+<td>Urticaceae</td>
+<td>Urtica urens L.</td>
+<td>Ortiga</td>
+</tr>
+<tr>
+<td>Usneaceae</td>
+<td>Usnea hieronymi Krempelh</td>
+<td>Barba de piedra</td>
+</tr>
+<tr>
+<td>Valerianaceae</td>
+<td>Valeriana sp.</td>
+<td>Valeriana</td>
+</tr>
+<tr>
+<td>Verbenaceae</td>
+<td>Aloysia citriodora Ortega ex Pers.</td>
+<td>Cedrón</td>
+</tr>
+<tr>
+<td></td>
+<td>Aloysia gratissima (Gillies & Hook. ex Hook.) Tronc.</td>
+<td>Palo amarillo</td>
+</tr>
+<tr>
+<td></td>
+<td>Aloysia polystachya (Griseb.) Moldenke</td>
+<td>Poleo de burro (Té de)</td>
+</tr>
+<tr>
+<td></td>
+<td>Glandularia dissecta (Willd. ex Spreng.) Schnack & Covas</td>
+<td>Verbena</td>
+</tr>
+<tr>
+<td></td>
+<td>Lippia integrifolia (Griseb.) Hieron.</td>
+<td>Incayuyo</td>
+</tr>
+<tr>
+<td></td>
+<td>Lippia turbinata Griseb.</td>
+<td>Poleo del campo</td>
+</tr>
+<tr>
+<td>Zygophyllaceae</td>
+<td>Larrea divaricata Cav.</td>
+<td>Jarilla</td>
+</tr>
+<tr>
+<td></td>
+<td>Porlieria microphylla (Baill.) Descole, O'Donell & Lourteig</td>
+<td>Pan de cata - Cucharero - Guayacán</td>
+</tr>
+<tr>
+<td></td>
+<td>NI</td>
+<td>Marquito</td>
+</tr>
+<tr>
+<td></td>
+<td>NI.</td>
+<td>Mimosa</td>
+</tr>
+</table></div>
+</div>
+</main>
+<script>(function () {
+  var entries = Array.from(document.querySelectorAll('#toc a')).map(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    return { el: document.getElementById(id), a: a };
+  }).filter(function (x) { return x.el; });
+
+  function update() {
+    var scrollY = window.scrollY + 8;
+    var active = null;
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].el.getBoundingClientRect().top + window.scrollY <= scrollY) {
+        active = entries[i];
+      } else {
+        break;
+      }
+    }
+    entries.forEach(function (e) { e.a.classList.remove('active'); });
+    if (active) {
+      active.a.classList.add('active');
+      active.a.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+}());
+</script>
+</body></html>

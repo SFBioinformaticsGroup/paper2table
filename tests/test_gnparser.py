@@ -1,43 +1,74 @@
 import pytest
 
-from utils.scientific_name import scientific_name
+from utils.gnparser import parse_scientific_name
+
 
 @pytest.mark.integration
 def test_scientific_name_simple_binomen():
-    assert scientific_name("homo sapiens") == "Homo sapiens"
-    assert scientific_name("Homo sapiens") == "Homo sapiens"
+    assert parse_scientific_name("homo sapiens") == "Homo sapiens"
+    assert parse_scientific_name("Homo sapiens") == "Homo sapiens"
+
 
 @pytest.mark.integration
 def test_scientific_name_unparseable_returns_original():
-    assert scientific_name("not a name") == "not a name"
+    assert parse_scientific_name("not a name") == "not a name"
+
 
 @pytest.mark.integration
 def test_scientific_name_binomen_with_tail():
-    assert scientific_name("Acantholippia seriphioides (a. gray) mold.") == "Acantholippia seriphioides"
-    assert scientific_name("acantholippia seriphioides (a. gray) mold.") == "Acantholippia seriphioides"
-    assert scientific_name("apium australe pet. thouars") == "Apium australe"
+    assert (
+        parse_scientific_name("Acantholippia seriphioides (a. gray) mold.")
+        == "Acantholippia seriphioides"
+    )
+    assert (
+        parse_scientific_name("acantholippia seriphioides (a. gray) mold.")
+        == "Acantholippia seriphioides"
+    )
+    assert parse_scientific_name("apium australe pet. thouars") == "Apium australe"
+
 
 @pytest.mark.integration
 def test_scientific_name_binomen_with_author():
-    assert scientific_name("Acantholippia seriphioides (A. Gray) Mold.") == "Acantholippia seriphioides"
-    assert scientific_name("Apium australe Pet. Thouars") == "Apium australe"
+    assert (
+        parse_scientific_name("Acantholippia seriphioides (A. Gray) Mold.")
+        == "Acantholippia seriphioides"
+    )
+    assert parse_scientific_name("Apium australe Pet. Thouars") == "Apium australe"
+
 
 @pytest.mark.integration
 def test_scientific_name_approximation():
-    assert scientific_name("acaena sp.") == "Acaena"
+    assert parse_scientific_name("acaena sp.") == "Acaena"
+
 
 @pytest.mark.integration
 def test_scientific_name_comma_separated():
-    assert scientific_name("homo sapiens, pan troglodytes") == "Homo sapiens, Pan troglodytes"
+    assert (
+        parse_scientific_name("homo sapiens, pan troglodytes")
+        == "Homo sapiens, Pan troglodytes"
+    )
+
 
 @pytest.mark.integration
 def test_scientific_name_slash_separated():
-    assert scientific_name("homo sapiens / pan troglodytes") == "Homo sapiens, Pan troglodytes"
+    assert (
+        parse_scientific_name("homo sapiens / pan troglodytes")
+        == "Homo sapiens, Pan troglodytes"
+    )
+
 
 @pytest.mark.integration
 def test_scientific_name_comma_separated_strips_authors():
-    assert scientific_name("Acantholippia seriphioides (A. Gray) Mold., Apium australe Pet. Thouars") == "Acantholippia seriphioides, Apium australe"
+    assert (
+        parse_scientific_name(
+            "Acantholippia seriphioides (A. Gray) Mold., Apium australe Pet. Thouars"
+        )
+        == "Acantholippia seriphioides, Apium australe"
+    )
+
 
 @pytest.mark.integration
 def test_scientific_name_comma_separated_with_unparseable_part():
-    assert scientific_name("homo sapiens, not a name") == "Homo sapiens, not a name"
+    assert (
+        parse_scientific_name("homo sapiens, not a name") == "Homo sapiens, not a name"
+    )

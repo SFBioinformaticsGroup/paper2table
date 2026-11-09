@@ -5,6 +5,12 @@ from utils.postprocessor import (
     DropEmptyTablesPostProcessor,
 )
 from utils.column_schema import ColumnSchema
+from utils.column_type import (
+    StrColumnType,
+    IntColumnType,
+    FloatColumnType,
+    BoolColumnType,
+)
 from tablevalidate.schema import (
     TablesFile,
     Table,
@@ -40,7 +46,7 @@ def rows_of(tf: TablesFile, table=0, fragment=0):
     return tf.tables[table].get_table_fragments()[fragment].rows
 
 
-FILTER_SCHEMA = ColumnSchema({"name": str, "species": str})
+FILTER_SCHEMA = ColumnSchema({"name": StrColumnType(), "species": StrColumnType()})
 
 
 def filter_processor() -> SchemaPostProcessor:
@@ -83,9 +89,7 @@ def test_filter_preserves_table_with_only_non_semantic_columns():
 
 
 def test_filter_drops_semantic_non_schema_leaves_non_semantic():
-    result = filter_processor().postprocess(
-        wrap([Row(habitat="forest", **{"1": "a"})])
-    )
+    result = filter_processor().postprocess(wrap([Row(habitat="forest", **{"1": "a"})]))
     assert rows_of(result) == [Row(**{"1": "a"})]
 
 
@@ -109,7 +113,9 @@ def test_filter_all_tables_dropped_returns_empty():
     assert result.tables == []
 
 
-_ORDER_SCHEMA = ColumnSchema({"name": str, "species": str, "family": str})
+_ORDER_SCHEMA = ColumnSchema(
+    {"name": StrColumnType(), "species": StrColumnType(), "family": StrColumnType()}
+)
 
 
 def order_processor() -> SchemaPostProcessor:
@@ -154,7 +160,12 @@ def test_order_preserves_row_number():
 
 
 COERCE_SCHEMA = ColumnSchema(
-    {"year": int, "length": float, "active": bool, "label": str}
+    {
+        "year": IntColumnType(),
+        "length": FloatColumnType(),
+        "active": BoolColumnType(),
+        "label": StrColumnType(),
+    }
 )
 
 
@@ -273,10 +284,14 @@ def test_drop_empty_columns_postprocessor_removes_all_null_column():
 
 def test_tablesfile_clone_overrides_tables_and_preserves_other_fields():
     original_tables: list[Table] = [
-        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+        TableWithFragments(
+            table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)]
+        )
     ]
     new_tables: list[Table] = [
-        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Canis lupus")], page=2)])
+        TableWithFragments(
+            table_fragments=[TableFragment(rows=[Row(name="Canis lupus")], page=2)]
+        )
     ]
     original = TablesFile(
         tables=original_tables,
@@ -293,7 +308,9 @@ def test_tablesfile_clone_overrides_tables_and_preserves_other_fields():
 
 def test_tablesfile_clone_overrides_citation_and_preserves_other_fields():
     tables: list[Table] = [
-        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+        TableWithFragments(
+            table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)]
+        )
     ]
     original = TablesFile(tables=tables, citation="original citation", uuid="xyz-456")
     result = original.clone(citation="updated citation")
@@ -304,7 +321,9 @@ def test_tablesfile_clone_overrides_citation_and_preserves_other_fields():
 
 def test_tablesfile_clone_with_no_overrides_returns_equal_instance():
     tables: list[Table] = [
-        TableWithFragments(table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)])
+        TableWithFragments(
+            table_fragments=[TableFragment(rows=[Row(name="Rosa")], page=1)]
+        )
     ]
     original = TablesFile(tables=tables, citation="citation", uuid="abc")
     result = original.clone()
@@ -347,55 +366,9 @@ def test_drop_empty_tables_postprocessor_removes_empty_table():
     assert result.tables[0].get_table_fragments()[0].rows == [Row(family="Apiaceae")]
 
 
-def test_is_empty_value_float_is_not_empty():
-    assert Row.is_empty_value(3.14) is False
-
-
-def test_is_empty_value_zero_float_is_not_empty():
-    assert Row.is_empty_value(0.0) is False
-
-
-def test_is_empty_value_int_is_not_empty():
-    assert Row.is_empty_value(42) is False
-
-
-def test_is_empty_value_zero_int_is_not_empty():
-    assert Row.is_empty_value(0) is False
-
-
-def test_is_empty_value_bool_false_is_not_empty():
-    assert Row.is_empty_value(False) is False
-
-
-def test_is_empty_value_bool_true_is_not_empty():
-    assert Row.is_empty_value(True) is False
-
-
-def test_normalize_value_float_unchanged():
-    assert Row.normalize_value(3.14) == 3.14
-
-
-def test_normalize_value_int_unchanged():
-    assert Row.normalize_value(42) == 42
-
-
-def test_normalize_value_bool_unchanged():
-    assert Row.normalize_value(True) is True
-
-
-def test_row_is_empty_false_for_int_zero():
-    assert Row(count=0).is_empty() is False
-
-
-def test_row_is_empty_false_for_bool_false():
-    assert Row(active=False).is_empty() is False
-
-
-def test_row_is_empty_false_for_float():
-    assert Row(ratio=3.14).is_empty() is False
-
-
-_NATIVE_COERCE_SCHEMA = ColumnSchema({"count": int, "ratio": float, "active": bool})
+_NATIVE_COERCE_SCHEMA = ColumnSchema(
+    {"count": IntColumnType(), "ratio": FloatColumnType(), "active": BoolColumnType()}
+)
 
 
 def native_coerce_processor() -> SchemaPostProcessor:

@@ -3,6 +3,54 @@
 from tablevalidate.schema import Row, ValueWithAgreement
 
 
+def test_is_empty_value_float_is_not_empty():
+    assert Row.is_empty_value(3.14) is False
+
+
+def test_is_empty_value_zero_float_is_not_empty():
+    assert Row.is_empty_value(0.0) is False
+
+
+def test_is_empty_value_int_is_not_empty():
+    assert Row.is_empty_value(42) is False
+
+
+def test_is_empty_value_zero_int_is_not_empty():
+    assert Row.is_empty_value(0) is False
+
+
+def test_is_empty_value_bool_false_is_not_empty():
+    assert Row.is_empty_value(False) is False
+
+
+def test_is_empty_value_bool_true_is_not_empty():
+    assert Row.is_empty_value(True) is False
+
+
+def test_normalize_value_float_unchanged():
+    assert Row.normalize_value(3.14) == 3.14
+
+
+def test_normalize_value_int_unchanged():
+    assert Row.normalize_value(42) == 42
+
+
+def test_normalize_value_bool_unchanged():
+    assert Row.normalize_value(True) is True
+
+
+def test_row_is_empty_false_for_int_zero():
+    assert Row(count=0).is_empty() is False
+
+
+def test_row_is_empty_false_for_bool_false():
+    assert Row(active=False).is_empty() is False
+
+
+def test_row_is_empty_false_for_float():
+    assert Row(ratio=3.14).is_empty() is False
+
+
 def test_normalize_str_value_no_data_lowercase():
     assert Row.normalize_value("no data") == ""
 
