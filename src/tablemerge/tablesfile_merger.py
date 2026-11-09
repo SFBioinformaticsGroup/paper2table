@@ -189,7 +189,7 @@ class TablesFileMerger:
                         row.normalize(calculate_agreement=True)
                         for row in left_fragment.rows
                     ),
-                    initial_uuid=left_tablesfile.uuid,
+                    initial_uuid=left_tablesfile.id,
                     page=left_fragment.page,
                     multivalued=self.multivalued,
                 )
@@ -209,7 +209,7 @@ class TablesFileMerger:
                         table_fragment_builder,
                         left_rows,
                         right_rows,
-                        right_tablesfile.uuid,
+                        right_tablesfile.id,
                     )
 
                 merged_fragments.append(table_fragment_builder.build())

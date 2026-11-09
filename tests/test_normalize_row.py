@@ -47,11 +47,11 @@ def test_normalize_row_with_mixed_values():
 
 
 def test_normalize_row_preserves_sources():
-    uuids = ["uuid-a", "uuid-b"]
+    sources = ["uuid-a", "uuid-b"]
     assert Row(
-        family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=uuids
+        family=" Apiaceae ", scientific_name="Ammi majus L.", sources_=sources
     ).normalize() == Row(
-        family="apiaceae", scientific_name="ammi majus l.", sources_=uuids
+        family="apiaceae", scientific_name="ammi majus l.", sources_=sources
     )
 
 

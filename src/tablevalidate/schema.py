@@ -358,7 +358,7 @@ class TablesFile(BaseModel):
     tables: List[TableWithRows | TableWithFragments]
     citation: Citation
     metadata: Optional[Metadata] = None
-    uuid: Optional[str] = None
+    id: Optional[str] = None
 
     def has_curations(self) -> bool:
         return bool(self.metadata and self.metadata.curations)
@@ -375,13 +375,13 @@ class TablesFile(BaseModel):
         tables: Optional[List[TableWithRows | TableWithFragments]] = None,
         citation: Optional[Citation] = None,
         metadata: Optional[Metadata] = None,
-        uuid: Optional[str] = None,
+        id: Optional[str] = None,
     ) -> "TablesFile":
         return TablesFile(
             tables=tables if tables is not None else self.tables,
             citation=citation if citation is not None else self.citation,
             metadata=metadata if metadata is not None else self.metadata,
-            uuid=uuid if uuid is not None else self.uuid,
+            id=id if id is not None else self.id,
         )
 
     @staticmethod

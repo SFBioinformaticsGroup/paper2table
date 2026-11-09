@@ -82,7 +82,7 @@ class ConsecutiveFragmentsCompactor:
             tables=compacted,
             citation=tablesfile.citation,
             metadata=tablesfile.metadata,
-            uuid=tablesfile.uuid,
+            id=tablesfile.id,
         )
 
 

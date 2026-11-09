@@ -62,7 +62,7 @@ class SchemaPostProcessor:
             tables=tables,
             citation=tablesfile.citation,
             metadata=tablesfile.metadata,
-            uuid=tablesfile.uuid,
+            id=tablesfile.id,
         )
 
     def _table_column_names(self, table) -> set[str]:

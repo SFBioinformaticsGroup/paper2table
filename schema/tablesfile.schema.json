@@ -97,7 +97,7 @@
         }
       ]
     },
-    "uuid": {
+    "id": {
       "oneOf": [
         {
           "type": "null"

@@ -38,13 +38,13 @@ from tablevalidate.schema import (
 )
 
 
-def wrap(rows: list[Row], page=1, citation="", uuid=None):
+def wrap(rows: list[Row], page=1, citation="", id=None):
     return TablesFile(
         tables=[
             TableWithFragments(table_fragments=[TableFragment(rows=rows, page=page)])
         ],
         citation=citation,
-        uuid=uuid,
+        id=id,
     )
 
 
@@ -689,14 +689,14 @@ def test_merge_different_rows_multivalued():
 
 def test_sources_stamped_on_single_tablesfile():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table, uuid="uuid-a")])
+    result = merge_tablesfiles([wrap(table, id="uuid-a")])
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows[0].sources_ == ["uuid-a"]
 
 
 def test_sources_merged_on_matched_rows():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table, uuid="uuid-a"), wrap(table, uuid="uuid-b")])
+    result = merge_tablesfiles([wrap(table, id="uuid-a"), wrap(table, id="uuid-b")])
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows[0].sources_ == ["uuid-a", "uuid-b"]
 
@@ -705,7 +705,7 @@ def test_sources_only_left_uuid_on_unmatched_left_row():
     table_1 = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     table_2 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
     result = merge_tablesfiles(
-        [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")]
+        [wrap(table_1, id="uuid-a"), wrap(table_2, id="uuid-b")]
     )
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows[0].sources_ == ["uuid-a"]
@@ -719,7 +719,7 @@ def test_sources_right_uuid_on_skipped_row():
         Row(family="Apiaceae", scientific_name="Ammi majus L."),
     ]
     result = merge_tablesfiles(
-        [wrap(table_1, uuid="uuid-a"), wrap(table_2, uuid="uuid-b")]
+        [wrap(table_1, id="uuid-a"), wrap(table_2, id="uuid-b")]
     )
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows == [
@@ -753,7 +753,7 @@ def test_two_tables_with_unicode_variant_values():
 
 def test_sources_deduped_when_same_uuid_appears_twice():
     table = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
-    result = merge_tablesfiles([wrap(table, uuid="uuid-a"), wrap(table, uuid="uuid-a")])
+    result = merge_tablesfiles([wrap(table, id="uuid-a"), wrap(table, id="uuid-a")])
     rows = result.tables[0].get_table_fragments()[0].rows
     assert rows[0].sources_ == ["uuid-a"]
 
@@ -771,9 +771,9 @@ def test_sources_preserved_on_unmatched_left_row_on_second_round():
     table_3 = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
     result = merge_tablesfiles(
         [
-            wrap(table_1, uuid="uuid-a"),
-            wrap(table_2, uuid="uuid-b"),
-            wrap(table_3, uuid="uuid-c"),
+            wrap(table_1, id="uuid-a"),
+            wrap(table_2, id="uuid-b"),
+            wrap(table_3, id="uuid-c"),
         ]
     )
     rows = result.tables[0].get_table_fragments()[0].rows
@@ -1391,19 +1391,14 @@ def test_alias_matches_by_normalized_column_name():
 
 
 def test_sources_correct_when_middle_tablesfile_is_on_different_page():
-    # File A and C share page 1 with matching rows; file B is on page 2.
-    # The bug: make_fragments_clusters groups fragments by page and skips files
-    # that don't have that page, causing zip(fragments_cluster[1:], tablesfiles[1:])
-    # to misalign - C's fragment (index 1 in cluster) is paired with B's tablesfile,
-    # and B's fragment (sole entry on page 2) is attributed to tablesfiles[0].uuid.
     row = [Row(family="Apiaceae", scientific_name="Ammi majus L.")]
     other_row = [Row(family="Rosaceae", scientific_name="Rosa canina L.")]
 
     result = merge_tablesfiles(
         [
-            wrap(row, page=1, uuid="uuid-a"),
-            wrap(other_row, page=2, uuid="uuid-b"),
-            wrap(row, page=1, uuid="uuid-c"),
+            wrap(row, page=1, id="uuid-a"),
+            wrap(other_row, page=2, id="uuid-b"),
+            wrap(row, page=1, id="uuid-c"),
         ]
     )
 

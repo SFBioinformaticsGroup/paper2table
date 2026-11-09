@@ -930,7 +930,7 @@ def test_compute_sources_includes_gathered_files():
             )
         ],
         citation="Mamani 2020",
-        uuid="uuid-a",
+        id="uuid-a",
     )
     file_b = TablesFile(
         tables=[
@@ -941,7 +941,7 @@ def test_compute_sources_includes_gathered_files():
             )
         ],
         citation="Jones 2021",
-        uuid="uuid-b",
+        id="uuid-b",
     )
     path_a = Path("resultset/mamani_2020.tables.json")
     path_b = Path("resultset/jones_2021.tables.json")
@@ -962,7 +962,7 @@ def test_compute_sources_includes_all_files():
             )
         ],
         citation="Mamani 2020",
-        uuid="uuid-a",
+        id="uuid-a",
     )
     file_b = TablesFile(
         tables=[
@@ -973,7 +973,7 @@ def test_compute_sources_includes_all_files():
             )
         ],
         citation="Mamani 2020",
-        uuid="uuid-b",
+        id="uuid-b",
     )
     path_a = Path("resultset_1/mamani_2020.tables.json")
     path_b = Path("resultset_2/mamani_2020.tables.json")

@@ -204,7 +204,7 @@ def merge_tablesfiles_paths(
         tables_path = Path(resultset_dir) / actual_basename
         if tables_path.exists():
             tablesfile = loader.load(tables_path)
-            tablesfile.uuid = metadata_map.get(resultset_dir, {}).get("id")
+            tablesfile.id = metadata_map.get(resultset_dir, {}).get("id")
             tablesfiles.append(tablesfile)
             page_offsets.append(page_offset)
 

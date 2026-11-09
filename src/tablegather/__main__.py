@@ -29,8 +29,8 @@ def compute_sources(
     sources = []
     for tablesfile, path in tablesfiles_with_paths:
         source: dict = {"path": str(path)}
-        if tablesfile.uuid:
-            source["id"] = tablesfile.uuid
+        if tablesfile.id:
+            source["id"] = tablesfile.id
         dir_meta = directory_metadata.get(str(path.parent), {})
         if "reader" in dir_meta:
             source["reader"] = dir_meta["reader"]

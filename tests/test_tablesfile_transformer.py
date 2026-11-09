@@ -389,7 +389,7 @@ def test_exploder_with_single_table():
             )
         ],
         citation="",
-        uuid="uuid-1",
+        id="uuid-1",
     )
 
     result = FragmentsExploder().transform(tablesfile)
@@ -410,7 +410,7 @@ def test_exploder_with_multiple_tables():
             TableWithFragments(table_fragments=[TableFragment(rows=[row_b], page=2)]),
         ],
         citation="",
-        uuid="uuid-2",
+        id="uuid-2",
     )
 
     result = FragmentsExploder().transform(tablesfile)
