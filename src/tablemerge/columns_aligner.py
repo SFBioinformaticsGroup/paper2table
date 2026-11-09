@@ -35,17 +35,16 @@ class BaseColumnAligner:
             if new_name != REMOVE_COLUMN:
                 if new_name in renamed_columns:
                     if column == new_name:
-                        renamed_columns[new_name] = append_column_value(value, renamed_columns[new_name])
+                        renamed_columns[new_name] = append_column_value(
+                            value, renamed_columns[new_name]
+                        )
                     else:
-                        renamed_columns[new_name] = append_column_value(renamed_columns[new_name], value)
+                        renamed_columns[new_name] = append_column_value(
+                            renamed_columns[new_name], value
+                        )
                 else:
                     renamed_columns[new_name] = value
-        return Row(
-            agreement_level_=row.agreement_level_,
-            sources_=row.sources_,
-            row_=row.row_,
-            **renamed_columns,
-        )
+        return row.clone(columns=renamed_columns)
 
     def rename_column(self, col_name: str) -> str:
         return self.mapping.get(col_name, col_name)

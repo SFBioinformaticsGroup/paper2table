@@ -49,16 +49,17 @@ def merge_rows(
     right_sources = right.sources_ or []
     sources = list(dict.fromkeys(left_sources + right_sources)) or None
 
-    return Row.model_validate({
-        "citation_": None,
-        "fragment_": None,
-        "page_": None,
-        "path_": None,
-        "agreement_level_": agreement_level,
-        "sources_": sources,
-        "row_": left.row_,
+    return Row(
+        citation_=None,
+        fragment_=None,
+        page_=None,
+        path_=None,
+        curation_type_=None,
+        agreement_level_=agreement_level,
+        sources_=sources,
+        row_=left.row_,
         **columns,
-    })
+    )
 
 
 class TableFragmentBuilder:
@@ -124,9 +125,6 @@ class TableFragmentBuilder:
         self.rows.append(row)
 
     def _stamp(self, row: Row, row_: int, source_uuid: Optional[str] = None):
-        return row.model_copy(
-            update={
-                "sources_": [source_uuid] if source_uuid else row.sources_,
-                "row_": row_,
-            }
+        return row.clone(
+            row=row_, sources=[source_uuid] if source_uuid else row.sources_
         )
