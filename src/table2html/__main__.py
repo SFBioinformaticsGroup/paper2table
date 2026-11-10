@@ -50,7 +50,7 @@ def _source_cell(source: dict, key: str) -> str:
     return value
 
 
-def render_citation_items(citation: Citation) -> list[str]:
+def render_citation(citation: Citation) -> list[str]:
     items: list[str] = []
     for text in Row.to_texts(citation):
         for part in text.split("\n"):
@@ -421,7 +421,7 @@ def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) ->
     for paper_i, (paper_name, content) in enumerate(papers.items()):
         paper_id = f"paper-{paper_i}"
         html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
-        citation_items = render_citation_items(content.citation)
+        citation_items = render_citation(content.citation)
         if citation_items:
             html.append("<p>Citation:</p><ul>")
             html.extend(f"<li>{item}</li>" for item in citation_items)

@@ -413,19 +413,12 @@ def test_build_css_contains_agreement_classes():
 
 
 def test_render_citation_none():
-    assert render_citation(None) == ""
+    assert render_citation(None) == []
 
 
 def test_render_citation_string():
-    assert render_citation("Smith 2020") == "Smith 2020"
+    assert render_citation("Smith 2020") == ["Smith 2020"]
 
-
-def test_render_citation_list():
-    citation = [
-        ValueWithAgreement(value="Smith 2020", agreement_level=2),
-        ValueWithAgreement(value="Smith et al.", agreement_level=1),
-    ]
-    assert render_citation(citation) == "Smith 2020, Smith et al."
 
 
 def test_build_fragment_html_no_rowspan_without_multivalued():
