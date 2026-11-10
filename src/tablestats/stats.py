@@ -72,6 +72,7 @@ class GlobalStats:
     )
     global_agreement_percentage: Optional[float] = None
     global_shared_values_percentage: Optional[float] = None
+    gathered: bool = False
 
     def to_dict(self):
         return {
@@ -90,6 +91,7 @@ class GlobalStats:
             "papers_with_curations": self.papers_with_curations,
             "global_agreement_percentage": self.global_agreement_percentage,
             "global_shared_values_percentage": self.global_shared_values_percentage,
+            "gathered": self.gathered,
             "papers_stats": [
                 {key: value.to_dict()} for key, value in self.papers_stats.items()
             ],

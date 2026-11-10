@@ -33,6 +33,8 @@ def compute_papers_stats(path: str) -> GlobalStats:
 
     for paper_file in input_path.glob("*.tables.json"):
         paper_data = read_paper(paper_file)
+        if paper_file.name == "gathered.tables.json":
+            stats.gathered = True
         update_papers_stats(stats, paper_file.name, paper_data)
 
     return stats
@@ -168,12 +170,13 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
     lines = []
     lines.append("Global Stats:")
     lines.append(f"  Papers: {stats.papers}")
-    for level in CONVERGENCE_LEVELS:
-        c = stats.papers_with_convergent[level]
-        lines.append(f"  Convergent Papers (Level={level}):")
-        lines.append(f"    tables: {c.tables}")
-        lines.append(f"    fragments: {c.fragments}")
-        lines.append(f"    rows: {c.rows}")
+    if not stats.gathered:
+        for level in CONVERGENCE_LEVELS:
+            c = stats.papers_with_convergent[level]
+            lines.append(f"  Convergent Papers (Level={level}):")
+            lines.append(f"    tables: {c.tables}")
+            lines.append(f"    fragments: {c.fragments}")
+            lines.append(f"    rows: {c.rows}")
     lines.append(f"  Papers with curations: {stats.papers_with_curations}")
     lines.append(f"  Tables: {stats.tables}")
     lines.append(f"  Fragments: {stats.fragments}")
@@ -211,12 +214,13 @@ def format_stats(stats: GlobalStats, columns: dict[str, str] | None = None) -> s
                 f"    Shared values percentage: {paper_stats.shared_values_percentage:.2f}%"
             )
         lines.append(f"    Curations: {paper_stats.curations}")
-        for level in CONVERGENCE_LEVELS:
-            c = paper_stats.convergent[level]
-            lines.append(f"    Convergent elements (Level={level}):")
-            lines.append(f"      tables: {c.tables}")
-            lines.append(f"      fragments: {c.fragments}")
-            lines.append(f"      rows: {c.rows}")
+        if not stats.gathered:
+            for level in CONVERGENCE_LEVELS:
+                c = paper_stats.convergent[level]
+                lines.append(f"    Convergent elements (Level={level}):")
+                lines.append(f"      tables: {c.tables}")
+                lines.append(f"      fragments: {c.fragments}")
+                lines.append(f"      rows: {c.rows}")
     if columns is not None:
         lines.append("")
         lines.append("Unique Columns:")
