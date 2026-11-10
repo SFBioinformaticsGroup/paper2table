@@ -149,6 +149,15 @@ def build_metadata_html(metadata: dict) -> list[str]:
 
 
 _ROW_PALETTE_SIZE = 5
+_CELL_TRUNCATE_LENGTH = 140
+
+
+def truncate_cell(value: str) -> tuple[str, str]:
+    if len(value) <= _CELL_TRUNCATE_LENGTH:
+        return value, ""
+    display = value[:_CELL_TRUNCATE_LENGTH] + "…"
+    escaped = value.replace("'", "&#39;").replace("\n", " ")
+    return display, f" title='{escaped}'"
 
 
 def agreement_css_class(level: int) -> str:
@@ -188,7 +197,8 @@ def build_data_rows(
                 if i < len(values):
                     val_entry = values[i]
                     css_class = relative_agreement_css_class(val_entry.agreement_level / (row.agreement_level_ or 1))
-                    html.append(f"<td class='{css_class}'>{val_entry.value}</td>")
+                    display, title_attr = truncate_cell(val_entry.value)
+                    html.append(f"<td class='{css_class}'{title_attr}>{display}</td>")
                 else:
                     html.append("<td></td>")
             elif i == 0:
@@ -223,7 +233,8 @@ def build_data_rows(
                     html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
                 else:
                     val = Row.to_text(col_values.get(col))
-                    html.append(f"<td{rowspan_attr}>{val}</td>")
+                    display, title_attr = truncate_cell(val)
+                    html.append(f"<td{rowspan_attr}{title_attr}>{display}</td>")
         html.append("</tr>")
     return html
 
