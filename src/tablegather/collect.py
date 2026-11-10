@@ -53,7 +53,7 @@ def gather_tablesfiles(
 
     for tablesfile, path in tablesfiles_with_paths:
         raw_citation = tablesfile.citation
-        citation: str | None = Row.to_text(raw_citation) or None
+        citation: str | None = Row.to_text(raw_citation).strip() or None
         if citation:
             all_citations.append(citation)
 
@@ -91,7 +91,7 @@ def gather_tablesfiles(
 
     all_rows = [row.clone(row=i) for i, row in enumerate(all_rows, start=1)]
 
-    joined_citation: str | None = "; ".join(all_citations) if all_citations else None
+    joined_citation: str | None = ";\n".join(all_citations) if all_citations else None
     fragment = TableFragment(rows=all_rows, page=1)
     return TablesFile(
         tables=[TableWithFragments(table_fragments=[fragment])],

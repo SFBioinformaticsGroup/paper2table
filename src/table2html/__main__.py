@@ -50,8 +50,14 @@ def _source_cell(source: dict, key: str) -> str:
     return value
 
 
-def render_citation(citation: Citation) -> str:
-    return ", ".join(Row.to_texts(citation))
+def render_citation_items(citation: Citation) -> list[str]:
+    items: list[str] = []
+    for text in Row.to_texts(citation):
+        for part in text.split("\n"):
+            stripped = part.strip()
+            if stripped:
+                items.append(stripped)
+    return items
 
 
 def build_toc(papers: dict[str, TablesFile]) -> list[str]:
@@ -415,7 +421,13 @@ def build_html(metadata: dict, settings: dict, papers: dict[str, TablesFile]) ->
     for paper_i, (paper_name, content) in enumerate(papers.items()):
         paper_id = f"paper-{paper_i}"
         html.append(f"<div class='paper'><h3 id='{paper_id}'>{paper_name}</h3>")
-        html.append(f"<p>Citation: {render_citation(content.citation)}</p>")
+        citation_items = render_citation_items(content.citation)
+        if citation_items:
+            html.append("<p>Citation:</p><ul>")
+            html.extend(f"<li>{item}</li>" for item in citation_items)
+            html.append("</ul>")
+        else:
+            html.append("<p>Citation:</p>")
         paper_uuids = collect_paper_source_uuids(content)
         paper_sources = [
             s for s in metadata.get("sources", []) if s.get("id") in paper_uuids
