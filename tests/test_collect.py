@@ -880,6 +880,84 @@ def test_convergence_fragments_includes_fragment_of_manually_curated_rows_at_lev
     ]
 
 
+def test_schema_columns_fills_missing_columns_with_none():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    file_b, path_b = wrap([Row(family="Apiaceae")], citation="Jones 2021")
+    result = gather_tablesfiles(
+        [(file_a, path_a), (file_b, path_b)],
+        key_columns=[],
+        schema_columns=["species", "family", "habitat"],
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            row_=1,
+            species="Ammi majus",
+            family=None,
+            habitat=None,
+        ),
+        Row(
+            citation_="Jones 2021",
+            path_=str(path_b),
+            page_=1,
+            fragment_=1,
+            row_=2,
+            family="Apiaceae",
+            species=None,
+            habitat=None,
+        ),
+    ]
+
+
+def test_schema_columns_preserves_non_schema_columns():
+    file_a, path_a = wrap(
+        [Row(species="Ammi majus", notes="observed in pasture")],
+        citation="Mamani 2020",
+    )
+    result = gather_tablesfiles(
+        [(file_a, path_a)],
+        key_columns=[],
+        schema_columns=["species", "family"],
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            row_=1,
+            species="Ammi majus",
+            notes="observed in pasture",
+            family=None,
+        )
+    ]
+
+
+def test_schema_columns_none_leaves_rows_unchanged():
+    file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
+    result = gather_tablesfiles(
+        [(file_a, path_a)],
+        key_columns=[],
+        schema_columns=None,
+    )
+    fragments = result.tables[0].get_table_fragments()
+    assert fragments[0].rows == [
+        Row(
+            citation_="Mamani 2020",
+            path_=str(path_a),
+            page_=1,
+            fragment_=1,
+            row_=1,
+            species="Ammi majus",
+        )
+    ]
+
+
 def test_gather_tablesfiles_prints_row_count_per_file(capsys):
     file_a, path_a = wrap(
         [Row(species="Ammi majus"), Row(species="Carum carvi")], citation="Mamani 2020"

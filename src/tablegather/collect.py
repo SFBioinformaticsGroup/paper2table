@@ -42,11 +42,28 @@ def apply_rows_convergence(tablesfile: TablesFile, level: int) -> list[Row]:
     ]
 
 
+def fill_schema_columns(rows: list[Row], schema_columns: list[str]) -> list[Row]:
+    return [
+        row.clone(
+            columns={
+                **row.get_columns(),
+                **{
+                    column: None
+                    for column in schema_columns
+                    if column not in row.get_columns()
+                },
+            }
+        )
+        for row in rows
+    ]
+
+
 def gather_tablesfiles(
     tablesfiles_with_paths: list[tuple[TablesFile, Path]],
     key_columns: list[str],
     convergence: Convergence = "none",
     level: int = 1,
+    schema_columns: list[str] | None = None,
 ) -> TablesFile:
     all_rows: list[Row] = []
     all_citations: list[str] = []
@@ -88,6 +105,9 @@ def gather_tablesfiles(
         all_rows.sort(
             key=lambda r: tuple(str(r.get_columns().get(k, "")) for k in key_columns)
         )
+
+    if schema_columns:
+        all_rows = fill_schema_columns(all_rows, schema_columns)
 
     all_rows = [row.clone(row=i) for i, row in enumerate(all_rows, start=1)]
 

@@ -109,13 +109,14 @@ def main():
         key_columns,
         convergence=args.convergence,
         level=args.convergence_level,
+        schema_columns=schema.column_names() if schema else None,
     )
 
     for postprocessor in postprocessors:
         result = postprocessor.postprocess(result)
 
     indent = 2 if args.pretty else None
-    output = result.model_dump_json(indent=indent, exclude_none=True)
+    output = result.model_dump_json(indent=indent)
 
     if args.output_directory:
         output_dir = Path(args.output_directory)
