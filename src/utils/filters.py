@@ -42,7 +42,7 @@ def has_semantic_header_value(row: Row) -> bool:
     return any(
         value_matches_header(col, val)
         for col, val in row.get_columns().items()
-        if not Row.is_empty_value(val) and Row.is_semantic_column(col)
+        if not Row.is_na_value(val) and Row.is_semantic_column(col)
     )
 
 
@@ -50,7 +50,7 @@ def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
     return any(
         value_matches_hints(val, hints_set)
         for _col, val in row.get_columns().items()
-        if not Row.is_empty_value(val)
+        if not Row.is_na_value(val)
     )
 
 
@@ -85,7 +85,7 @@ def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
                 col
                 for col in all_cols
                 if all(
-                    Row.is_empty_value(row.get_column_value(col))
+                    Row.is_na_value(row.get_column_value(col))
                     for row in fragment.rows
                 )
             }

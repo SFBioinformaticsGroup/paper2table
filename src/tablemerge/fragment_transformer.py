@@ -46,7 +46,7 @@ class FilterTitleRowsTransformer:
         non_empty = {
             col: val
             for col, val in row.get_columns().items()
-            if not Row.is_empty_value(val)
+            if not Row.is_na_value(val)
         }
         if len(non_empty) == 0:
             return False
@@ -75,7 +75,7 @@ class LeadingRowNumberTransformer:
         samples: list[str] = []
         for row in rows:
             val = row.get_column_value(column)
-            if val is None or Row.is_empty_value(val):
+            if val is None or Row.is_na_value(val):
                 continue
             text = Row.to_text(val).strip()
             if text:
@@ -108,7 +108,7 @@ class FilterEmptyRowsTransformer:
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         return TableFragment(
-            rows=[row for row in fragment.rows if not row.is_empty()],
+            rows=[row for row in fragment.rows if not row.is_na()],
             page=fragment.page,
         )
 

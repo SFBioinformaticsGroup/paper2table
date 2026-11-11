@@ -90,7 +90,7 @@ class HintsLoadTimeAnalyzer:
             candidates = list(column_names)
         if not candidates:
             return {}
-        first_row = next((r for r in rows if not r.is_empty()), None)
+        first_row = next((r for r in rows if not r.is_na()), None)
         if first_row is None:
             return {}
         row_values = self._normalized_values(first_row, candidates)

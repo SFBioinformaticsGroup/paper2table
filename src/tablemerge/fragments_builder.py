@@ -108,7 +108,7 @@ class TableFragmentBuilder:
 
     def build(self):
         return TableFragment(
-            rows=[r for r in self.rows if not r.is_empty()],
+            rows=[r for r in self.rows if not r.is_na()],
             page=self.page,
         )
 

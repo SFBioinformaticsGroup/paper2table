@@ -81,11 +81,11 @@ class Row(BaseModel):
             k: v for k, v in self.get_columns().items() if self.is_semantic_column(k)
         }
 
+    def is_na(self) -> bool:
+        return all(Row.is_na_value(v) for v in self.get_column_values())
+
     def is_empty(self) -> bool:
         return all(Row.is_empty_value(v) for v in self.get_column_values())
-
-    def is_blank(self) -> bool:
-        return all(Row.is_blank_value(v) for v in self.get_column_values())
 
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
@@ -172,7 +172,7 @@ class Row(BaseModel):
         return list(dict.fromkeys(col for row in rows for col in row.get_columns()))
 
     @staticmethod
-    def is_empty_value(value: ColumnValue) -> bool:
+    def is_na_value(value: ColumnValue) -> bool:
         if value is None:
             return True
 
@@ -188,7 +188,7 @@ class Row(BaseModel):
         return False
 
     @staticmethod
-    def is_blank_value(value: ColumnValue) -> bool:
+    def is_empty_value(value: ColumnValue) -> bool:
         """True only for None, blank strings, and lists of none or blanks"""
         if value is None:
             return True
@@ -307,7 +307,7 @@ class TableFragment(BaseModel):
         return len(self.get_column_names())
 
     def is_empty(self) -> bool:
-        return all(row.is_empty() for row in self.rows)
+        return all(row.is_na() for row in self.rows)
 
     def get_convergent_rows(self, level: int = 1) -> List[Row]:
         sources_count = len(
@@ -343,7 +343,7 @@ class TableWithRows(BaseModel, Table):
         return [TableFragment(rows=self.rows, page=self.page)]
 
     def is_empty(self) -> bool:
-        return all(row.is_empty() for row in self.rows)
+        return all(row.is_na() for row in self.rows)
 
 
 class TableWithFragments(BaseModel, Table):

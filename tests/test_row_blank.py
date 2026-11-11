@@ -1,3 +1,5 @@
+# pyright: reportCallIssue=false
+
 import pytest
 
 from tablevalidate.schema import Row, ValueWithAgreement
@@ -11,28 +13,28 @@ def restore_default_na_values():
 
 
 def test_is_blank_value_true_for_none():
-    assert Row.is_blank_value(None) is True
+    assert Row.is_empty_value(None) is True
 
 
 def test_is_blank_value_true_for_empty_string():
-    assert Row.is_blank_value("") is True
+    assert Row.is_empty_value("") is True
 
 
 def test_is_blank_value_true_for_whitespace_only_string():
-    assert Row.is_blank_value("   \t\n") is True
+    assert Row.is_empty_value("   \t\n") is True
 
 
 def test_is_blank_value_false_for_known_na_value():
-    assert Row.is_blank_value("none") is False
+    assert Row.is_empty_value("none") is False
 
 
 def test_is_blank_value_false_for_regular_string():
-    assert Row.is_blank_value("orange") is False
+    assert Row.is_empty_value("orange") is False
 
 
 def test_is_blank_value_true_for_list_of_blank_values():
     assert (
-        Row.is_blank_value(
+        Row.is_empty_value(
             [
                 ValueWithAgreement(value=None, agreement_level=1),
                 ValueWithAgreement(value="", agreement_level=1),
@@ -45,26 +47,24 @@ def test_is_blank_value_true_for_list_of_blank_values():
 
 def test_is_blank_value_false_for_list_containing_na_value():
     assert (
-        Row.is_blank_value(
-            [ValueWithAgreement(value="none", agreement_level=1)]
-        )
+        Row.is_empty_value([ValueWithAgreement(value="none", agreement_level=1)])
         is False
     )
 
 
 def test_is_blank_true_when_all_columns_are_blank():
-    assert Row(name="", color=None).is_blank() is True
+    assert Row(name="", color=None).is_empty() is True
 
 
 def test_is_blank_false_when_any_column_is_a_na_value():
     row = Row(name="none", color="")
-    assert row.is_blank() is False
-    assert row.is_empty() is True
+    assert row.is_empty() is False
+    assert row.is_na() is True
 
 
 def test_is_blank_ignores_custom_na_values():
     configure_na_values(["no observado"])
 
     row = Row(name="no observado")
-    assert row.is_blank() is False
-    assert row.is_empty() is True
+    assert row.is_empty() is False
+    assert row.is_na() is True

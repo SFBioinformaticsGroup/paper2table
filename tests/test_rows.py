@@ -3,28 +3,28 @@
 from tablevalidate.schema import Row, ValueWithAgreement
 
 
-def test_is_empty_value_float_is_not_empty():
-    assert Row.is_empty_value(3.14) is False
+def test_is_na_value_float_is_false():
+    assert Row.is_na_value(3.14) is False
 
 
-def test_is_empty_value_zero_float_is_not_empty():
-    assert Row.is_empty_value(0.0) is False
+def test_is_na_value_zero_float_is_false():
+    assert Row.is_na_value(0.0) is False
 
 
-def test_is_empty_value_int_is_not_empty():
-    assert Row.is_empty_value(42) is False
+def test_is_na_value_int_is_false():
+    assert Row.is_na_value(42) is False
 
 
-def test_is_empty_value_zero_int_is_not_empty():
-    assert Row.is_empty_value(0) is False
+def test_is_na_value_zero_int_is_false():
+    assert Row.is_na_value(0) is False
 
 
-def test_is_empty_value_bool_false_is_not_empty():
-    assert Row.is_empty_value(False) is False
+def test_is_na_value_bool_false_is_false():
+    assert Row.is_na_value(False) is False
 
 
-def test_is_empty_value_bool_true_is_not_empty():
-    assert Row.is_empty_value(True) is False
+def test_is_na_value_bool_true_is_false():
+    assert Row.is_na_value(True) is False
 
 
 def test_normalize_value_float_unchanged():
@@ -40,15 +40,15 @@ def test_normalize_value_bool_unchanged():
 
 
 def test_row_is_empty_false_for_int_zero():
-    assert Row(count=0).is_empty() is False
+    assert Row(count=0).is_na() is False
 
 
 def test_row_is_empty_false_for_bool_false():
-    assert Row(active=False).is_empty() is False
+    assert Row(active=False).is_na() is False
 
 
 def test_row_is_empty_false_for_float():
-    assert Row(ratio=3.14).is_empty() is False
+    assert Row(ratio=3.14).is_na() is False
 
 
 def test_normalize_str_value_no_data_lowercase():
@@ -144,54 +144,54 @@ def test_normalize_str_cid_outside_latin1_range_with_surrounding_text():
     assert Row.normalize_value("hello (cid:7) world") == "hello world"
 
 
-def test_is_empty_value_no_data_string():
-    assert Row.is_empty_value("no data")
+def test_is_na_value_no_data_string():
+    assert Row.is_na_value("no data")
 
 
-def test_is_empty_value_no_data_uppercase():
-    assert Row.is_empty_value("No Data")
+def test_is_na_value_no_data_uppercase():
+    assert Row.is_na_value("No Data")
 
 
-def test_is_empty_value_none():
-    assert Row.is_empty_value(None)
+def test_is_na_value_none():
+    assert Row.is_na_value(None)
 
 
-def test_is_empty_value_empty_string():
-    assert Row.is_empty_value("")
+def test_is_na_value_empty_string():
+    assert Row.is_na_value("")
 
 
-def test_is_empty_value_whitespace_string():
-    assert Row.is_empty_value("  \t\n")
+def test_is_na_value_whitespace_string():
+    assert Row.is_na_value("  \t\n")
 
 
-def test_is_empty_value_non_empty_string():
-    assert not Row.is_empty_value("hello")
+def test_is_na_value_non_empty_string():
+    assert not Row.is_na_value("hello")
 
 
 def test_is_empty_row_all_empty():
-    assert Row(family="", scientific_name=None).is_empty()
+    assert Row(family="", scientific_name=None).is_na()
 
 
 def test_is_empty_row_whitespace_only():
-    assert Row(family="  ", scientific_name="\t").is_empty()
+    assert Row(family="  ", scientific_name="\t").is_na()
 
 
 def test_is_empty_row_metadata_keys_ignored():
-    assert Row(family="", agreement_level_=2, sources_=["uuid"]).is_empty()
+    assert Row(family="", agreement_level_=2, sources_=["uuid"]).is_na()
 
 
 def test_is_empty_row_has_data():
-    assert not Row(family="Apiaceae", scientific_name="").is_empty()
+    assert not Row(family="Apiaceae", scientific_name="").is_na()
 
 
 def test_is_empty_row_list_value_empty():
-    assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_empty()
+    assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_na()
 
 
 def test_is_empty_row_list_value_non_empty():
     assert not Row(
         family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]
-    ).is_empty()
+    ).is_na()
 
 
 def test_normalize_row_with_none_column_value():
