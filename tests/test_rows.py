@@ -39,15 +39,15 @@ def test_normalize_value_bool_unchanged():
     assert Row.normalize_value(True) is True
 
 
-def test_row_is_empty_false_for_int_zero():
+def test_row_is_na_false_for_int_zero():
     assert Row(count=0).is_na() is False
 
 
-def test_row_is_empty_false_for_bool_false():
+def test_row_is_na_false_for_bool_false():
     assert Row(active=False).is_na() is False
 
 
-def test_row_is_empty_false_for_float():
+def test_row_is_na_false_for_float():
     assert Row(ratio=3.14).is_na() is False
 
 
@@ -168,27 +168,27 @@ def test_is_na_value_non_empty_string():
     assert not Row.is_na_value("hello")
 
 
-def test_is_empty_row_all_empty():
+def test_is_na_row_all_empty():
     assert Row(family="", scientific_name=None).is_na()
 
 
-def test_is_empty_row_whitespace_only():
+def test_is_na_row_whitespace_only():
     assert Row(family="  ", scientific_name="\t").is_na()
 
 
-def test_is_empty_row_metadata_keys_ignored():
+def test_is_na_row_metadata_keys_ignored():
     assert Row(family="", agreement_level_=2, sources_=["uuid"]).is_na()
 
 
-def test_is_empty_row_has_data():
+def test_is_na_row_has_data():
     assert not Row(family="Apiaceae", scientific_name="").is_na()
 
 
-def test_is_empty_row_list_value_empty():
+def test_is_na_row_list_value_empty():
     assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_na()
 
 
-def test_is_empty_row_list_value_non_empty():
+def test_is_na_row_list_value_non_empty():
     assert not Row(
         family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]
     ).is_na()
