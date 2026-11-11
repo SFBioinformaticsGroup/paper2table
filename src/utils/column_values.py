@@ -1,6 +1,7 @@
 from typing import Iterable
 
 from .str import normalize_str
+from .tokenize_schema import tokenize_schema
 
 # TODO handle other languages
 DEFAULT_NA_VALUES = frozenset(
@@ -27,15 +28,9 @@ def configure_na_values(values: Iterable[str]) -> None:
 def parse_na_values(text: str) -> list[str]:
     """Parse a newline-separated list of na values.
 
-    Blank lines and lines starting with '#' are ignored.
+    Blank lines and '#' comments (full-line or inline) are ignored.
     """
-    result = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        result.append(stripped)
-    return result
+    return tokenize_schema(text)
 
 
 def normalize_column_value(value: str) -> str:

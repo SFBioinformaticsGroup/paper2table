@@ -127,18 +127,52 @@ def test_parse_regexp_missing_params_raises_value_error():
         ColumnSchema.parse(r"size:regexp")
 
 
+def test_parse_regexp_type_preserves_space_in_pattern():
+    schema = ColumnSchema.parse(r"size:regexp:\d+ cm")
+    assert schema.serialize() == {"size": r"regexp:\d+ cm"}
+
+
+def test_parse_regexp_type_preserves_comma_in_pattern():
+    schema = ColumnSchema.parse(r"size:regexp:\d+,\d+")
+    assert schema.serialize() == {"size": r"regexp:\d+,\d+"}
+
+
+def test_parse_regexp_type_preserves_semicolon_in_pattern():
+    schema = ColumnSchema.parse(r"size:regexp:\d+;cm")
+    assert schema.serialize() == {"size": r"regexp:\d+;cm"}
+
+
+def test_parse_regexp_type_preserves_colon_in_pattern():
+    schema = ColumnSchema.parse("label:regexp:a:b")
+    assert schema.serialize() == {"label": "regexp:a:b"}
+
+
+def test_parse_enum_type_preserves_space_in_value():
+    schema = ColumnSchema.parse("color:enum:agua marina,azul")
+    assert schema.serialize() == {"color": "enum:agua marina,azul"}
+
+
+def test_parse_enum_type_preserves_colon_in_value():
+    schema = ColumnSchema.parse("label:enum:a:b")
+    assert schema.serialize() == {"label": "enum:a:b"}
+
+
+def test_parse_example_type_preserves_space_in_value():
+    schema = ColumnSchema.parse("color:example:agua marina,azul,verde oliva")
+    assert schema.serialize() == {"color": "example:agua marina,azul,verde oliva"}
+
+
+def test_parse_example_type_preserves_colon_in_value():
+    schema = ColumnSchema.parse("url:example:https://example.com")
+    assert schema.serialize() == {"url": "example:https://example.com"}
+
+
 def test_parse_multiple_columns_with_enum():
-    schema = ColumnSchema.parse("color:enum:red;blue family:str")
+    schema = ColumnSchema.parse("color:enum:red,blue\nfamily:str")
     assert isinstance(schema.column_type("color"), EnumColumnType)
     assert isinstance(schema.column_type("family"), StrColumnType)
     assert schema.column_type("color").matches_value("red") is True
     assert schema.column_type("color").matches_value("purple") is False
-
-
-def test_parse_enum_and_str_comma_separated():
-    schema = ColumnSchema.parse("color:enum:red;blue,family:str")
-    assert isinstance(schema.column_type("color"), EnumColumnType)
-    assert isinstance(schema.column_type("family"), StrColumnType)
 
 
 def test_unsupported_type_raises_value_error():
@@ -172,19 +206,6 @@ def test_column_schema_from_settings_dict_single_field():
     schema = ColumnSchema.from_settings_dict({"family": "str"})
     assert schema is not None
     assert schema.serialize() == {"family": "str"}
-
-
-def test_parse_schema_space_separated():
-    schema = ColumnSchema.parse("name:str age:int")
-    assert schema.column_names() == ["name", "age"]
-    assert isinstance(schema.column_type("name"), StrColumnType)
-    assert isinstance(schema.column_type("age"), IntColumnType)
-
-
-def test_parse_schema_comma_separated():
-    schema = ColumnSchema.parse("name:str, age:int, active:bool")
-    assert schema.column_names() == ["name", "age", "active"]
-    assert isinstance(schema.column_type("active"), BoolColumnType)
 
 
 def test_parse_schema_newline_separated():
