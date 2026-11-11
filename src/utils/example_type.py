@@ -16,7 +16,7 @@ class ExampleColumnType(ColumnType):
 
     def __init__(self, *examples: str):
         self._examples = frozenset(examples)
-        self._examples_str = ";".join(examples)
+        self._examples_str = ",".join(examples)
 
     def coerce(self, value: str) -> str:
         return value

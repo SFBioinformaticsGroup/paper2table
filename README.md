@@ -328,10 +328,10 @@ tablemerge --jaccard-column-alignment --column-value-semantic-alignment --semant
 
 ####  1.4.2. <a name='Columnaliases'></a>Column aliases
 
-`--column-aliases` and `--column-aliases-path` let you define explicit renames applied during merging. The format is `alias:target` (same as the schema format):
+`--column-aliases` and `--column-aliases-path` let you define explicit renames applied during merging. The format is one `alias:target` per line (same as the schema format):
 
 ```bash
-tablemerge --column-aliases "familia:family especie:species" tests/data/demo_resultsets/*
+tablemerge --column-aliases $'familia:family\nespecie:species' tests/data/demo_resultsets/*
 
 tablemerge --column-aliases-path aliases.txt tests/data/demo_resultsets/*
 ```
@@ -342,7 +342,7 @@ Both flags can be used together; the file takes precedence on conflicts.
 
 `--na-values` and `--na-values-path` let you **replace** (not extend) the list of strings that are treated as empty cells during merging. The default list is `no data`, `none`, `not identified`, `not collected`, `n/a`, `undetermined`, `undefined`. Passing the flag with any value discards the defaults entirely.
 
-The inline form expects one expression per newline (values with embedded spaces survive, unlike the schema/aliases format):
+The inline form expects one expression per line:
 
 ```bash
 tablemerge --na-values $'none\nno observado\ndesconocido' tests/data/demo_resultsets/*
@@ -354,10 +354,10 @@ tablemerge --na-values-path na.txt tests/data/demo_resultsets/*
 
 ####  1.4.3. <a name='Columnnamehints'></a>Column name hints
 
-`--column-hints` and `--column-hints-path` supply the expected column names for runs that produced only numeric column names (`0`, `1`, …). Hints use the same format as the `-c` flag in `paper2table` (whitespace- or comma-separated, `#` comments allowed):
+`--column-hints` and `--column-hints-path` supply the expected column names for runs that produced only numeric column names (`0`, `1`, …). Hints use the same format as the `-c` flag in `paper2table`: one hint per line, `#` comments allowed:
 
 ```bash
-tablemerge --column-hints "species family color" tests/data/demo_resultsets/*
+tablemerge --column-hints $'species\nfamily\ncolor' tests/data/demo_resultsets/*
 
 tablemerge --column-hints-path hints.txt tests/data/demo_resultsets/*
 ```
@@ -367,13 +367,13 @@ Both flags can be combined; their hint lists are merged.
 `--hints-column-alignment` activates hints-based column renaming: if at least one non-empty value in the first non-empty row of a table with numeric column names matches a hint, all numeric columns are renamed to their normalized first-row values (even columns whose value is not in the hints list). This pass runs before all other alignment steps:
 
 ```bash
-tablemerge --column-hints "species family color" --hints-column-alignment tests/data/demo_resultsets/*
+tablemerge --column-hints $'species\nfamily\ncolor' --hints-column-alignment tests/data/demo_resultsets/*
 ```
 
 When `--remove-header-rows` is combined with hints, any row containing at least one non-semantic cell value that matches a hint is also removed, in addition to the usual semantic-column check:
 
 ```bash
-tablemerge --column-hints "species family color" --remove-header-rows tests/data/demo_resultsets/*
+tablemerge --column-hints $'species\nfamily\ncolor' --remove-header-rows tests/data/demo_resultsets/*
 ```
 
 ####  1.4.4. <a name='Schema'></a>Schema
@@ -381,12 +381,12 @@ tablemerge --column-hints "species family color" --remove-header-rows tests/data
 `-p` accepts either a file path or an inline schema string:
 
 ```bash
-tablemerge -p "family:str species:str" --filter-schema-columns tests/data/demo_resultsets/*
+tablemerge -p $'family:str\nspecies:str' --filter-schema-columns tests/data/demo_resultsets/*
 
 tablemerge -p tests/data/demo_schema.txt --filter-schema-columns tests/data/demo_resultsets/*
 ```
 
-A schema is a whitespace- or comma-separated list of `column:type` pairs. Supported types:
+A schema is one `column:type` per line. `#` comments are allowed. Supported types:
 
 | Type              | Description                                         |
 |-------------------|-----------------------------------------------------|
@@ -395,6 +395,9 @@ A schema is a whitespace- or comma-separated list of `column:type` pairs. Suppor
 | `float`           | Floating-point number                               |
 | `bool`            | Boolean                                             |
 | `scientific_name` | Taxonomic name in binomial nomenclature (see below) |
+| `enum:v1,v2,...`  | One of a fixed set of comma-separated values        |
+| `example:v1,...`  | Hints at example values; accepts any value          |
+| `regexp:pattern`  | Matches a regular expression                        |
 
 ##### `scientific_name` type
 

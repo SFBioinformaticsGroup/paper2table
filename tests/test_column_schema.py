@@ -54,7 +54,7 @@ def test_serialize_returns_string_type_names():
 
 
 def test_parse_pydantic_plain_types_use_ellipsis():
-    result = ColumnSchema.parse_pydantic("family:str count:int")
+    result = ColumnSchema.parse_pydantic("family:str\ncount:int")
     assert result["family"] == (str, ...)
     assert result["count"] == (int, ...)
 
@@ -79,7 +79,7 @@ def test_parse_scientific_name_type():
     assert isinstance(schema.column_type("species"), ScientificNameColumnType)
 
 def test_parse_enum_type():
-    schema = ColumnSchema.parse("color:enum:red;blue;green")
+    schema = ColumnSchema.parse("color:enum:red,blue,green")
     color_type = schema.column_type("color")
     assert isinstance(color_type, EnumColumnType)
     assert color_type.matches_value("red") is True
@@ -87,7 +87,7 @@ def test_parse_enum_type():
 
 
 def test_parse_example_type():
-    schema = ColumnSchema.parse("color:example:red;blue;green")
+    schema = ColumnSchema.parse("color:example:red,blue,green")
     color_type = schema.column_type("color")
     assert isinstance(color_type, ExampleColumnType)
     assert color_type.matches_value("red") is True
@@ -103,8 +103,8 @@ def test_parse_regexp_type():
 
 
 def test_parse_enum_preserves_values_in_order():
-    schema = ColumnSchema.parse("color:enum:red;blue;green")
-    assert schema.serialize() == {"color": "enum:red;blue;green"}
+    schema = ColumnSchema.parse("color:enum:red,blue,green")
+    assert schema.serialize() == {"color": "enum:red,blue,green"}
 
 
 def test_parse_regexp_round_trips():
@@ -148,7 +148,7 @@ def test_unsupported_type_raises_value_error():
 
 def test_from_settings_dict_with_enum():
     schema = ColumnSchema.from_settings_dict(
-        {"color": "enum:red;blue;green", "family": "str"}
+        {"color": "enum:red,blue,green", "family": "str"}
     )
     assert schema is not None
     assert isinstance(schema.column_type("color"), EnumColumnType)
@@ -161,7 +161,7 @@ def test_column_schema_from_settings_dict_empty():
 
 
 def test_column_schema_from_settings_dict_round_trip():
-    original_schema = ColumnSchema.parse("family:str,count:int,name:scientific_name")
+    original_schema = ColumnSchema.parse("family:str\ncount:int\nname:scientific_name")
     serialized = original_schema.serialize()
     reconstructed = ColumnSchema.from_settings_dict(serialized)
     assert reconstructed is not None

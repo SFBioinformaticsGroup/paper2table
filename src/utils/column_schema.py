@@ -60,7 +60,8 @@ class ColumnSchema:
                 )
             [name, type_name, *args] = tokens.split(":", 3)
             columns[name] = ColumnSchema._parse_column_type(
-                type_name, args[0].split(";") if args else []
+                type_name,
+                [value.strip() for value in args[0].split(",")] if args else [],
             )
         return ColumnSchema(columns)
 
@@ -75,7 +76,7 @@ class ColumnSchema:
     def from_settings_dict(schema_dict: dict[str, str]) -> Optional["ColumnSchema"]:
         if not schema_dict:
             return None
-        return ColumnSchema.parse(" ".join(f"{k}:{v}" for k, v in schema_dict.items()))
+        return ColumnSchema.parse("\n".join(f"{k}:{v}" for k, v in schema_dict.items()))
 
     @staticmethod
     def parse_pydantic(schema_str: str) -> dict[str, tuple[Any, ...]]:

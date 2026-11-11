@@ -99,13 +99,13 @@ def parse_args():
         "-s",
         "--schema",
         type=str,
-        help="table schema in the form column:type. Only used by agent or hybrid reader",
+        help="table schema, one 'column:type' per line. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-p",
         "--schema-path",
         type=str,
-        help="path to table schema in the form column:type. Only used by agent or hybrid reader",
+        help="path to table schema, one 'column:type' per line. Only used by agent or hybrid reader",
     )
     parser.add_argument(
         "-M",

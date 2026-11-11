@@ -18,7 +18,7 @@ def add_postprocessor_args(parser: ArgumentParser) -> None:
         "--schema",
         type=str,
         help=(
-            "Inline schema with column:type pairs. "
+            "Inline schema, one 'column:type' per line. "
             "Required by --filter-schema-columns, --order-schema-columns, "
             "and --coerce-schema-column-types."
         ),
@@ -27,7 +27,7 @@ def add_postprocessor_args(parser: ArgumentParser) -> None:
         "-p",
         "--schema-path",
         type=str,
-        help="Path to a schema file with column:type pairs (same format as --schema).",
+        help="Path to a schema file with one 'column:type' per line (same format as --schema).",
     )
     parser.add_argument(
         "--filter-schema-columns",

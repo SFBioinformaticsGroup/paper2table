@@ -1512,7 +1512,7 @@ def test_parse_paper_aliases_with_offset():
 
 
 def test_parse_paper_aliases_multiple_with_mixed_offsets():
-    assert parse_paper_aliases("x:y:3 a:b") == {
+    assert parse_paper_aliases("x:y:3\na:b") == {
         "x": PaperAlias(canonical="y", offset=3),
         "a": PaperAlias(canonical="b", offset=0),
     }

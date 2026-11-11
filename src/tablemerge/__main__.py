@@ -395,7 +395,7 @@ def parse_args():
     parser.add_argument(
         "--column-aliases",
         type=str,
-        help='Inline alias mappings, e.g. "familia:family especie:species"',
+        help='Inline alias mappings, one "alias:target" per line',
     )
     parser.add_argument(
         "--column-aliases-path",
@@ -405,7 +405,7 @@ def parse_args():
     parser.add_argument(
         "--column-hints",
         type=str,
-        help="Inline column name hints, e.g. 'species family color'",
+        help="Inline column name hints, one per line",
     )
     parser.add_argument(
         "--column-hints-path",
@@ -426,8 +426,8 @@ def parse_args():
         "--paper-aliases",
         type=str,
         help=(
-            'Inline basename alias mappings, e.g. "paper_v1:paper". '
-            'Optional third part sets a page offset: "x:y:3" means page N in x '
+            "Inline basename alias mappings, one 'alias:canonical[:offset]' per line. "
+            "Optional third part sets a page offset: 'x:y:3' means page N in x "
             "corresponds to page N+3 in y."
         ),
     )
