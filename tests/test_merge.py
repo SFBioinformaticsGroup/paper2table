@@ -819,36 +819,6 @@ def test_merge_different_rows_that_already_have_agreement_multivalued():
     )
 
 
-def test_is_empty_row_all_empty_strings():
-    assert Row(family="", scientific_name="").is_empty()
-
-
-def test_is_empty_row_whitespace_only():
-    assert Row(family="  ", scientific_name="\t").is_empty()
-
-
-def test_is_empty_row_none_values():
-    assert Row(family=None, scientific_name=None).is_empty()
-
-
-def test_is_empty_row_metadata_fields_ignored():
-    assert Row(family="", agreement_level_=2, sources_=["abc"]).is_empty()
-
-
-def test_is_empty_row_not_empty_when_has_data():
-    assert not Row(family="Apiaceae", scientific_name="").is_empty()
-
-
-def test_is_empty_row_value_with_agreement_all_empty():
-    assert Row(family=[ValueWithAgreement(value="", agreement_level=1)]).is_empty()
-
-
-def test_is_empty_row_value_with_agreement_has_data():
-    assert not Row(
-        family=[ValueWithAgreement(value="Apiaceae", agreement_level=1)]
-    ).is_empty()
-
-
 def test_merge_filters_empty_rows_from_single_table():
     table = [
         Row(family="Apiaceae", scientific_name=""),

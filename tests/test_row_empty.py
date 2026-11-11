@@ -62,6 +62,14 @@ def test_is_empty_false_when_any_column_is_a_na_value():
     assert row.is_na() is True
 
 
+def test_is_empty_ignores_metadata_fields():
+    assert Row(family="", agreement_level_=2, sources_=["abc"]).is_empty() is True
+
+
+def test_is_empty_false_when_row_has_data():
+    assert Row(family="Apiaceae", scientific_name="").is_empty() is False
+
+
 def test_is_empty_ignores_custom_na_values():
     configure_na_values(["no observado"])
 
