@@ -1,7 +1,8 @@
 from .str import normalize_str
 
 # TODO handle other languages
-NO_DATA_EXPRESSIONS = {"no data", "none", "not identified"}
+NO_DATA_EXPRESSIONS = {"no data", "none", "n/a", "not identified", "not collected", "undefined"}
+
 
 
 def normalize_column_value(value: str) -> str:
