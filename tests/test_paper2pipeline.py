@@ -14,7 +14,14 @@ from paper2pipeline.pipeline import (
     Pipeline,
     load_pipeline,
 )
-from paper2pipeline.runner import apply_page_ranges, build_extract_args, build_merge_args, find_file
+from paper2pipeline.runner import (
+    apply_page_ranges,
+    build_extract_args,
+    build_gather_args,
+    build_merge_args,
+    find_file,
+    get_na_values,
+)
 from paper2table import __version__
 
 
@@ -322,3 +329,83 @@ def test_apply_page_ranges_leaves_all_files_unchanged_when_no_match():
 def test_apply_page_ranges_returns_original_list_when_none():
     result = apply_page_ranges(["/papers/alpha.pdf"], None)
     assert result == ["/papers/alpha.pdf"]
+
+
+def test_pipeline_accepts_na_values_field(tmp_path):
+    pipeline_file = tmp_path / "pipeline.json"
+    pipeline_file.write_text(
+        json.dumps(
+            {"working_path": "x", "na_values": ["none", "no observado"]}
+        )
+    )
+    pipeline = load_pipeline(str(pipeline_file))
+    assert pipeline.na_values == ["none", "no observado"]
+
+
+def test_pipeline_na_values_defaults_to_none():
+    assert Pipeline(working_path="x").na_values is None
+
+
+def test_get_na_values_uses_inline_list(tmp_path):
+    args = get_na_values(["none", "no observado"], tmp_path)
+    assert args == ["--na-values", "none\nno observado"]
+
+
+def test_get_na_values_falls_back_to_file(tmp_path):
+    (tmp_path / "na.txt").write_text("none\n", encoding="utf-8")
+    args = get_na_values(None, tmp_path)
+    assert args == ["--na-values-path", str(tmp_path / "na.txt")]
+
+
+def test_get_na_values_returns_empty_when_absent(tmp_path):
+    assert get_na_values(None, tmp_path) == []
+
+
+def test_get_na_values_inline_takes_precedence_over_file(tmp_path):
+    (tmp_path / "na.txt").write_text("other\n", encoding="utf-8")
+    args = get_na_values(["none"], tmp_path)
+    assert args == ["--na-values", "none"]
+
+
+def test_build_extract_args_appends_na_values_args(tmp_path):
+    run = ExtractRun()
+    args = build_extract_args(
+        run,
+        None,
+        tmp_path,
+        ["paper.pdf"],
+        na_values=["--na-values", "none\nno observado"],
+    )
+    index = args.index("--na-values")
+    assert args[index + 1] == "none\nno observado"
+
+
+def test_build_merge_args_appends_na_values_args(tmp_path):
+    config = MergeConfig()
+    args = build_merge_args(
+        config,
+        tmp_path,
+        None,
+        na_values=["--na-values-path", "/tmp/e.txt"],
+    )
+    index = args.index("--na-values-path")
+    assert args[index + 1] == "/tmp/e.txt"
+
+
+def test_build_gather_args_appends_na_values_args(tmp_path):
+    config = GatherConfig()
+    args = build_gather_args(
+        config,
+        tmp_path,
+        None,
+        na_values=["--na-values", "none"],
+    )
+    index = args.index("--na-values")
+    assert args[index + 1] == "none"
+
+
+def test_build_extract_args_omits_na_values_when_not_provided(tmp_path):
+    run = ExtractRun()
+    args = build_extract_args(run, None, tmp_path, ["paper.pdf"])
+    assert "--na-values" not in args
+    assert "--na-values-path" not in args

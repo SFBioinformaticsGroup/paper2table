@@ -1,9 +1,19 @@
+import argparse
 import sys
+from argparse import ArgumentParser
+from pathlib import Path
+from typing import cast
+
 from utils.column_schema import ColumnSchema
+from utils.column_values import (
+    DEFAULT_NA_VALUES,
+    configure_na_values,
+    parse_na_values,
+)
 from utils.postprocessor import PostProcessor, build_postprocessors
 
 
-def add_postprocessor_args(parser) -> None:
+def add_postprocessor_args(parser: ArgumentParser) -> None:
     parser.add_argument(
         "--schema",
         type=str,
@@ -61,6 +71,43 @@ def add_postprocessor_args(parser) -> None:
         dest="drop_empty_tables",
         default=True,
         help="Skip dropping tables that are entirely empty",
+    )
+
+
+class ConfigureNoDataExpressionsAction(argparse.Action):
+    """Parse the inline string and reconfigure NA_VALUES at parse time."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        configure_na_values(parse_na_values(cast(str, values)))
+        setattr(namespace, self.dest, values)
+
+
+class ConfigureNoDataExpressionsPathAction(argparse.Action):
+    """Read the file and reconfigure NA_VALUES at parse time."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        text = Path(cast(str, values)).read_text(encoding="utf-8")
+        configure_na_values(parse_na_values(text))
+        setattr(namespace, self.dest, values)
+
+
+def add_na_values_args(parser: ArgumentParser) -> None:
+    parser.add_argument(
+        "--na-values",
+        action=ConfigureNoDataExpressionsAction,
+        help=(
+            "Newline-separated list of expressions to treat as empty, "
+            f"REPLACING the defaults ({",".join(DEFAULT_NA_VALUES)}). "
+            "Use --na-values-path for a file."
+        ),
+    )
+    parser.add_argument(
+        "--na-values-path",
+        action=ConfigureNoDataExpressionsPathAction,
+        help=(
+            "Path to a file with one na value per line "
+            "(same format as --na-values)."
+        ),
     )
 
 

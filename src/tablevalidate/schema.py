@@ -84,6 +84,9 @@ class Row(BaseModel):
     def is_empty(self) -> bool:
         return all(Row.is_empty_value(v) for v in self.get_column_values())
 
+    def is_blank(self) -> bool:
+        return all(Row.is_blank_value(v) for v in self.get_column_values())
+
     def get_agreement_level(self):
         return 1 if self.agreement_level_ is None else self.agreement_level_
 
@@ -181,6 +184,23 @@ class Row(BaseModel):
 
         if isinstance(value, str):
             return not normalize_column_value(value)
+
+        return False
+
+    @staticmethod
+    def is_blank_value(value: ColumnValue) -> bool:
+        """True only for None, blank strings, and lists of none or blanks"""
+        if value is None:
+            return True
+
+        if isinstance(value, list):
+            return all(
+                v.value is None or (isinstance(v.value, str) and not v.value.strip())
+                for v in value
+            )
+
+        if isinstance(value, str):
+            return not value.strip()
 
         return False
 

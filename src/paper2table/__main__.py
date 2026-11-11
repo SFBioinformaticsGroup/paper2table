@@ -26,6 +26,7 @@ from paper2table.readers.errors import ModelUnavailableError, PartialProcessingE
 from paper2table.tables_reader import TablesReader
 from paper2table.writers import file, stdout, tablemerge
 from paper2table.writers.tablemerge import TablemergeMetadata, reader_slug
+from utils.cli import add_na_values_args
 from utils.handle_sigint import handle_sigint
 
 __author__ = "Franco Leonardo Bulgarelli"
@@ -183,6 +184,7 @@ def parse_args():
         action="version",
         version=f"paper2table {__version__}",
     )
+    add_na_values_args(parser)
     return parser.parse_args()
 
 

@@ -1210,3 +1210,21 @@ def test_sort_stats_no_keys_preserves_order():
     )
     sort_stats(stats, [])
     assert list(stats.papers_stats.keys()) == ["a.tables.json", "b.tables.json"]
+
+
+def test_empty_rows_percentage_treats_only_blank_values_as_empty():
+    paper = make_paper(
+        [
+            {
+                "rows": [
+                    {"family": ""},
+                    {"family": None},
+                    {"family": "none"},
+                    {"family": "Apiaceae"},
+                ],
+                "page": 1,
+            }
+        ]
+    )
+    stats = compute_paper_stats(paper)
+    assert stats.empty_rows_percentage == 50.0

@@ -338,6 +338,20 @@ tablemerge --column-aliases-path aliases.txt tests/data/demo_resultsets/*
 
 Both flags can be used together; the file takes precedence on conflicts.
 
+#### N/A values
+
+`--na-values` and `--na-values-path` let you **replace** (not extend) the list of strings that are treated as empty cells during merging. The default list is `no data`, `none`, `not identified`, `not collected`, `n/a`, `undetermined`, `undefined`. Passing the flag with any value discards the defaults entirely.
+
+The inline form expects one expression per newline (values with embedded spaces survive, unlike the schema/aliases format):
+
+```bash
+tablemerge --na-values $'none\nno observado\ndesconocido' tests/data/demo_resultsets/*
+
+tablemerge --na-values-path na.txt tests/data/demo_resultsets/*
+```
+
+`paper2table` and `tablegather` accept the same two flags. `tablestats` and `table2html` deliberately ignore this list: they consider only `None` and whitespace-only strings as empty.
+
 ####  1.4.3. <a name='Columnnamehints'></a>Column name hints
 
 `--column-hints` and `--column-hints-path` supply the expected column names for runs that produced only numeric column names (`0`, `1`, …). Hints use the same format as the `-c` flag in `paper2table` (whitespace- or comma-separated, `#` comments allowed):
@@ -680,7 +694,8 @@ ${working_path}/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `working_path` | `str` | Base directory. PDFs in `${working_path}/papers/`; schema auto-detected from `${working_path}/schema.txt` (absent or empty = no schema); `column_hints.txt`, `column_aliases.txt`, and `paper_aliases.txt` are also auto-detected when present and non-empty |
+| `working_path` | `str` | Base directory. PDFs in `${working_path}/papers/`; schema auto-detected from `${working_path}/schema.txt` (absent or empty = no schema); `column_hints.txt`, `column_aliases.txt`, `paper_aliases.txt`, and `na.txt` are also auto-detected when present and non-empty |
+| `na_values` | `list[str]` | Optional. Replaces the default na values (`no data`, `none`, `not identified`, `not collected`, `n/a`, `undetermined`, `undefined`) used by tablemerge and tablegather when deciding whether a cell is empty. Threaded into every subprocess that accepts it (`paper2table`, `tablemerge`, `tablegather`). Falls back to `${working_path}/na.txt` (one expression per line) when omitted |
 | `normalize` | object | Optional. Run `filenorm` on `${working_path}/papers/` |
 | `extract` | object | Optional. Run one or more `paper2table` extraction passes |
 | `merge` | object | Optional. Run `tablemerge` across all extract runs |

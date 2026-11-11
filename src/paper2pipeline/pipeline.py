@@ -103,6 +103,7 @@ class Pipeline(BaseModel):
 
     working_path: str
     pretty: bool = False
+    na_values: list[str] | None = None
     normalize: NormalizeConfig | None = None
     extract: ExtractConfig | None = None
     merge: MergeConfig | None = None

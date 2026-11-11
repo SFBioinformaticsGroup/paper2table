@@ -37,7 +37,11 @@ from .errors import MergeError
 from .tablesfile_loader import TablesFileLoader
 from .tablesfile_merger import TablesFileMerger, merge_tablesfiles
 from utils.postprocessor import PostProcessor
-from utils.cli import add_postprocessor_args, build_postprocessors_from_args
+from utils.cli import (
+    add_na_values_args,
+    add_postprocessor_args,
+    build_postprocessors_from_args,
+)
 from .fragment_transformer import (
     FragmentTransformer,
     FilterEmptyRowsTransformer,
@@ -433,6 +437,7 @@ def parse_args():
         help="Path to a file with alias:target[:offset] basename mappings (one per line)",
     )
     add_postprocessor_args(parser)
+    add_na_values_args(parser)
     parser.add_argument(
         "--fix-reversed-column-values",
         action="store_true",

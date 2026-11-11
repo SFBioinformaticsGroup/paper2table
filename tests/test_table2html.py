@@ -461,3 +461,19 @@ def test_build_fragment_html_renders_int_cell():
     fragment = TableFragment(page=1, rows=[Row(count=42)])
     out = joined(build_fragment_html(1, fragment))
     assert "<td>42</td>" in out
+
+
+def test_fragment_keeps_rows_whose_only_value_is_na_value():
+    """table2html treats only "" / None as blank. A row with value "none"
+    is rendered, not hidden."""
+    fragment = TableFragment(
+        page=1,
+        rows=[
+            Row(species="Rosa"),
+            Row(species="none"),
+        ],
+    )
+    out = joined(build_fragment_html(1, fragment))
+    assert "Rosa" in out
+    assert "none" in out
+    assert "empty rows not shown" not in out

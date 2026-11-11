@@ -6,7 +6,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from tablevalidate.schema import TablesFile
-from utils.cli import add_postprocessor_args, build_postprocessors_from_args
+from utils.cli import (
+    add_na_values_args,
+    add_postprocessor_args,
+    build_postprocessors_from_args,
+)
 from utils.column_schema import ColumnSchema, try_parse_schema
 from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
@@ -88,6 +92,7 @@ def main():
     )
     parser.add_argument("--pretty", action="store_true", help="Indent JSON output")
     add_postprocessor_args(parser)
+    add_na_values_args(parser)
 
     args = parser.parse_args()
 

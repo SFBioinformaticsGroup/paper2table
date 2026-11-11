@@ -197,7 +197,7 @@ def compute_paper_stats(tablesfile: TablesFile) -> PaperStats:
         for fragment in all_fragments
     )
     empty_rows_count = sum(
-        sum(1 for row in fragment.rows if row.is_empty()) for fragment in all_fragments
+        sum(1 for row in fragment.rows if row.is_blank()) for fragment in all_fragments
     )
     unique_columns = {
         col

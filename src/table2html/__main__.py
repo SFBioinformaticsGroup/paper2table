@@ -299,7 +299,7 @@ def build_fragment_html(
     id_attr = f' id="{anchor_id}"' if anchor_id else ""
     html = [f"<h4{id_attr}>Table {idx}, page {fragment.page}</h4>"]
     all_rows = fragment.rows
-    rows = [r for r in all_rows if not r.is_empty()]
+    rows = [r for r in all_rows if not r.is_blank()]
     skipped = len(all_rows) - len(rows)
     if not rows:
         html.append("<p><i>No rows</i></p>")

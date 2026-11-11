@@ -53,6 +53,18 @@ def find_file(basename: str, working_path: Path) -> str | None:
     return None
 
 
+def get_na_values(
+    expressions: list[str] | None, working_path: Path
+) -> list[str]:
+    """Return CLI args for --na-values[-path], or []."""
+    if expressions is not None:
+        return ["--na-values", "\n".join(expressions)]
+    path = find_file("na.txt", working_path)
+    if path:
+        return ["--na-values-path", path]
+    return []
+
+
 def run_stats(input_dir: Path, step_name: str) -> None:
     result = run_subprocess(
         ["tablestats", str(input_dir)], step_name=step_name, capture_output=True
@@ -144,6 +156,7 @@ def build_extract_args(
     working_path: Path,
     paper_files: list[str],
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> list[str]:
     args = [
         "paper2table",
@@ -181,6 +194,8 @@ def build_extract_args(
         args += ["-q"]
     if pretty:
         args += ["--pretty"]
+    if na_values:
+        args += na_values
     args += paper_files
     return args
 
@@ -191,6 +206,7 @@ def run_extract(
     paper_files: list[str],
     schema_path: str | None,
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> None:
     tables_dir = working_path / "tables"
     prepare_output_dir(tables_dir, config.override, "extract")
@@ -214,7 +230,12 @@ def run_extract(
         )
         run_subprocess(
             build_extract_args(
-                run, schema_path, working_path, effective_paper_files, pretty=pretty
+                run,
+                schema_path,
+                working_path,
+                effective_paper_files,
+                pretty=pretty,
+                na_values=na_values,
             ),
             step_name=f"extract run {i + 1}",
         )
@@ -241,6 +262,7 @@ def build_merge_args(
     working_path: Path,
     schema_path: str | None,
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> list[str]:
     tables_dir = working_path / "tables"
     merges_dir = working_path / "merges"
@@ -324,6 +346,8 @@ def build_merge_args(
 
     if pretty:
         args += ["--pretty"]
+    if na_values:
+        args += na_values
     args += input_dirs
     return args
 
@@ -333,13 +357,20 @@ def run_merge(
     working_path: Path,
     schema_path: str | None,
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> None:
     merges_dir = working_path / "merges"
     prepare_output_dir(merges_dir, config.override, "merge")
 
     print("[pipeline] merge", file=sys.stderr, flush=True)
     run_subprocess(
-        build_merge_args(config, working_path, schema_path, pretty=pretty),
+        build_merge_args(
+            config,
+            working_path,
+            schema_path,
+            pretty=pretty,
+            na_values=na_values,
+        ),
         step_name="merge",
     )
 
@@ -358,6 +389,7 @@ def build_gather_args(
     working_path: Path,
     schema_path: str | None,
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> list[str]:
     merges_dir = working_path / "merges"
     gathers_dir = working_path / "gathers"
@@ -391,6 +423,8 @@ def build_gather_args(
 
     if pretty:
         args += ["--pretty"]
+    if na_values:
+        args += na_values
     args += [str(merges_dir)]
     return args
 
@@ -400,13 +434,20 @@ def run_gather(
     working_path: Path,
     schema_path: str | None,
     pretty: bool = True,
+    na_values: list[str] | None = None,
 ) -> None:
     gathers_dir = working_path / "gathers"
     prepare_output_dir(gathers_dir, config.override, "gather")
 
     print("[pipeline] gather", file=sys.stderr, flush=True)
     run_subprocess(
-        build_gather_args(config, working_path, schema_path, pretty=pretty),
+        build_gather_args(
+            config,
+            working_path,
+            schema_path,
+            pretty=pretty,
+            na_values=na_values,
+        ),
         step_name="gather",
     )
 
@@ -421,6 +462,9 @@ def run_pipeline(pipeline: Pipeline) -> None:
     working_path.mkdir(parents=True, exist_ok=True)
 
     schema_path = find_file("schema.txt", working_path)
+    na_values = get_na_values(
+        pipeline.na_values, working_path
+    )
 
     if pipeline.normalize:
         run_normalize(pipeline.normalize, working_path)
@@ -434,16 +478,29 @@ def run_pipeline(pipeline: Pipeline) -> None:
             paper_files,
             schema_path,
             pretty=pipeline.pretty,
+            na_values=na_values,
         )
 
     # TODO validate that: there is at least one extract.
     # Also, if there is more than one extract and gather is present,
     # that there must be one merge
     if pipeline.merge:
-        run_merge(pipeline.merge, working_path, schema_path, pretty=pipeline.pretty)
+        run_merge(
+            pipeline.merge,
+            working_path,
+            schema_path,
+            pretty=pipeline.pretty,
+            na_values=na_values,
+        )
 
     if pipeline.gather:
-        run_gather(pipeline.gather, working_path, schema_path, pretty=pipeline.pretty)
+        run_gather(
+            pipeline.gather,
+            working_path,
+            schema_path,
+            pretty=pipeline.pretty,
+            na_values=na_values,
+        )
 
     if pipeline.readme is not None:
         write_readme(pipeline, schema_path, override=pipeline.readme.override)
