@@ -9,6 +9,7 @@ from tablevalidate.schema import (
     Citation,
     Curation,
     Row,
+    ScalarValue,
     TablesFile,
     TableFragment,
     ValueWithAgreement,
@@ -152,7 +153,9 @@ _ROW_PALETTE_SIZE = 5
 _CELL_TRUNCATE_LENGTH = 140
 
 
-def truncate_cell(value: str) -> tuple[str, str]:
+def truncate_cell(value: ScalarValue) -> tuple[str, str]:
+    if not isinstance(value, str):
+        return Row.to_text(value), ""
     if len(value) <= _CELL_TRUNCATE_LENGTH:
         return value, ""
     display = value[:_CELL_TRUNCATE_LENGTH] + "…"
