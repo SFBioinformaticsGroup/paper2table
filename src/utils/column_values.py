@@ -22,15 +22,11 @@ NA_VALUES = set(DEFAULT_NA_VALUES)
 def configure_na_values(values: Iterable[str]) -> None:
     """Replace the module-level NA_VALUES set."""
     NA_VALUES.clear()
-    NA_VALUES.update(normalize_str(expression).lower() for expression in values)
+    NA_VALUES.update(values)
 
 
 def parse_na_values(text: str) -> list[str]:
-    """Parse a newline-separated list of na values.
-
-    Blank lines and '#' comments (full-line or inline) are ignored.
-    """
-    return tokenize_schema(text)
+    return [normalize_str(value).lower() for value in tokenize_schema(text)]
 
 
 def normalize_column_value(value: str) -> str:

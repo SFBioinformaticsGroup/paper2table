@@ -35,17 +35,18 @@ def test_configure_na_values_replaces_defaults_completely():
     assert normalize_column_value("n/a") == "n/a"
 
 
-def test_configure_na_values_normalizes_entries():
-    configure_na_values(["  No Observado  "])
-
-    assert normalize_column_value("no observado") == ""
-
-
 def test_parse_na_values_returns_newline_separated_entries():
     assert parse_na_values("none\nn/a\nno observado") == [
         "none",
         "n/a",
         "no observado",
+    ]
+
+
+def test_parse_na_values_normalizes_entries():
+    assert parse_na_values("  No Observado  \nDESCONOCIDO") == [
+        "no observado",
+        "desconocido",
     ]
 
 
