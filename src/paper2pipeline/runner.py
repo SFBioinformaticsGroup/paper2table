@@ -10,8 +10,8 @@ from .pipeline import (
     MergeConfig,
     NormalizeConfig,
     Pipeline,
+    ReadmeConfig,
 )
-from .readme import write_readme
 
 
 class PipelineError(Exception):
@@ -457,6 +457,42 @@ def run_gather(
         run_export(gathers_dir, config.export, step_name="gather export")
 
 
+def run_readme(
+    config: ReadmeConfig,
+    working_path: Path,
+    schema_path: str | None,
+    merge_config: MergeConfig | None,
+) -> None:
+    args = [
+        "table2readme",
+        "-o",
+        str(working_path / "README.md"),
+    ]
+    merges_dir = working_path / "merges"
+    tables_dir = working_path / "tables"
+    gathers_dir = working_path / "gathers"
+    if merges_dir.exists():
+        args += ["--merges-path", str(merges_dir)]
+    if tables_dir.exists():
+        args += ["--tables-path", str(tables_dir)]
+    if gathers_dir.exists():
+        args += ["--gathers-path", str(gathers_dir)]
+    if schema_path:
+        args += ["-p", schema_path]
+    if merge_config and merge_config.column_aliases:
+        args += ["--column-aliases", merge_config.column_aliases]
+    elif merge_config and merge_config.column_aliases_path:
+        args += ["--column-aliases-path", merge_config.column_aliases_path]
+    else:
+        aliases_path = find_file("column_aliases.txt", working_path)
+        if aliases_path:
+            args += ["--column-aliases-path", aliases_path]
+    if config.override:
+        args.append("--override")
+    print("[pipeline] readme", file=sys.stderr, flush=True)
+    run_subprocess(args, step_name="readme")
+
+
 def run_pipeline(pipeline: Pipeline) -> None:
     working_path = Path(pipeline.working_path)
     working_path.mkdir(parents=True, exist_ok=True)
@@ -503,4 +539,4 @@ def run_pipeline(pipeline: Pipeline) -> None:
         )
 
     if pipeline.readme is not None:
-        write_readme(pipeline, schema_path, override=pipeline.readme.override)
+        run_readme(pipeline.readme, working_path, schema_path, pipeline.merge)

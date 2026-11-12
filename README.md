@@ -16,6 +16,7 @@
 - `table2html`: a command for generating simple extracted data visualizations
 - `table2csv`: a command for exporting tables to csv files
 - `table2example`: a command for sampling example values per column
+- `table2readme`: a command for generating a project README scaffold from an extraction working directory
 - `tablevalidate`: a command for validating tables files
 
 
@@ -41,6 +42,7 @@
 		* 1.8.3. [Convergence filter](#Convergencefilter)
 		* 1.8.4. [Metadata](#Metadata)
 	* 1.9. [Running a pipeline](#Runningapipeline)
+	* 1.10. [Generating a README](#GeneratingaREADME)
 * 2. [Development](#Development)
 	* 2.1. [Running tests](#Runningtests)
 	* 2.2. [Type checking](#Typechecking)
@@ -810,6 +812,37 @@ A JSON schema for the pipeline file format is provided at [schema/pipeline.schem
 ```
 
 This is already configured in the project's `.vscode/settings.json`.
+
+###  1.10. <a name='GeneratingaREADME'></a>Generating a README
+
+`table2readme` produces a `README.md` scaffold documenting an extraction project. It is the standalone command that `paper2pipeline`'s `readme` step invokes under the hood.
+
+```bash
+# minimal invocation: writes ./README.md with placeholder tables
+$ table2readme
+
+# point at the inputs you actually have (any flag you omit is not inspected)
+$ table2readme \
+    --merges-path path/to/merges \
+    --tables-path path/to/tables \
+    --gathers-path path/to/gathers \
+    -p schema.txt \
+    --column-aliases-path column_aliases.txt
+
+# replace an existing README
+$ table2readme --merges-path path/to/merges --override
+
+# write to a specific path
+$ table2readme --merges-path path/to/merges -o path/to/project/README.md
+```
+
+Each path flag drives a specific part of the output:
+
+- `--merges-path` → **Papers used** citations, read from the top-level `.citation` field of each `*.tables.json`.
+- `--tables-path` → **Tools and version** readers and model identifiers (scans `*/tables.metadata.json`; handles `hybrid-<reader>-<provider>:<model>` slugs).
+- `--gathers-path` / `--merges-path` / `--tables-path` → **Files** section (priority: gathers > merges > tables; each contributes a bullet only if a `csv/` subdir exists beneath it).
+
+`paper2table` and `spacy` versions are always listed in the Tools section. Without `--override`, `table2readme` leaves an existing output file untouched.
 
 ##  2. <a name='Development'></a>Development
 
