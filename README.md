@@ -629,6 +629,7 @@ ${working_path}/
   column_hints.txt  # optional column name hints; absent or empty = not used
   column_aliases.txt # optional column aliases; absent or empty = not used
   paper_aliases.txt  # optional paper aliases; absent or empty = not used
+  na.txt             # optional empty-cell expressions; absent or empty = defaults used
   tables/
     ${uuid}/       # one per extract run
       *.tables.json

@@ -8,12 +8,20 @@
   "properties": {
     "working_path": {
       "type": "string",
-      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. schema.txt, column_hints.txt, column_aliases.txt, and paper_aliases.txt are auto-read from ${working_path} when they exist and are non-empty."
+      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. schema.txt, column_hints.txt, column_aliases.txt, paper_aliases.txt, and na.txt are auto-read from ${working_path} when they exist and are non-empty."
     },
     "pretty": {
       "type": "boolean",
       "default": false,
       "description": "Indent JSON output from all tools that support --pretty."
+    },
+    "na_values": {
+      "anyOf": [
+        { "type": "array", "items": { "type": "string" } },
+        { "type": "null" }
+      ],
+      "default": null,
+      "description": "Replaces the default empty-cell expressions used by tablemerge and tablegather. Threaded into every subprocess that accepts it (paper2table, tablemerge, tablegather). Falls back to ${working_path}/na.txt (one expression per line, # comments) when omitted."
     },
     "normalize": {
       "anyOf": [{ "$ref": "#/$defs/NormalizeConfig" }, { "type": "null" }],
