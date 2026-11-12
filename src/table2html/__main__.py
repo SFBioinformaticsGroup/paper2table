@@ -199,9 +199,12 @@ def build_data_rows(
                 values = multivalued[col]
                 if i < len(values):
                     val_entry = values[i]
-                    css_class = relative_agreement_css_class(val_entry.agreement_level / (row.agreement_level_ or 1))
                     display, title_attr = truncate_cell(val_entry.value)
-                    html.append(f"<td class='{css_class}'{title_attr}>{display}</td>")
+                    if Row.is_empty_value(val_entry.value):
+                        html.append(f"<td{title_attr}>{display}</td>")
+                    else:
+                        css_class = relative_agreement_css_class(val_entry.agreement_level / (row.agreement_level_ or 1))
+                        html.append(f"<td class='{css_class}'{title_attr}>{display}</td>")
                 else:
                     html.append("<td></td>")
             elif i == 0:

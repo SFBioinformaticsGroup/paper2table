@@ -320,6 +320,29 @@ def test_build_data_rows_no_curation_icon_when_null():
     ]
 
 
+def test_build_data_rows_empty_multivalued_cell_has_no_agreement_class():
+    row = Row(
+        agreement_level_=2,
+        species=[
+            ValueWithAgreement(value="Rosa", agreement_level=2),
+            ValueWithAgreement(value="   ", agreement_level=2),
+            ValueWithAgreement(value=None, agreement_level=2),
+        ],
+    )
+    out = build_data_rows(row, ["species"])
+    assert out == [
+        "<tr>",
+        "<td class='high'>Rosa</td>",
+        "</tr>",
+        "<tr>",
+        "<td>   </td>",
+        "</tr>",
+        "<tr>",
+        "<td></td>",
+        "</tr>",
+    ]
+
+
 def test_paper_curations_html_empty_omits_section():
     assert build_paper_curations_html([]) == []
 
