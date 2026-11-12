@@ -133,7 +133,7 @@ def test_parse_regexp_type_preserves_space_in_pattern():
 
 
 def test_parse_regexp_type_preserves_comma_in_pattern():
-    schema = ColumnSchema.parse(r"size:regexp:\d+,\d+")
+    schema = ColumnSchema.parse(r"size:regexp:\d+\,\d+")
     assert schema.serialize() == {"size": r"regexp:\d+,\d+"}
 
 
@@ -173,6 +173,22 @@ def test_parse_multiple_columns_with_enum():
     assert isinstance(schema.column_type("family"), StrColumnType)
     assert schema.column_type("color").matches_value("red") is True
     assert schema.column_type("color").matches_value("purple") is False
+
+
+def test_parse_enum_escaped_comma_keeps_value_intact():
+    schema = ColumnSchema.parse(r"color:enum:agua\,marina,azul")
+    color_type = schema.column_type("color")
+    assert isinstance(color_type, EnumColumnType)
+    assert color_type.matches_value("agua,marina") is True
+    assert color_type.matches_value("azul") is True
+
+
+def test_parse_regexp_escaped_comma_keeps_pattern_intact():
+    schema = ColumnSchema.parse(r"size:regexp:\d+\,\d+")
+    size_type = schema.column_type("size")
+    assert isinstance(size_type, RegexpColumnType)
+    assert size_type.matches_value("12,34") is True
+    assert size_type.matches_value("abc") is False
 
 
 def test_unsupported_type_raises_value_error():

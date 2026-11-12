@@ -1,3 +1,4 @@
+import re
 from typing import Any, Optional
 
 from pydantic import Field
@@ -14,6 +15,9 @@ from utils.regexp_type import RegexpColumnType
 from utils.read_path import read_path
 from utils.scientific_name_type import ScientificNameColumnType
 from utils.tokenize_schema import tokenize_schema
+
+
+_payload_separator = re.compile(r"(?<!\\),")
 
 
 _types_map: dict[str, type[ColumnType]] = {
@@ -58,10 +62,18 @@ class ColumnSchema:
                 raise ValueError(
                     f"Invalid field specifier: {tokens}. Verify your schema"
                 )
-            [name, type_name, *args] = tokens.split(":", 3)
+
+            [name, type_name, *payload] = tokens.split(":", 2)
             columns[name] = ColumnSchema._parse_column_type(
                 type_name,
-                [value.strip() for value in args[0].split(",")] if args else [],
+                (
+                    [
+                        value.strip().replace("\\,", ",")
+                        for value in _payload_separator.split(payload[0])
+                    ]
+                    if len(payload) == 1
+                    else []
+                ),
             )
         return ColumnSchema(columns)
 
