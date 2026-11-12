@@ -26,6 +26,7 @@ class MergeSettings:
     fix_reversed_column_values: bool = False
     hints_column_alignment: bool = False
     jaccard_column_alignment: bool = False
+    na_values: Optional[str] = None
     normalize_punctuation: bool = False
     filter_semantic_columns: bool = False
     order_schema_columns: bool = False
@@ -58,6 +59,7 @@ class MergeSettings:
                 "column_hints": read_path(
                     args.column_hints_path, inline=args.column_hints
                 ),
+                "na_values": read_path(args.na_values_path, inline=args.na_values),
                 "schema": read_path(args.schema_path, inline=args.schema),
             }
         )

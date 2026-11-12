@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from pathlib import Path
 from uuid import uuid4
 
+from utils.column_values import configure_na_values, parse_na_values
 from utils.jsonc import load_jsonc
 from utils.read_path import read_path
 from tablevalidate.schema import TablesFile
@@ -557,6 +558,9 @@ def parse_default_settings() -> Optional[MergeSettings]:
 
 def main():
     args = parse_args()
+    na_values_text = read_path(args.na_values_path, inline=args.na_values)
+    if na_values_text is not None:
+        configure_na_values(parse_na_values(na_values_text))
     schema: ColumnSchema | None = try_parse_schema(args)
 
     if args.column_name_semantic_alignment and schema is None:

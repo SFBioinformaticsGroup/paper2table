@@ -32,6 +32,8 @@ def test_from_args_maps_fields_and_ignores_extras():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        na_values=None,
+        na_values_path=None,
         schema="family:str",
         schema_path=None,
         paths=["dir1", "dir2"],
@@ -82,6 +84,8 @@ def test_from_args_reads_schema_from_path():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        na_values=None,
+        na_values_path=None,
         schema=None,
         schema_path="tests/data/demo_schema.txt",
         paths=["dir1"],
@@ -124,6 +128,8 @@ def test_from_args_paths_stored_as_list():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        na_values=None,
+        na_values_path=None,
         schema=None,
         schema_path=None,
         paths=["paper_a/output", "paper_b/output", "paper_c/output"],
@@ -136,6 +142,100 @@ def test_from_args_paths_stored_as_list():
     )
     settings = MergeSettings.from_args(args)
     assert settings.paths == ["paper_a/output", "paper_b/output", "paper_c/output"]
+
+
+def test_from_args_captures_inline_na_values():
+    args = Namespace(
+        drop_empty_columns=True,
+        drop_empty_tables=True,
+        filter_semantic_columns=False,
+        remove_header_rows=False,
+        pretty=False,
+        filter_title_rows=True,
+        jaccard_column_alignment=False,
+        column_alignment_threshold=0.5,
+        column_name_semantic_alignment=False,
+        column_value_semantic_alignment=False,
+        semantic_language="en",
+        hints_column_alignment=None,
+        fix_reversed_column_values=False,
+        strip_leading_row_numbers=False,
+        normalize_punctuation=False,
+        split_conjunction_columns=False,
+        transform_tablesfile=None,
+        filter_schema_columns=False,
+        order_schema_columns=False,
+        coerce_schema_column_types=False,
+        column_aliases=None,
+        column_aliases_path=None,
+        paper_aliases=None,
+        paper_aliases_path=None,
+        column_hints=None,
+        column_hints_path=None,
+        na_values="none\nn/a",
+        na_values_path=None,
+        schema=None,
+        schema_path=None,
+        paths=["dir1"],
+        output_directory=".",
+        metadata_only=False,
+        export_settings=False,
+        workers=1,
+        paper=None,
+        settings=False,
+    )
+    settings = MergeSettings.from_args(args)
+    assert settings.na_values == "none\nn/a"
+
+
+def test_from_args_reads_na_values_from_path():
+    args = Namespace(
+        drop_empty_columns=True,
+        drop_empty_tables=True,
+        filter_semantic_columns=False,
+        remove_header_rows=False,
+        pretty=False,
+        filter_title_rows=True,
+        jaccard_column_alignment=False,
+        column_alignment_threshold=0.5,
+        column_name_semantic_alignment=False,
+        column_value_semantic_alignment=False,
+        semantic_language="en",
+        hints_column_alignment=None,
+        fix_reversed_column_values=False,
+        strip_leading_row_numbers=False,
+        normalize_punctuation=False,
+        split_conjunction_columns=False,
+        transform_tablesfile=None,
+        filter_schema_columns=False,
+        order_schema_columns=False,
+        coerce_schema_column_types=False,
+        column_aliases=None,
+        column_aliases_path=None,
+        paper_aliases=None,
+        paper_aliases_path=None,
+        column_hints=None,
+        column_hints_path=None,
+        na_values=None,
+        na_values_path="tests/data/demo_na_values.txt",
+        schema=None,
+        schema_path=None,
+        paths=["dir1"],
+        output_directory=".",
+        metadata_only=False,
+        export_settings=False,
+        workers=1,
+        paper=None,
+        settings=False,
+    )
+    settings = MergeSettings.from_args(args)
+    assert settings.na_values == "n/a\nnone\nnot collected\n"
+
+
+def test_na_values_roundtrip_through_dict():
+    settings = MergeSettings.from_dict({"na_values": "n/a\nnone"})
+    assert settings.na_values == "n/a\nnone"
+    assert settings.to_dict()["na_values"] == "n/a\nnone"
 
 
 def test_from_dict_includes_paths():
@@ -162,6 +262,7 @@ def test_merge_settings_from_dict_defaults():
         filter_semantic_columns=False,
         remove_header_rows=False,
         column_hints=None,
+        na_values=None,
         schema=None,
         paper_aliases=None,
     )
