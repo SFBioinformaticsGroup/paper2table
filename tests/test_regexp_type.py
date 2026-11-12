@@ -9,8 +9,12 @@ def test_coerce_non_matching_value_returns_none():
     assert RegexpColumnType(r"\d+").coerce("abc") is None
 
 
-def test_coerce_partial_match_returns_none():
-    assert RegexpColumnType(r"\d+").coerce("123abc") is None
+def test_coerce_partial_match_returns_matched_substring():
+    assert RegexpColumnType(r"\d+").coerce("123abc") == "123"
+
+
+def test_coerce_returns_full_match_even_with_capture_group():
+    assert RegexpColumnType(r"(\d+)\s*cm").coerce("size 10 cm here") == "10 cm"
 
 
 def test_matches_value_returns_true_for_matching_value():
@@ -41,4 +45,5 @@ def test_complex_pattern():
     regexp_type = RegexpColumnType(r"\d+(\.\d+)?\s*(cm|mm)")
     assert regexp_type.coerce("10 cm") == "10 cm"
     assert regexp_type.coerce("3.5mm") == "3.5mm"
+    assert regexp_type.coerce("about 10 cm long") == "10 cm"
     assert regexp_type.coerce("blue") is None

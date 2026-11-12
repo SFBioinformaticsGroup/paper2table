@@ -6,8 +6,9 @@ from utils.column_type import ColumnType
 class RegexpColumnType(ColumnType):
     """Column type that validates values against a regular expression.
 
-    Values that do not match are nullified during coercion.
-    Values matching the pattern contribute to value-based column detection.
+    During coercion the matching substring is extracted; values with no match
+    are nullified. Values matching the pattern fully contribute to value-based
+    column detection.
     """
     @classmethod
     def build(cls, *args):
@@ -20,7 +21,8 @@ class RegexpColumnType(ColumnType):
         self._pattern_str = pattern
 
     def coerce(self, value: str) -> str | None:
-        return value if self._pattern.fullmatch(value) else None
+        match = self._pattern.search(value)
+        return match.group(0) if match else None
 
     def matches_value(self, value: str) -> bool:
         return bool(self._pattern.fullmatch(value))
