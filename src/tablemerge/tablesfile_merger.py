@@ -56,9 +56,7 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6, normalize=True) ->
 
 def get_column_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
-    return "".join(
-        unidecode(Row.to_text(columns.get(k, ""))) for k in sorted_column_keys
-    )
+    return "".join((Row.to_text(columns.get(k, ""))) for k in sorted_column_keys)
 
 
 def make_fragments_clusters(

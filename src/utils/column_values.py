@@ -26,11 +26,11 @@ def configure_na_values(values: Iterable[str]) -> None:
 
 
 def parse_na_values(text: str) -> list[str]:
-    return [normalize_str(value).lower() for value in tokenize_schema(text)]
+    return [normalize_str(value) for value in tokenize_schema(text)]
 
 
 def normalize_column_value(value: str) -> str:
-    normalized = normalize_str(value).lower()
+    normalized = normalize_str(value)
     if normalized in NA_VALUES:
         return ""
     return normalized

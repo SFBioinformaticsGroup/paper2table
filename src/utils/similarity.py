@@ -14,7 +14,9 @@ def calculate_similarity(text: str, to: str, normalize: bool = True):
         text,
         to,
         processor=(
-            (lambda str: unidecode(normalize_str(str)).lower()) if normalize else None
+            (lambda str: unidecode(normalize_str(str)))
+            if normalize
+            else unidecode
         ),
     )
 

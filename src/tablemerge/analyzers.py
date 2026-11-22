@@ -9,6 +9,7 @@ from tablemerge.spacy_utils import load_spacy_model
 from utils.column_names import normalize_column_name
 from utils.column_schema import ColumnSchema
 from utils.jaccard import jaccard
+from utils.str import normalize_str
 
 REMOVE_COLUMN = "<remove>"
 
@@ -351,8 +352,8 @@ class JaccardMergeTimeAnalyzer:
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
         return [
-            unidecode(re.sub(r"\s+", " ", s.strip()).lower()) # TODO should we use normalize_str?
-            for s in Row.to_texts(column_value)
+            unidecode(normalize_str(value))
+            for value in Row.to_texts(column_value)
         ]
 
     def column_value_set(self, rows: list[Row], column: str) -> set[str]:

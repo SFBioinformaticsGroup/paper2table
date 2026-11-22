@@ -7,12 +7,18 @@ def test_is_similar_trivial_scenarios():
 
 
 def test_is_similar_normalized_scenarios():
-    assert is_similar_text("raíz", "raiz")
-
     assert is_similar_text("HELLO", "hello")
     assert is_similar_text("    hello    ", "hello")
-    assert is_similar_text("–", "-")
 
     assert not is_similar_text("HELLO", "hello", normalize=False)
     assert not is_similar_text("    hello    ", "hello", normalize=False)
-    assert not is_similar_text("–", "-", normalize=False)
+
+def test_is_similar_utf_scenarios():
+  assert is_similar_text("wichí", "wichi")
+  assert is_similar_text("wichí", "wichi", normalize=False)
+
+  assert is_similar_text("–", "-")
+  assert is_similar_text("–", "-", normalize=False)
+
+  assert is_similar_text("さくら", "sakura")
+  assert is_similar_text("さくら", "sakura", normalize=False)

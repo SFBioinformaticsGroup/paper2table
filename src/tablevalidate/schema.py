@@ -409,10 +409,10 @@ class TablesFile(BaseModel):
         if citation is None:
             return None
         if isinstance(citation, str):
-            return normalize_str(citation)
+            return normalize_str(citation, lower=False)
         return [
             ValueWithAgreement(
-                value=normalize_str(v.value) if isinstance(v.value, str) else v.value,
+                value=normalize_str(v.value, lower=False) if isinstance(v.value, str) else v.value,
                 agreement_level=v.agreement_level,
             )
             for v in citation
