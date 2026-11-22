@@ -22,7 +22,7 @@ NA_VALUES = set(DEFAULT_NA_VALUES)
 def configure_na_values(values: Iterable[str]) -> None:
     """Replace the module-level NA_VALUES set."""
     NA_VALUES.clear()
-    NA_VALUES.update(values)
+    NA_VALUES.update(normalize_str(value) for value in values)
 
 
 def parse_na_values(text: str) -> list[str]:

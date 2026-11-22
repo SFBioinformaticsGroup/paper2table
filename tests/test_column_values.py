@@ -35,6 +35,21 @@ def test_configure_na_values_replaces_defaults_completely():
     assert normalize_column_value("n/a") == "n/a"
 
 
+def test_configure_na_values_matches_mixed_case_entries():
+    configure_na_values(["N/A", "No Data"])
+
+    assert normalize_column_value("n/a") == ""
+    assert normalize_column_value("N/A") == ""
+    assert normalize_column_value("no data") == ""
+    assert normalize_column_value("NO DATA") == ""
+
+
+def test_normalize_column_value_matches_default_expressions_case_insensitively():
+    assert normalize_column_value("N/A") == ""
+    assert normalize_column_value("NO DATA") == ""
+    assert normalize_column_value("Undetermined") == ""
+
+
 def test_parse_na_values_returns_newline_separated_entries():
     assert parse_na_values("none\nn/a\nno observado") == [
         "none",
