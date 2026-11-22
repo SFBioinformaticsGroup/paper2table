@@ -51,7 +51,8 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
         is_similar_text(
             get_column_text(left_columns, sorted_column_keys),
             get_column_text(right_columns, sorted_column_keys),
-            similarity_threshold
+            similarity_threshold,
+            normalize=False,
         )
     )
 

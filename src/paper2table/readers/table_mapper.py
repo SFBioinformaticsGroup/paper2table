@@ -100,13 +100,13 @@ class TableMapper:
         return [[row[col] if col < len(row) else None for col in non_empty] for row in rows]
 
     def _remove_bibliographic_rows(self, rows: list[Row]) -> list[Row]:
-        footer = self._mapping.footer.lower() if self._mapping.footer else None
-        page_footer = self._mapping.page_footer.lower() if self._mapping.page_footer else None
-        title = self._mapping.title.lower()
+        footer = self._mapping.footer
+        page_footer = self._mapping.page_footer
+        title = self._mapping.title
 
         result = []
         for row in rows:
-            row_text = "".join(cell for cell in row if cell).lower()
+            row_text = "".join(cell for cell in row if cell)
             if footer is not None and is_similar_text(row_text, footer):
                 continue
             if page_footer is not None and is_similar_text(row_text, page_footer):

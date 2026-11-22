@@ -50,97 +50,99 @@ def test_row_is_na_false_for_bool_false():
 def test_row_is_na_false_for_float():
     assert Row(ratio=3.14).is_na() is False
 
-
-def test_normalize_str_value_no_data_lowercase():
+def test_normalize_value_value_no_data_lowercase():
     assert Row.normalize_value("no data") == ""
 
 
-def test_normalize_str_value_no_data_uppercase():
+def test_normalize_value_value_no_data_uppercase():
     assert Row.normalize_value("No Data") == ""
 
 
-def test_normalize_str_value_no_data_extra_whitespace():
+def test_normalize_value_value_no_data_extra_whitespace():
     assert Row.normalize_value("  no  data  ") == ""
 
 
-def test_normalize_str_value_none():
+def test_normalize_value_value_none():
     assert Row.normalize_value("None") == ""
 
+def test_normalize_value_preserves_diacritics():
+    assert Row.normalize_value("caligüe") == "caligüe"
+    assert Row.normalize_value("raíz") == "raíz"
 
-def test_normalize_str_preserves_case():
+def test_normalize_value_doesnt_preserves_case():
     assert Row.normalize_value("Perez et al. 2020") == "perez et al. 2020"
 
 
-def test_normalize_str_collapses_whitespace():
+def test_normalize_value_collapses_whitespace():
     assert Row.normalize_value("Perez  et   al.") == "perez et al."
 
 
-def test_normalize_str_strips_edges():
+def test_normalize_value_strips_edges():
     assert Row.normalize_value("  Perez 2020  ") == "perez 2020"
 
 
-def test_normalize_str_en_dash():
+def test_normalize_value_en_dash():
     assert Row.normalize_value("Perez–Vílchez 2020") == "perez-vílchez 2020"
 
 
-def test_normalize_str_em_dash():
+def test_normalize_value_em_dash():
     assert Row.normalize_value("Perez—Vílchez 2020") == "perez-vílchez 2020"
 
 
-def test_normalize_str_value_regular_value():
+def test_normalize_value_value_regular_value():
     assert Row.normalize_value("Apiaceae") == "apiaceae"
 
 
-def test_normalize_str_value_en_dash():
+def test_normalize_value_value_en_dash():
     assert Row.normalize_value("2–5") == "2-5"
 
 
-def test_normalize_str_value_em_dash():
+def test_normalize_value_value_em_dash():
     assert Row.normalize_value("Jan—Feb") == "jan-feb"
 
 
-def test_normalize_str_value_figure_dash():
+def test_normalize_value_value_figure_dash():
     assert Row.normalize_value("10‒20") == "10-20"
 
 
-def test_normalize_str_value_horizontal_bar():
+def test_normalize_value_value_horizontal_bar():
     assert Row.normalize_value("A―B") == "a-b"
 
 
-def test_normalize_str_value_minus_sign():
+def test_normalize_value_value_minus_sign():
     assert Row.normalize_value("−5") == "-5"
 
 
-def test_normalize_str_value_hyphen_variants():
+def test_normalize_value_value_hyphen_variants():
     assert Row.normalize_value("A‐B") == "a-b"
     assert Row.normalize_value("A‑B") == "a-b"
 
 
-def test_normalize_str_removes_replacement_character():
+def test_normalize_value_removes_replacement_character():
     assert Row.normalize_value("hello�world") == "helloworld"
 
 
-def test_normalize_str_removes_control_characters():
+def test_normalize_value_removes_control_characters():
     assert Row.normalize_value("hello\x00world\x1fend") == "helloworldend"
 
 
-def test_normalize_str_value_removes_replacement_character():
+def test_normalize_value_value_removes_replacement_character():
     assert Row.normalize_value("Apiaceae�") == "apiaceae"
 
 
-def test_normalize_str_cid_latin1_accented():
+def test_normalize_value_cid_latin1_accented():
     assert Row.normalize_value("(cid:237)") == "í"
 
 
-def test_normalize_str_cid_latin1_in_word():
+def test_normalize_value_cid_latin1_in_word():
     assert Row.normalize_value("L(cid:243)pez") == "lópez"
 
 
-def test_normalize_str_cid_outside_latin1_range():
+def test_normalize_value_cid_outside_latin1_range():
     assert Row.normalize_value("(cid:42)") == ""
 
 
-def test_normalize_str_cid_outside_latin1_range_with_surrounding_text():
+def test_normalize_value_cid_outside_latin1_range_with_surrounding_text():
     assert Row.normalize_value("hello (cid:7) world") == "hello world"
 
 

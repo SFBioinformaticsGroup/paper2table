@@ -5,8 +5,21 @@ def test_coerce_known_example_returns_value():
     assert ExampleColumnType("red", "blue").coerce("red") == "red"
 
 def test_coerce_known_example_returns_transformed_value_on_similar_value():
-    assert ExampleColumnType("water", "rice", "yeast").coerce("waters") == "water"
-    assert ExampleColumnType("water", "rice", "yeast").coerce("fermented rice") == "fermented rice"
+    example = ExampleColumnType("water", "rice", "yeast")
+    assert example.coerce("waters") == "water"
+    assert example.coerce("fermented rice") == "fermented rice"
+
+def test_coerce_known_example_returns_transformed_value_on_similar_value_ignoring_case():
+    assert ExampleColumnType("WATER", "RICE", "YEAST").coerce("water") == "WATER"
+
+def test_coerce_known_example_returns_transformed_value_on_similar_value_ignoring_diacritics():
+    assert ExampleColumnType("raíz", "tallo").coerce("raiz") == "raíz"
+
+def test_coerce_unormalizaed_value():
+    example = ExampleColumnType("red", "light-blue")
+    assert example.coerce("red                 ") == "red"
+    assert example.coerce("light-blue") == "light-blue"
+    assert example.coerce("light–blue") == "light-blue"
 
 def test_coerce_unknown_value_also_returns_value():
     assert ExampleColumnType("red", "blue").coerce("purple") == "purple"
@@ -32,7 +45,7 @@ def test_type_description_lists_examples():
     description = ExampleColumnType("red", "blue").type_description()
     assert "red" in description
     assert "blue" in description
-    assert "other" in description.lower() or "also valid" in description.lower()
+    assert "other" in description
 
 
 def test_as_pydantic_type_returns_str():
