@@ -227,6 +227,25 @@ class Row(BaseModel):
 
         return value
 
+
+    @staticmethod
+    def compact(value: ColumnValue) -> ColumnValue:
+        """Merges duplicate multivalue entries, summing their agreement levels"""
+        if not isinstance(value, list):
+            return value
+
+        agreement_by_value: dict[ScalarValue, int] = {}
+        for entry in value:
+            if entry.value in agreement_by_value:
+                agreement_by_value[entry.value] += entry.agreement_level
+            else:
+                agreement_by_value[entry.value] = entry.agreement_level
+
+        return [
+            ValueWithAgreement(value=entry_value, agreement_level=agreement_level)
+            for entry_value, agreement_level in agreement_by_value.items()
+        ]
+
     @staticmethod
     def map_text(value: ColumnValue, fn: Callable[[str], ScalarValue]) -> ColumnValue:
         """Transforms cell's string values"""

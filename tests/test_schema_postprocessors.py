@@ -249,6 +249,45 @@ def test_coerce_types_value_with_agreement():
     assert values[0].agreement_level == 2
 
 
+def test_coerce_types_compacts_duplicates_summing_agreement_levels():
+    tablesfile = wrap(
+        [
+            Row(
+                year=[
+                    ValueWithAgreement(value="2020.0", agreement_level=2),
+                    ValueWithAgreement(value="2020", agreement_level=1),
+                ]
+            )
+        ]
+    )
+    result = coerce_processor().postprocess(tablesfile)
+    assert rows_of(result) == [
+        Row(year=[ValueWithAgreement(value=2020, agreement_level=3)])
+    ]
+
+
+def test_coerce_types_keeps_divergent_values_separate():
+    tablesfile = wrap(
+        [
+            Row(
+                year=[
+                    ValueWithAgreement(value="2020.0", agreement_level=2),
+                    ValueWithAgreement(value="bad", agreement_level=1),
+                ]
+            )
+        ]
+    )
+    result = coerce_processor().postprocess(tablesfile)
+    assert rows_of(result) == [
+        Row(
+            year=[
+                ValueWithAgreement(value=2020, agreement_level=2),
+                ValueWithAgreement(value="bad", agreement_level=1),
+            ]
+        )
+    ]
+
+
 def test_coerce_types_preserves_metadata():
     result = coerce_processor().postprocess(
         wrap([Row(year="2020", agreement_level_=2, sources_=["u1"])])

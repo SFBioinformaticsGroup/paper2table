@@ -103,12 +103,14 @@ class SchemaPostProcessor:
     def _order_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
         schema_keys = self.schema.column_names()
 
+        # TODO move to row.reorder_columns()
         def reorder_row(row: Row) -> Row:
             cols = row.get_columns()
             ordered = {k: cols[k] for k in schema_keys if k in cols}
             ordered |= {k: v for k, v in cols.items() if k not in ordered}
             return row.clone(columns=ordered)
 
+        # TODO move to row.reorder_columns()
         def reorder_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(
                 rows=list(map(reorder_row, fragment.rows)), page=fragment.page
@@ -123,11 +125,14 @@ class SchemaPostProcessor:
         return self._rebuild_tablesfile(tablesfile, tables)
 
     def _coerce_schema_column_types(self, tablesfile: TablesFile) -> TablesFile:
+        # TODO move to row.coerce()
         def coerce_row(row: Row) -> Row:
             return row.clone(
                 columns={
                     col: (
-                        Row.map_text(val, self.schema.column_type(col).coerce)
+                        Row.compact(
+                            Row.map_text(val, self.schema.column_type(col).coerce)
+                        )
                         if col in self.schema
                         else val
                     )
@@ -135,6 +140,7 @@ class SchemaPostProcessor:
                 }
             )
 
+        # TODO move to fragment.coerce()
         def coerce_fragment(fragment: TableFragment) -> TableFragment:
             return TableFragment(
                 rows=list(map(coerce_row, fragment.rows)), page=fragment.page
