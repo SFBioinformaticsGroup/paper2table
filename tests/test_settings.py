@@ -20,7 +20,6 @@ def test_from_args_maps_fields_and_ignores_extras():
         hints_column_alignment=None,
         fix_reversed_column_values=False,
         strip_leading_row_numbers=False,
-        normalize_punctuation=False,
         split_conjunction_columns=False,
         transform_tablesfile=None,
         filter_schema_columns=False,
@@ -72,7 +71,6 @@ def test_from_args_reads_schema_from_path():
         hints_column_alignment=None,
         fix_reversed_column_values=False,
         strip_leading_row_numbers=False,
-        normalize_punctuation=False,
         split_conjunction_columns=False,
         transform_tablesfile=None,
         filter_schema_columns=False,
@@ -116,7 +114,6 @@ def test_from_args_paths_stored_as_list():
         hints_column_alignment=None,
         fix_reversed_column_values=False,
         strip_leading_row_numbers=False,
-        normalize_punctuation=False,
         split_conjunction_columns=False,
         transform_tablesfile=None,
         filter_schema_columns=False,
@@ -160,7 +157,6 @@ def test_from_args_captures_inline_na_values():
         hints_column_alignment=None,
         fix_reversed_column_values=False,
         strip_leading_row_numbers=False,
-        normalize_punctuation=False,
         split_conjunction_columns=False,
         transform_tablesfile=None,
         filter_schema_columns=False,
@@ -204,7 +200,6 @@ def test_from_args_reads_na_values_from_path():
         hints_column_alignment=None,
         fix_reversed_column_values=False,
         strip_leading_row_numbers=False,
-        normalize_punctuation=False,
         split_conjunction_columns=False,
         transform_tablesfile=None,
         filter_schema_columns=False,
@@ -321,7 +316,6 @@ def test_to_dict_pretransformers():
     assert defaults["filter_title_rows"] is True
     assert defaults["strip_leading_row_numbers"] is True
     assert defaults["fix_reversed_column_values"] is False
-    assert defaults["normalize_punctuation"] is False
     assert defaults["split_conjunction_columns"] is False
 
 

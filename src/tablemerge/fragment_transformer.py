@@ -1,10 +1,16 @@
 import re
-import unicodedata
 from typing import Protocol
 
-from tablevalidate.schema import ColumnValue, Row, ScalarValue, TableFragment, ValueWithAgreement
+from tablevalidate.schema import (
+    ColumnValue,
+    Row,
+    ScalarValue,
+    TableFragment,
+    ValueWithAgreement,
+)
 from utils.filters import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
+from utils.str import normalize_str
 
 
 class FragmentTransformer(Protocol):
@@ -16,24 +22,6 @@ _TITLE_ROW_RE = re.compile(
 )
 
 _LEADING_NUMBER_RE = re.compile(r"^(\d+)\.\s+")
-# normalize_str also does this, so this is a bit redundant
-# but keeping it here for consistency
-_DASH_VARIANTS_RE = re.compile(r"[‐‑‒–—―−]")
-_GUILLEMETS_RE = re.compile(r"[«»‹›]")
-_TYPOGRAPHIC_DOUBLE_QUOTES_RE = re.compile(r"[“”]")
-_TYPOGRAPHIC_SINGLE_QUOTES_RE = re.compile(r"[‘’´`ʹʻʼʽ′‵]")
-_VOWEL_ACUTE_RE = re.compile(r"([aeiouAEIOU])´")
-
-
-def _combine_vowel_acute(match: re.Match) -> str:
-    combined = unicodedata.normalize("NFC", match.group(1) + "́")
-    if len(combined) == 1:
-        return combined
-    return match.group(0)
-
-
-_ELLIPSIS_RE = re.compile("…")
-_TRAILING_DOT_RE = re.compile(r"^(.*\S{5,})\.$")
 
 
 class FilterTitleRowsTransformer:
@@ -111,39 +99,6 @@ class FilterEmptyRowsTransformer:
             rows=[row for row in fragment.rows if not row.is_na()],
             page=fragment.page,
         )
-
-
-class NormalizePunctuationTransformer:
-
-    def transform_fragment(self, fragment: TableFragment) -> TableFragment:
-        return TableFragment(
-            rows=[self.transform_row(row) for row in fragment.rows],
-            page=fragment.page,
-        )
-
-    def transform_row(self, row: Row) -> Row:
-        return row.clone(
-            columns={
-                col: self.transform_value(val) for col, val in row.get_columns().items()
-            }
-        )
-
-    def transform_value(self, val: ColumnValue) -> ColumnValue:
-        return Row.map_text(val, self.normalize)
-
-    def normalize(self, text: str) -> str:
-        # TODO this should be part of normalize_str
-        text = _DASH_VARIANTS_RE.sub("-", text)
-        text = _GUILLEMETS_RE.sub("", text)
-        text = _TYPOGRAPHIC_DOUBLE_QUOTES_RE.sub('"', text)
-        text = text.replace('"', "'")
-        text = _VOWEL_ACUTE_RE.sub(_combine_vowel_acute, text)
-        text = _TYPOGRAPHIC_SINGLE_QUOTES_RE.sub("'", text)
-        match = _TRAILING_DOT_RE.match(text)
-        if match:
-            text = match.group(1)
-        text = _ELLIPSIS_RE.sub("...", text)
-        return text
 
 
 class FilterHeaderRowsTransformer:

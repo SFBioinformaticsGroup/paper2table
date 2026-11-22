@@ -245,7 +245,6 @@
         },
         "fix_reversed_column_values": { "type": "boolean", "default": false },
         "strip_leading_row_numbers": { "type": "boolean", "default": false },
-        "normalize_punctuation": { "type": "boolean", "default": false },
         "split_conjunction_columns": { "type": "boolean", "default": false },
         "transform_tablesfile": {
           "anyOf": [

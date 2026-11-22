@@ -50,6 +50,7 @@ def test_row_is_na_false_for_bool_false():
 def test_row_is_na_false_for_float():
     assert Row(ratio=3.14).is_na() is False
 
+
 def test_normalize_value_value_no_data_lowercase():
     assert Row.normalize_value("no data") == ""
 
@@ -65,9 +66,11 @@ def test_normalize_value_value_no_data_extra_whitespace():
 def test_normalize_value_value_none():
     assert Row.normalize_value("None") == ""
 
+
 def test_normalize_value_preserves_diacritics():
     assert Row.normalize_value("caligüe") == "caligüe"
     assert Row.normalize_value("raíz") == "raíz"
+
 
 def test_normalize_value_doesnt_preserves_case():
     assert Row.normalize_value("Perez et al. 2020") == "perez et al. 2020"
@@ -198,7 +201,9 @@ def test_is_na_row_list_value_non_empty():
 
 def test_normalize_row_with_none_column_value():
     row = Row(**{"family": None, "scientific_name": "Apiaceae"})
-    assert row.normalize() == Row(**{"family": None, "scientific_name": "apiaceae"})
+    assert row.normalize() == Row(
+        agreement_level_=1, family=None, scientific_name="apiaceae"
+    )
 
 
 def test_get_curation_type_default_is_none():

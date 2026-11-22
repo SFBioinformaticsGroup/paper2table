@@ -59,7 +59,6 @@ class MergeConfig(BaseModel):
     paper_aliases_path: str | None = None
     fix_reversed_column_values: bool = False
     strip_leading_row_numbers: bool = False
-    normalize_punctuation: bool = False
     split_conjunction_columns: bool = False
     transform_tablesfile: str | None = None
     filter_schema_columns: bool = False

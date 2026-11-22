@@ -1,7 +1,8 @@
+from unidecode import unidecode
+
 from .str import normalize_str
 
 import string
-import unicodedata
 from typing import overload
 
 
@@ -17,12 +18,7 @@ def normalize_column_name(name: str | None) -> str | None:
     if name is None:
         return None
 
-    name = (
-        # TODO no need to re-normalize
-        unicodedata.normalize("NFKD", normalize_str(name))
-        .encode("ascii", "ignore")
-        .decode("ascii")
-    )
+    name = unidecode(normalize_str(name))
     valid = string.ascii_lowercase + string.digits + "_"
     name = "".join(ch if ch in valid else "_" for ch in name)
     while "__" in name:

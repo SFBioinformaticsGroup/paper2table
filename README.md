@@ -756,7 +756,6 @@ All `tablemerge` settings are supported. Below are the most commonly used:
 | `hints_column_alignment` | `str` | - | `"safe"` or `"unsafe"` |
 | `fix_reversed_column_values` | `bool` | `false` | Detect and correct reversed cell values |
 | `strip_leading_row_numbers` | `bool` | `false` | Strip leading sequential numbers from cells |
-| `normalize_punctuation` | `bool` | `false` | Normalize punctuation in cell values |
 | `split_conjunction_columns` | `bool` | `false` | Split conjunction columns |
 | `transform_tablesfile` | `str` | - | `"explode"`, `"safe-compact"`, or `"unsafe-compact"` |
 | `filter_schema_columns` | `bool` | `false` | Drop tables with no schema columns |

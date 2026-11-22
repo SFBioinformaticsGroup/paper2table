@@ -8,6 +8,7 @@ from utils.str import normalize_str
 
 ScalarValue = None | str | int | float | bool
 
+
 class ValueWithAgreement(BaseModel):
     value: ScalarValue
     agreement_level: int
@@ -95,18 +96,13 @@ class Row(BaseModel):
 
     def normalize(
         self,
-        calculate_agreement: bool = False,
     ):
         return self.clone(
             columns={
                 column: Row.normalize_value(value)
                 for column, value in self.get_columns().items()
             },
-            agreement_level=(
-                self.get_agreement_level()
-                if calculate_agreement
-                else self.agreement_level_
-            ),
+            agreement_level=self.get_agreement_level(),
         )
 
     def get_convergence_level(self, sources_count: int) -> Literal[0, 1, 2, 3, 4, 5]:
@@ -412,7 +408,11 @@ class TablesFile(BaseModel):
             return normalize_str(citation, lower=False)
         return [
             ValueWithAgreement(
-                value=normalize_str(v.value, lower=False) if isinstance(v.value, str) else v.value,
+                value=(
+                    normalize_str(v.value, lower=False)
+                    if isinstance(v.value, str)
+                    else v.value
+                ),
                 agreement_level=v.agreement_level,
             )
             for v in citation

@@ -323,8 +323,6 @@ def build_merge_args(
         args += ["--fix-reversed-column-values"]
     if config.strip_leading_row_numbers:
         args += ["--strip-leading-row-numbers"]
-    if config.normalize_punctuation:
-        args += ["--normalize-punctuation"]
     if config.split_conjunction_columns:
         args += ["--split-conjunction-columns"]
     if config.transform_tablesfile:

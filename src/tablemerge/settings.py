@@ -27,7 +27,6 @@ class MergeSettings:
     hints_column_alignment: bool = False
     jaccard_column_alignment: bool = False
     na_values: Optional[str] = None
-    normalize_punctuation: bool = False
     filter_semantic_columns: bool = False
     order_schema_columns: bool = False
     paper_aliases: Optional[str] = None

@@ -183,7 +183,7 @@ class TablesFileMerger:
 
                 table_fragment_builder = TableFragmentBuilder(
                     initial_rows=(
-                        row.normalize(calculate_agreement=True)
+                        row.normalize()
                         for row in left_fragment.rows
                     ),
                     initial_uuid=left_tablesfile.id,
@@ -197,7 +197,7 @@ class TablesFileMerger:
 
                     right_rows = [
                         merge_aligner.rename_row(
-                            row.normalize(calculate_agreement=True)
+                            row.normalize()
                         )
                         for row in right_fragment.rows
                     ]

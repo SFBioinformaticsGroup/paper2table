@@ -31,7 +31,6 @@
     "filter_title_rows": true,
     "fix_reversed_column_values": true,
     "jaccard_column_alignment": true,
-    "normalize_punctuation": true,
     "filter_semantic_columns": false,
     "semantic_language": "es",
     "split_conjunction_columns": false,
