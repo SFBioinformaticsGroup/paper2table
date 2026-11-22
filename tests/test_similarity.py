@@ -118,6 +118,7 @@ def test_most_similar_text_with_semantic_similarity(es_spacy_model):
             "tallos verdes",
             ["tallo", "hoja", "raíz"],
             similarity_type=SemanticSimilarity("es"),
+            similarity_threshold=0.6
         )
-        == "tallos"
+        == "tallo"
     )

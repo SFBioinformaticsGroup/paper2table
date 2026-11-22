@@ -1,4 +1,5 @@
 from utils.column_type import ColumnType
+from utils.similarity import most_similar_text
 
 class EnumColumnType(ColumnType):
     """Column type that accepts only a finite set of known values.
@@ -18,7 +19,9 @@ class EnumColumnType(ColumnType):
         self._values_str = ",".join(values)
 
     def coerce(self, value: str) -> str | None:
-        return value if value in self._values else None
+        """Coerces to the most similar value, if there is one"""
+        candidate = most_similar_text(value, self._values)
+        return candidate if candidate else None
 
     def matches_value(self, value: str) -> bool:
         return value in self._values
