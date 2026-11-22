@@ -99,7 +99,7 @@ def test_parse_regexp_type():
     size_type = schema.column_type("size")
     assert isinstance(size_type, RegexpColumnType)
     assert size_type.matches_value("123") is True
-    assert size_type.coerce("abc") is None
+    assert size_type.coerce("abc") == "abc"
 
 
 def test_parse_enum_preserves_values_in_order():

@@ -5,8 +5,8 @@ def test_coerce_matching_value_returns_value():
     assert RegexpColumnType(r"\d+").coerce("123") == "123"
 
 
-def test_coerce_non_matching_value_returns_none():
-    assert RegexpColumnType(r"\d+").coerce("abc") is None
+def test_coerce_non_matching_value_returns_original_value():
+    assert RegexpColumnType(r"\d+").coerce("abc") == "abc"
 
 
 def test_coerce_partial_match_returns_matched_substring():
@@ -46,4 +46,4 @@ def test_complex_pattern():
     assert regexp_type.coerce("10 cm") == "10 cm"
     assert regexp_type.coerce("3.5mm") == "3.5mm"
     assert regexp_type.coerce("about 10 cm long") == "10 cm"
-    assert regexp_type.coerce("blue") is None
+    assert regexp_type.coerce("blue") == "blue"
