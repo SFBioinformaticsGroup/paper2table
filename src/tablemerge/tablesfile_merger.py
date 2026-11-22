@@ -17,6 +17,7 @@ from tablemerge.columns_aligner import MergeTimeColumnAligner
 from tablemerge.analyzers import MergeTimeAnalyzer
 from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
+from utils.similarity import is_similar_text
 
 MergeTarget = tuple[TableFragment, TablesFile]
 
@@ -46,11 +47,11 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
     sorted_column_keys = sorted(left_columns.keys())
 
     return (
-        ratio(
+        is_similar_text(
             get_column_text(left_columns, sorted_column_keys),
             get_column_text(right_columns, sorted_column_keys),
+            similarity_threshold
         )
-        >= similarity_threshold
     )
 
 

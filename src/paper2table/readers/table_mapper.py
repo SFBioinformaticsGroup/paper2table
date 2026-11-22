@@ -4,7 +4,8 @@ from typing import Optional, Protocol, cast
 import pandas as pd
 
 from utils.column_names import normalize_column_name
-from Levenshtein import ratio
+from utils.similarity import is_similar_text
+
 
 from ..mapping import ColumnMapping, TableMapping
 
@@ -106,11 +107,11 @@ class TableMapper:
         result = []
         for row in rows:
             row_text = "".join(cell for cell in row if cell).lower()
-            if footer is not None and ratio(row_text, footer) > 0.8:
+            if footer is not None and is_similar_text(row_text, footer):
                 continue
-            if page_footer is not None and ratio(row_text, page_footer) > 0.8:
+            if page_footer is not None and is_similar_text(row_text, page_footer):
                 continue
-            if ratio(row_text, title) > 0.8:
+            if is_similar_text(row_text, title):
                 continue
             result.append(row)
         return result
