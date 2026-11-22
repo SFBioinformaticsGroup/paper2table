@@ -1,5 +1,6 @@
 import argparse
 import random
+from collections import Counter
 from pathlib import Path
 
 from tablevalidate.schema import Row, TablesFile
@@ -35,13 +36,26 @@ def collect_column_values(
     return values
 
 
+def filter_by_length(values: list[str], max_length: int | None) -> list[str]:
+    if max_length is None:
+        return values
+    return [v for v in values if len(v) <= max_length]
+
+
 def sample_examples(
     values: list[str], count: int, max_length: int | None, rng: random.Random
 ) -> list[str]:
-    candidates = values if max_length is None else [v for v in values if len(v) <= max_length]
+    candidates = list(dict.fromkeys(filter_by_length(values, max_length)))
     if len(candidates) <= count:
-        return list(candidates)
+        return candidates
     return rng.sample(candidates, count)
+
+
+def count_values(
+    values: list[str], count: int, max_length: int | None
+) -> list[tuple[str, int]]:
+    candidates = filter_by_length(values, max_length)
+    return Counter(candidates).most_common(count)
 
 
 def format_report(samples: dict[str, list[str]]) -> str:
@@ -52,6 +66,17 @@ def format_report(samples: dict[str, list[str]]) -> str:
             lines.append("  (no examples)")
         for example in examples:
             lines.append(f"  - {example}")
+    return "\n".join(lines)
+
+
+def format_value_counts(samples: dict[str, list[tuple[str, int]]]) -> str:
+    lines = []
+    for column_name, entries in samples.items():
+        lines.append(f"{column_name}:")
+        if not entries:
+            lines.append("  (no examples)")
+        for value, occurrences in entries:
+            lines.append(f"  - {value} ({occurrences})")
     return "\n".join(lines)
 
 
@@ -98,6 +123,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Random seed for reproducible sampling.",
     )
+    parser.add_argument(
+        "--value-counts",
+        action="store_true",
+        help="Show unique values sorted by occurrence count (descending), with counts.",
+    )
     return parser.parse_args()
 
 
@@ -110,15 +140,23 @@ def main():
     papers = load_papers(Path(args.input_dir))
     values = collect_column_values(papers, schema)
 
-    rng = random.Random(args.seed)
-    samples = {
-        column_name: sample_examples(
-            column_values, args.examples_count, args.max_length, rng
-        )
-        for column_name, column_values in values.items()
-    }
-
-    print(format_report(samples))
+    if args.value_counts:
+        samples = {
+            column_name: count_values(
+                column_values, args.examples_count, args.max_length
+            )
+            for column_name, column_values in values.items()
+        }
+        print(format_value_counts(samples))
+    else:
+        rng = random.Random(args.seed)
+        samples = {
+            column_name: sample_examples(
+                column_values, args.examples_count, args.max_length, rng
+            )
+            for column_name, column_values in values.items()
+        }
+        print(format_report(samples))
 
 
 if __name__ == "__main__":
