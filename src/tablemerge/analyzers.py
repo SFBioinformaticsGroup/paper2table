@@ -351,7 +351,7 @@ class JaccardMergeTimeAnalyzer:
 
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
         return [
-            unidecode(re.sub(r"\s+", " ", s.strip()).lower())
+            unidecode(re.sub(r"\s+", " ", s.strip()).lower()) # TODO should we use normalize_str?
             for s in Row.to_texts(column_value)
         ]
 

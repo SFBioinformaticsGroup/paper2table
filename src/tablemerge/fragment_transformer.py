@@ -132,6 +132,7 @@ class NormalizePunctuationTransformer:
         return Row.map_text(val, self.normalize)
 
     def normalize(self, text: str) -> str:
+        # TODO this should be part of normalize_str
         text = _DASH_VARIANTS_RE.sub("-", text)
         text = _GUILLEMETS_RE.sub("", text)
         text = _TYPOGRAPHIC_DOUBLE_QUOTES_RE.sub('"', text)

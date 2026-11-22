@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, cast
+from typing import Dict
 from unidecode import unidecode
 
 from tablevalidate.schema import (
@@ -41,6 +41,7 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
 
 
 def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
+    # TODO maybe we don't need to re-normalize
     left_columns = left.normalize().get_columns()
     right_columns = right.normalize().get_columns()
 

@@ -18,6 +18,7 @@ def normalize_column_name(name: str | None) -> str | None:
         return None
 
     name = (
+        # TODO no need to re-normalize
         unicodedata.normalize("NFKD", normalize_str(name))
         .encode("ascii", "ignore")
         .decode("ascii")
