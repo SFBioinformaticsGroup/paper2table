@@ -4,6 +4,9 @@ from utils.example_type import ExampleColumnType
 def test_coerce_known_example_returns_value():
     assert ExampleColumnType("red", "blue").coerce("red") == "red"
 
+def test_coerce_known_example_returns_transformed_value_on_similar_value():
+    assert ExampleColumnType("water", "rice", "yeast").coerce("waters") == "water"
+    assert ExampleColumnType("water", "rice", "yeast").coerce("fermented rice") == "fermented rice"
 
 def test_coerce_unknown_value_also_returns_value():
     assert ExampleColumnType("red", "blue").coerce("purple") == "purple"

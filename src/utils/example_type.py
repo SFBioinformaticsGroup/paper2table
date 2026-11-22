@@ -1,4 +1,5 @@
 from utils.column_type import ColumnType
+from Levenshtein import ratio
 
 
 class ExampleColumnType(ColumnType):
@@ -19,6 +20,16 @@ class ExampleColumnType(ColumnType):
         self._examples_str = ",".join(examples)
 
     def coerce(self, value: str) -> str:
+        """Coerces to the most similar value, if there is one above similarity threshold"""
+        candidates: list[tuple[float, str]] = []
+        for example in self._examples:
+            similarity = ratio(value, example)
+            if similarity > 0.8:
+                candidates.append((similarity, example))
+
+        if candidates:
+            return max(candidates)[1]
+
         return value
 
     def matches_value(self, value: str) -> bool:
