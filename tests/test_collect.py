@@ -981,7 +981,7 @@ def test_gathered_tablesfile_citation_joins_multiple_sources():
     file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
     result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
-    assert result.citation == "Mamani 2020;\nJones 2021"
+    assert result.citation == "Jones 2021;\nMamani 2020"
 
 
 def test_gathered_tablesfile_citation_skips_empty_citations():
@@ -998,20 +998,20 @@ def test_gathered_tablesfile_citation_none_when_all_empty():
     assert result.citation is None
 
 
-def test_gathered_tablesfile_citation_dedupes_identical_sources():
+def test_gathered_tablesfile_citation_removes_duplicates_identical_sources():
     file_a, path_a = wrap([Row(species="Ammi majus")], citation="Mamani 2020")
     file_b, path_b = wrap([Row(species="Carum carvi")], citation="Mamani 2020")
     result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
     assert result.citation == "Mamani 2020"
 
 
-def test_gathered_tablesfile_citation_dedupes_within_prejoined_input():
+def test_gathered_tablesfile_citation_removes_duplicates_within_prejoined_input():
     file_a, path_a = wrap(
         [Row(species="Ammi majus")], citation="Mamani 2020;\nJones 2021"
     )
     file_b, path_b = wrap([Row(species="Carum carvi")], citation="Jones 2021")
     result = gather_tablesfiles([(file_a, path_a), (file_b, path_b)], key_columns=[])
-    assert result.citation == "Mamani 2020;\nJones 2021"
+    assert result.citation == "Jones 2021;\nMamani 2020"
 
 
 def test_gathered_tablesfile_citation_preserves_first_seen_order():

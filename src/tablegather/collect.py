@@ -66,7 +66,7 @@ def gather_tablesfiles(
     schema_columns: list[str] | None = None,
 ) -> TablesFile:
     all_rows: list[Row] = []
-    seen_citations: dict[str, None] = {}
+    all_citations: set[str] = set()
 
     for tablesfile, path in tablesfiles_with_paths:
         raw_citation = tablesfile.citation
@@ -75,7 +75,7 @@ def gather_tablesfiles(
             for part in citation.split(";\n"):
                 stripped = part.strip()
                 if stripped:
-                    seen_citations.setdefault(stripped, None)
+                    all_citations.add(stripped)
 
         if convergence == "tables":
             source_rows = apply_tables_convergence(tablesfile, level)
@@ -115,7 +115,7 @@ def gather_tablesfiles(
     all_rows = [row.clone(row=i) for i, row in enumerate(all_rows, start=1)]
 
     joined_citation: str | None = (
-        ";\n".join(seen_citations) if seen_citations else None
+        ";\n".join(sorted(all_citations)) if all_citations else None
     )
     fragment = TableFragment(rows=all_rows, page=1)
     return TablesFile(
