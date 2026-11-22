@@ -7,7 +7,8 @@ from unidecode import unidecode
 from tablemerge.spacy_utils import load_spacy_model
 from utils.str import normalize_str
 
-# TODO make customizable
+# TODO make globally customizable
+# TODO this value should be different with semantic similarity
 DEFAULT_SIMILARITY_THRESHOLD = 0.8
 
 
@@ -32,7 +33,9 @@ class LexicalSimilarity:
             ),
         )
 
-
+# TODO use SemanticSimilarity when coercing examples and
+#      enums if a flag is passed (--semantic-column-coercing)
+# TODO get language globally, like with NA_VALUES
 class SemanticSimilarity:
     language: Language
 

@@ -439,6 +439,7 @@ class ColumnValueSemanticMergeTimeAnalyzer:
 
     def load_model(self):
         if self._nlp is None:
+            # TODO get language globally, like with NA_VALUES
             self._nlp = load_spacy_model(self.language)
         return self._nlp
 

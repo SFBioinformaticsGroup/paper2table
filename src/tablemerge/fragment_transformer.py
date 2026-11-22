@@ -242,6 +242,8 @@ class SplitColumnTransformer:
 
 
 class FragmentValuesReverser:
+    # TODO don't assume a language. ensure there is one or fail
+    # TODO get language globally, like with NA_VALUES
     def __init__(self, language: str = "en"):
         self.language = language
         self._nlp = load_spacy_model(language)
