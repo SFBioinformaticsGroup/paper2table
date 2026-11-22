@@ -40,28 +40,24 @@ def transliterate_value(value: ColumnValue) -> ColumnValue:
     return Row.map_text(value, unidecode)
 
 
-def same_row(left: Row, right: Row, similarity_threshold=0.6) -> bool:
-    # TODO maybe we don't need to re-normalize
-    left_columns = left.normalize().get_columns()
-    right_columns = right.normalize().get_columns()
+def same_row(left: Row, right: Row, similarity_threshold=0.6, normalize=True) -> bool:
+    left_columns = left.get_columns()
+    right_columns = right.get_columns()
 
     sorted_column_keys = sorted(left_columns.keys())
 
-    return (
-        is_similar_text(
-            get_column_text(left_columns, sorted_column_keys),
-            get_column_text(right_columns, sorted_column_keys),
-            similarity_threshold,
-            normalize=False,
-        )
+    return is_similar_text(
+        get_column_text(left_columns, sorted_column_keys),
+        get_column_text(right_columns, sorted_column_keys),
+        similarity_threshold,
+        normalize,
     )
 
 
 def get_column_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
     return "".join(
-        unidecode(Row.to_text(columns.get(k, "")))
-        for k in sorted_column_keys
+        unidecode(Row.to_text(columns.get(k, ""))) for k in sorted_column_keys
     )
 
 
@@ -109,9 +105,8 @@ class TablesFileMerger:
         preserving relative order.
 
         This algorithm grants that every row from both lists are
-        included in final result.
-
-        It uses a TableFragmentBuilder in order to accumulate results.
+        included in final result. Additionally, it assumes rows have been
+        already normalized.
         """
         left_idx = 0
         right_idx = 0
@@ -124,6 +119,7 @@ class TablesFileMerger:
                     left_rows[left_idx],
                     right_rows[tmp_right_idx],
                     similarity_threshold=self.row_similarity_threshold,
+                    normalize=False,
                 ):
                     found = True
                 else:
