@@ -1,46 +1,69 @@
-from typing import Iterable, Optional
+from typing import Iterable, Literal, Optional, Protocol
 
 from Levenshtein import ratio
+from spacy.language import Language
 from unidecode import unidecode
 
+from tablemerge.spacy_utils import load_spacy_model
 from utils.str import normalize_str
 
 # TODO make customizable
 DEFAULT_SIMILARITY_THRESHOLD = 0.8
 
 
-def calculate_similarity(text: str, to: str, normalize: bool = True):
-    return ratio(
-        text,
-        to,
-        processor=(
-            (lambda str: unidecode(normalize_str(str)))
-            if normalize
-            else unidecode
-        ),
-    )
+class SimilarityType(Protocol):
+    def calculate(self, text: str, to: str) -> float: ...
+
+
+class LexicalSimilarity:
+    normalize: bool
+
+    def __init__(self, normalize: bool = True):
+        self.normalize = normalize
+
+    def calculate(self, text: str, to: str) -> float:
+        return ratio(
+            text,
+            to,
+            processor=(
+                (lambda value: unidecode(normalize_str(value)))
+                if self.normalize
+                else unidecode
+            ),
+        )
+
+
+class SemanticSimilarity:
+    language: Language
+
+    def __init__(self, language: Literal["en", "es"]):
+        self.language = load_spacy_model(language)
+
+    def calculate(self, text: str, to: str) -> float:
+        return self.language(text).similarity(self.language(to))
 
 
 def is_similar_text(
     text: str,
     to: str,
     similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
-    normalize: bool = True,
+    similarity_type: SimilarityType = LexicalSimilarity(),
 ) -> bool:
-    return calculate_similarity(text, to, normalize) >= similarity_threshold
+    return similarity_type.calculate(text, to) >= similarity_threshold
 
 
 def most_similar_text(
     text: str,
     among: Iterable[str],
     similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
-    normalize: bool = True,
+    similarity_type: SimilarityType = LexicalSimilarity(),
 ) -> Optional[str]:
     candidates: list[tuple[float, str]] = []
     for to in among:
-        similarity = calculate_similarity(text, to, normalize)
+        similarity = similarity_type.calculate(text, to)
         if similarity >= similarity_threshold:
             candidates.append((similarity, to))
 
     if candidates:
         return max(candidates)[1]
+    return None
