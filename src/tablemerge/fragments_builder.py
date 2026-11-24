@@ -1,6 +1,7 @@
 from typing import Iterable, Optional
 
 from tablevalidate.schema import Row, ScalarValue, TableFragment, ValueWithAgreement
+from utils import colval
 
 
 def _merge_scalar_columns(left: Row, right: Row):
@@ -15,7 +16,7 @@ def _merge_multivalued_columns(left: Row, right: Row):
     for row in [left, right]:
         for column_name, column_value in row.get_columns().items():
             values = column_values.setdefault(column_name, {})
-            for value_with_agreement in Row.to_multivalued(column_value):
+            for value_with_agreement in colval.to_multivalued(column_value):
                 value = value_with_agreement.value
                 if value in values:
                     values[value] += value_with_agreement.agreement_level

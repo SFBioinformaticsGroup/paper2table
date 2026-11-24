@@ -7,6 +7,7 @@ from tablevalidate.schema import (
     Row,
     ScalarValue,
 )
+from utils import colval
 from utils.column_schema import ColumnSchema
 from utils.column_value_normalizations import ColumnValueNormalizationRule
 from utils.filters import (
@@ -43,15 +44,14 @@ class NormalizeColumnValuePostProcessor:
             return apply
 
         def normalize_row(row: Row) -> Row:
-            return row.clone(
-                columns={
-                    col: (
-                        Row.compact(Row.map_text(val, apply_rules(self._rules[col])))
-                        if col in self._rules
-                        else val
+            return row.transform_values(
+                lambda col, val: (
+                    colval.compact(
+                        colval.map_text(val, apply_rules(self._rules[col]))
                     )
-                    for col, val in row.get_columns().items()
-                }
+                    if col in self._rules
+                    else val
+                )
             )
 
         def normalize_fragment(fragment: TableFragment) -> TableFragment:
@@ -177,19 +177,15 @@ class SchemaPostProcessor:
         return self._rebuild_tablesfile(tablesfile, tables)
 
     def _coerce_schema_column_types(self, tablesfile: TablesFile) -> TablesFile:
-        # TODO move to row.coerce()
         def coerce_row(row: Row) -> Row:
-            return row.clone(
-                columns={
-                    col: (
-                        Row.compact(
-                            Row.map_text(val, self.schema.column_type(col).coerce)
-                        )
-                        if col in self.schema
-                        else val
+            return row.transform_values(
+                lambda col, val: (
+                    colval.compact(
+                        colval.map_text(val, self.schema.column_type(col).coerce)
                     )
-                    for col, val in row.get_columns().items()
-                }
+                    if col in self.schema
+                    else val
+                )
             )
 
         # TODO move to fragment.coerce()

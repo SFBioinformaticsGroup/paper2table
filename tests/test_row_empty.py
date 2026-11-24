@@ -3,6 +3,7 @@
 import pytest
 
 from tablevalidate.schema import Row, ValueWithAgreement
+from utils import colval
 from utils.column_values import DEFAULT_NA_VALUES, configure_na_values
 
 
@@ -13,28 +14,28 @@ def restore_default_na_values():
 
 
 def test_is_empty_value_true_for_none():
-    assert Row.is_empty_value(None) is True
+    assert colval.is_empty(None) is True
 
 
 def test_is_empty_value_true_for_empty_string():
-    assert Row.is_empty_value("") is True
+    assert colval.is_empty("") is True
 
 
 def test_is_empty_value_true_for_whitespace_only_string():
-    assert Row.is_empty_value("   \t\n") is True
+    assert colval.is_empty("   \t\n") is True
 
 
 def test_is_empty_value_false_for_known_na_value():
-    assert Row.is_empty_value("none") is False
+    assert colval.is_empty("none") is False
 
 
 def test_is_empty_value_false_for_regular_string():
-    assert Row.is_empty_value("orange") is False
+    assert colval.is_empty("orange") is False
 
 
 def test_is_empty_value_true_for_list_of_blank_values():
     assert (
-        Row.is_empty_value(
+        colval.is_empty(
             [
                 ValueWithAgreement(value=None, agreement_level=1),
                 ValueWithAgreement(value="", agreement_level=1),
@@ -47,7 +48,7 @@ def test_is_empty_value_true_for_list_of_blank_values():
 
 def test_is_empty_value_false_for_list_containing_na_value():
     assert (
-        Row.is_empty_value([ValueWithAgreement(value="none", agreement_level=1)])
+        colval.is_empty([ValueWithAgreement(value="none", agreement_level=1)])
         is False
     )
 

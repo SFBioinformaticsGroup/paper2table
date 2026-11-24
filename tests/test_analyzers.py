@@ -13,6 +13,7 @@ from tablemerge.analyzers import (
 )
 from tablemerge.columns_aligner import LoadTimeColumnAligner, MergeTimeColumnAligner
 from tablevalidate.schema import Row, TableFragment, ValueWithAgreement
+from utils import colval
 from utils.column_schema import ColumnSchema
 from utils.column_type import StrColumnType
 from utils.tokenize_schema import REMOVE_KEYWORD
@@ -857,7 +858,7 @@ def test_hints_unsafe_returns_empty_when_no_rows_match_hints():
 
 
 def test_to_texts_returns_empty_for_none():
-    assert Row.to_texts(None) == []
+    assert colval.to_texts(None) == []
 
 
 def test_extract_column_str_values_returns_empty_for_none():

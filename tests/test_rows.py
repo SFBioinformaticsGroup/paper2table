@@ -1,42 +1,43 @@
 # pyright: reportCallIssue=false
 
 from tablevalidate.schema import Row, ValueWithAgreement
+from utils import colval
 
 
 def test_is_na_value_float_is_false():
-    assert Row.is_na_value(3.14) is False
+    assert colval.is_na(3.14) is False
 
 
 def test_is_na_value_zero_float_is_false():
-    assert Row.is_na_value(0.0) is False
+    assert colval.is_na(0.0) is False
 
 
 def test_is_na_value_int_is_false():
-    assert Row.is_na_value(42) is False
+    assert colval.is_na(42) is False
 
 
 def test_is_na_value_zero_int_is_false():
-    assert Row.is_na_value(0) is False
+    assert colval.is_na(0) is False
 
 
 def test_is_na_value_bool_false_is_false():
-    assert Row.is_na_value(False) is False
+    assert colval.is_na(False) is False
 
 
 def test_is_na_value_bool_true_is_false():
-    assert Row.is_na_value(True) is False
+    assert colval.is_na(True) is False
 
 
 def test_normalize_value_float_unchanged():
-    assert Row.normalize_value(3.14) == 3.14
+    assert colval.normalize(3.14) == 3.14
 
 
 def test_normalize_value_int_unchanged():
-    assert Row.normalize_value(42) == 42
+    assert colval.normalize(42) == 42
 
 
 def test_normalize_value_bool_unchanged():
-    assert Row.normalize_value(True) is True
+    assert colval.normalize(True) is True
 
 
 def test_row_is_na_false_for_int_zero():
@@ -52,125 +53,125 @@ def test_row_is_na_false_for_float():
 
 
 def test_normalize_value_value_no_data_lowercase():
-    assert Row.normalize_value("no data") == ""
+    assert colval.normalize("no data") == ""
 
 
 def test_normalize_value_value_no_data_uppercase():
-    assert Row.normalize_value("No Data") == ""
+    assert colval.normalize("No Data") == ""
 
 
 def test_normalize_value_value_no_data_extra_whitespace():
-    assert Row.normalize_value("  no  data  ") == ""
+    assert colval.normalize("  no  data  ") == ""
 
 
 def test_normalize_value_value_none():
-    assert Row.normalize_value("None") == ""
+    assert colval.normalize("None") == ""
 
 
 def test_normalize_value_preserves_diacritics():
-    assert Row.normalize_value("caligüe") == "caligüe"
-    assert Row.normalize_value("raíz") == "raíz"
+    assert colval.normalize("caligüe") == "caligüe"
+    assert colval.normalize("raíz") == "raíz"
 
 
 def test_normalize_value_doesnt_preserves_case():
-    assert Row.normalize_value("Perez et al. 2020") == "perez et al. 2020"
+    assert colval.normalize("Perez et al. 2020") == "perez et al. 2020"
 
 
 def test_normalize_value_collapses_whitespace():
-    assert Row.normalize_value("Perez  et   al.") == "perez et al."
+    assert colval.normalize("Perez  et   al.") == "perez et al."
 
 
 def test_normalize_value_strips_edges():
-    assert Row.normalize_value("  Perez 2020  ") == "perez 2020"
+    assert colval.normalize("  Perez 2020  ") == "perez 2020"
 
 
 def test_normalize_value_en_dash():
-    assert Row.normalize_value("Perez–Vílchez 2020") == "perez-vílchez 2020"
+    assert colval.normalize("Perez–Vílchez 2020") == "perez-vílchez 2020"
 
 
 def test_normalize_value_em_dash():
-    assert Row.normalize_value("Perez—Vílchez 2020") == "perez-vílchez 2020"
+    assert colval.normalize("Perez—Vílchez 2020") == "perez-vílchez 2020"
 
 
 def test_normalize_value_value_regular_value():
-    assert Row.normalize_value("Apiaceae") == "apiaceae"
+    assert colval.normalize("Apiaceae") == "apiaceae"
 
 
 def test_normalize_value_value_en_dash():
-    assert Row.normalize_value("2–5") == "2-5"
+    assert colval.normalize("2–5") == "2-5"
 
 
 def test_normalize_value_value_em_dash():
-    assert Row.normalize_value("Jan—Feb") == "jan-feb"
+    assert colval.normalize("Jan—Feb") == "jan-feb"
 
 
 def test_normalize_value_value_figure_dash():
-    assert Row.normalize_value("10‒20") == "10-20"
+    assert colval.normalize("10‒20") == "10-20"
 
 
 def test_normalize_value_value_horizontal_bar():
-    assert Row.normalize_value("A―B") == "a-b"
+    assert colval.normalize("A―B") == "a-b"
 
 
 def test_normalize_value_value_minus_sign():
-    assert Row.normalize_value("−5") == "-5"
+    assert colval.normalize("−5") == "-5"
 
 
 def test_normalize_value_value_hyphen_variants():
-    assert Row.normalize_value("A‐B") == "a-b"
-    assert Row.normalize_value("A‑B") == "a-b"
+    assert colval.normalize("A‐B") == "a-b"
+    assert colval.normalize("A‑B") == "a-b"
 
 
 def test_normalize_value_removes_replacement_character():
-    assert Row.normalize_value("hello�world") == "helloworld"
+    assert colval.normalize("hello�world") == "helloworld"
 
 
 def test_normalize_value_removes_control_characters():
-    assert Row.normalize_value("hello\x00world\x1fend") == "helloworldend"
+    assert colval.normalize("hello\x00world\x1fend") == "helloworldend"
 
 
 def test_normalize_value_value_removes_replacement_character():
-    assert Row.normalize_value("Apiaceae�") == "apiaceae"
+    assert colval.normalize("Apiaceae�") == "apiaceae"
 
 
 def test_normalize_value_cid_latin1_accented():
-    assert Row.normalize_value("(cid:237)") == "í"
+    assert colval.normalize("(cid:237)") == "í"
 
 
 def test_normalize_value_cid_latin1_in_word():
-    assert Row.normalize_value("L(cid:243)pez") == "lópez"
+    assert colval.normalize("L(cid:243)pez") == "lópez"
 
 
 def test_normalize_value_cid_outside_latin1_range():
-    assert Row.normalize_value("(cid:42)") == ""
+    assert colval.normalize("(cid:42)") == ""
 
 
 def test_normalize_value_cid_outside_latin1_range_with_surrounding_text():
-    assert Row.normalize_value("hello (cid:7) world") == "hello world"
+    assert colval.normalize("hello (cid:7) world") == "hello world"
 
 
 def test_is_na_value_no_data_string():
-    assert Row.is_na_value("no data")
+    assert colval.is_na("no data")
 
 
 def test_is_na_value_no_data_uppercase():
-    assert Row.is_na_value("No Data")
+    assert colval.is_na("No Data")
 
 
 def test_is_na_value_none():
-    assert Row.is_na_value(None)
+    assert colval.is_na(None)
 
 
 def test_is_na_value_empty_string():
-    assert Row.is_na_value("")
+    assert colval.is_na("")
 
 
 def test_is_na_value_whitespace_string():
-    assert Row.is_na_value("  \t\n")
+    assert colval.is_na("  \t\n")
 
 
 def test_is_na_value_non_empty_string():
-    assert not Row.is_na_value("hello")
+    assert not colval.is_na("hello")
 
 
 def test_is_na_row_all_empty():

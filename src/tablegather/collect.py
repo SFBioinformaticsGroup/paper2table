@@ -7,6 +7,7 @@ from tablevalidate.schema import (
     TableWithFragments,
     TablesFile,
 )
+from utils import colval
 
 Convergence = Literal["none", "rows", "fragments", "tables"]
 
@@ -70,7 +71,7 @@ def gather_tablesfiles(
 
     for tablesfile, path in tablesfiles_with_paths:
         raw_citation = tablesfile.citation
-        citation: str | None = Row.to_text(raw_citation).strip() or None
+        citation: str | None = colval.to_text(raw_citation).strip() or None
         if citation:
             for part in citation.split(";\n"):
                 stripped = part.strip()

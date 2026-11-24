@@ -8,6 +8,7 @@ from tablevalidate.schema import (
     TableFragment,
     ValueWithAgreement,
 )
+from utils import colval
 from utils.filters import is_header_row
 from tablemerge.spacy_utils import load_spacy_model
 from utils.str import normalize_str
@@ -34,14 +35,16 @@ class FilterTitleRowsTransformer:
         non_empty = {
             col: val
             for col, val in row.get_columns().items()
-            if not Row.is_na_value(val)
+            if not colval.is_na(val)
         }
         if len(non_empty) == 0:
             return False
         if len(non_empty) == 1:
-            text = Row.to_text(next(iter(non_empty.values())))
+            text = colval.to_text(next(iter(non_empty.values())))
         else:
-            text = "".join(Row.to_text(v).strip() for v in non_empty.values())
+            text = "".join(
+                colval.to_text(v).strip() for v in non_empty.values()
+            )
         return bool(_TITLE_ROW_RE.match(text.strip()))
 
 
@@ -63,9 +66,9 @@ class LeadingRowNumberTransformer:
         samples: list[str] = []
         for row in rows:
             val = row.get_column_value(column)
-            if val is None or Row.is_na_value(val):
+            if val is None or colval.is_na(val):
                 continue
-            text = Row.to_text(val).strip()
+            text = colval.to_text(val).strip()
             if text:
                 samples.append(text)
             if len(samples) == 5:
@@ -81,15 +84,14 @@ class LeadingRowNumberTransformer:
         return all(numbers[i] < numbers[i + 1] for i in range(len(numbers) - 1))
 
     def transform_row(self, row: Row, columns_to_strip: set[str]) -> Row:
-        return row.clone(
-            columns={
-                col: self.strip_leading_number(val) if col in columns_to_strip else val
-                for col, val in row.get_columns().items()
-            },
+        return row.transform_values(
+            lambda col, val: (
+                self.strip_leading_number(val) if col in columns_to_strip else val
+            )
         )
 
     def strip_leading_number(self, val: ColumnValue) -> ColumnValue:
-        return Row.map_text(val, lambda v: _LEADING_NUMBER_RE.sub("", v))
+        return colval.map_text(val, lambda v: _LEADING_NUMBER_RE.sub("", v))
 
 
 class FilterEmptyRowsTransformer:
@@ -259,22 +261,17 @@ class FragmentValuesReverser:
         return sum(
             self._count_known_words(text)
             for value in row.get_column_values()
-            for text in Row.to_texts(value)
+            for text in colval.to_texts(value)
         )
 
     def _fragment_score(self, fragment: TableFragment) -> int:
         return sum(self._row_score(row) for row in fragment.rows)
 
     def _reverse_cell(self, value: ColumnValue) -> ColumnValue:
-        return Row.map_text(value, lambda v: v[::-1])
+        return colval.map_text(value, lambda v: v[::-1])
 
     def _transform_row(self, row: Row) -> Row:
-        return row.clone(
-            columns={
-                col: self._reverse_cell(value)
-                for col, value in row.get_columns().items()
-            },
-        )
+        return row.map_values(self._reverse_cell)
 
     def transform_fragment(self, fragment: TableFragment) -> TableFragment:
         reversed_fragment = TableFragment(

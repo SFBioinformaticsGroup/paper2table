@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from tablevalidate.schema import Row, Table, TablesFile
+from utils import colval
 
 CONVERGENCE_LEVELS = [1, 3]
 
@@ -101,7 +102,7 @@ class GlobalStats:
 def row_value_strings(row: Row) -> frozenset:
     result = set()
     for col, value in row.get_columns().items():
-        for text in Row.to_texts(value):
+        for text in colval.to_texts(value):
             normalized = text.strip()
             if normalized:
                 result.add((col, normalized))

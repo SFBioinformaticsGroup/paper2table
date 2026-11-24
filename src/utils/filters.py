@@ -1,4 +1,5 @@
 from utils.column_names import normalize_column_name
+from utils import colval
 from tablevalidate.schema import (
     TablesFile,
     TableFragment,
@@ -42,7 +43,7 @@ def has_semantic_header_value(row: Row) -> bool:
     return any(
         value_matches_header(col, val)
         for col, val in row.get_columns().items()
-        if not Row.is_na_value(val) and Row.is_semantic_column(col)
+        if not colval.is_na(val) and Row.is_semantic_column(col)
     )
 
 
@@ -50,7 +51,7 @@ def has_hints_header_value(row: Row, hints_set: set[str]) -> bool:
     return any(
         value_matches_hints(val, hints_set)
         for _col, val in row.get_columns().items()
-        if not Row.is_na_value(val)
+        if not colval.is_na(val)
     )
 
 
@@ -85,7 +86,7 @@ def drop_empty_columns(tablesfile: TablesFile) -> TablesFile:
                 col
                 for col in all_cols
                 if all(
-                    Row.is_na_value(row.get_column_value(col))
+                    colval.is_na(row.get_column_value(col))
                     for row in fragment.rows
                 )
             }

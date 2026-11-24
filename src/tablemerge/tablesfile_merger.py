@@ -17,6 +17,7 @@ from tablemerge.columns_aligner import MergeTimeColumnAligner
 from tablemerge.analyzers import MergeTimeAnalyzer
 from tablemerge.errors import MergeError
 from tablemerge.fragments_builder import TableFragmentBuilder
+from utils import colval
 from utils.similarity import LexicalSimilarity, is_similar_text
 
 MergeTarget = tuple[TableFragment, TablesFile]
@@ -37,7 +38,7 @@ class FragmentClusterKey:
 
 
 def transliterate_value(value: ColumnValue) -> ColumnValue:
-    return Row.map_text(value, unidecode)
+    return colval.map_text(value, unidecode)
 
 
 def same_row(left: Row, right: Row, similarity_threshold=0.6, normalize=True) -> bool:
@@ -56,7 +57,9 @@ def same_row(left: Row, right: Row, similarity_threshold=0.6, normalize=True) ->
 
 def get_column_text(columns: Dict[str, ColumnValue], sorted_column_keys: list[str]):
     # TODO we could also zip columns and try different combinations
-    return "".join((Row.to_text(columns.get(k, ""))) for k in sorted_column_keys)
+    return "".join(
+        colval.to_text(columns.get(k, "")) for k in sorted_column_keys
+    )
 
 
 def make_fragments_clusters(

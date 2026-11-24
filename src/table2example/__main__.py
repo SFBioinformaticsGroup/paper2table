@@ -3,7 +3,8 @@ import random
 from collections import Counter
 from pathlib import Path
 
-from tablevalidate.schema import Row, TablesFile
+from tablevalidate.schema import TablesFile
+from utils import colval
 from utils.column_schema import ColumnSchema
 from utils.read_path import read_path
 from utils.table_fragments import load_papers
@@ -29,7 +30,7 @@ def collect_column_values(
                     for column_name, column_value in columns.items():
                         if schema is not None and column_name not in schema:
                             continue
-                        text = Row.to_text(column_value).strip()
+                        text = colval.to_text(column_value).strip()
                         if not text:
                             continue
                         values.setdefault(column_name, []).append(text)

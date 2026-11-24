@@ -6,6 +6,7 @@ import spacy
 
 from tablevalidate.schema import ColumnValue, Row
 from tablemerge.spacy_utils import load_spacy_model
+from utils import colval
 from utils.column_names import normalize_column_name
 from utils.column_schema import ColumnSchema
 from utils.jaccard import jaccard
@@ -103,7 +104,7 @@ class HintsLoadTimeAnalyzer:
         hints_set = set(self.hints)
         for column in columns:
             val = row.get_column_value(column)
-            strings = [s.strip() for s in Row.to_texts(val) if s.strip()]
+            strings = [s.strip() for s in colval.to_texts(val) if s.strip()]
             if strings:
                 normalized = normalize_column_name(strings[0])
                 if normalized and normalized[::-1] in hints_set:
@@ -351,7 +352,7 @@ class JaccardMergeTimeAnalyzer:
     def extract_column_str_values(self, column_value: ColumnValue) -> list[str]:
         return [
             unidecode(normalize_str(value))
-            for value in Row.to_texts(column_value)
+            for value in colval.to_texts(column_value)
         ]
 
     def column_value_set(self, rows: list[Row], column: str) -> set[str]:

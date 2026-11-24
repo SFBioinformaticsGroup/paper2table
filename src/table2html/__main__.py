@@ -3,6 +3,7 @@ import webbrowser
 from pathlib import Path
 from typing import cast
 
+from utils import colval
 from utils.jsonc import load_jsonc
 from utils.table_fragments import load_papers
 from tablevalidate.schema import (
@@ -53,7 +54,7 @@ def _source_cell(source: dict, key: str) -> str:
 
 def render_citation(citation: Citation) -> list[str]:
     items: list[str] = []
-    for text in Row.to_texts(citation):
+    for text in colval.to_texts(citation):
         for part in text.split("\n"):
             stripped = part.strip()
             if stripped:
@@ -155,7 +156,7 @@ _CELL_TRUNCATE_LENGTH = 140
 
 def truncate_cell(value: ScalarValue) -> tuple[str, str]:
     if not isinstance(value, str):
-        return Row.to_text(value), ""
+        return colval.to_text(value), ""
     if len(value) <= _CELL_TRUNCATE_LENGTH:
         return value, ""
     display = value[:_CELL_TRUNCATE_LENGTH] + "…"
@@ -188,7 +189,7 @@ def build_data_rows(
     multivalued: dict[str, list[ValueWithAgreement]] = {}
     for col in columns:
         value = col_values.get(col)
-        if not Row.is_convergent(value):
+        if not colval.is_convergent(value):
             multivalued[col] = cast(list[ValueWithAgreement], value)
     span = max((len(v) for v in multivalued.values()), default=1)
     html = []
@@ -200,7 +201,7 @@ def build_data_rows(
                 if i < len(values):
                     val_entry = values[i]
                     display, title_attr = truncate_cell(val_entry.value)
-                    if Row.is_empty_value(val_entry.value):
+                    if colval.is_empty(val_entry.value):
                         html.append(f"<td{title_attr}>{display}</td>")
                     else:
                         css_class = relative_agreement_css_class(val_entry.agreement_level / (row.agreement_level_ or 1))
@@ -238,7 +239,7 @@ def build_data_rows(
                 elif col == "sources_":
                     html.append(f"<td{rowspan_attr}>{', '.join(row.sources_ or [])}</td>")
                 else:
-                    val = Row.to_text(col_values.get(col))
+                    val = colval.to_text(col_values.get(col))
                     display, title_attr = truncate_cell(val)
                     html.append(f"<td{rowspan_attr}{title_attr}>{display}</td>")
         html.append("</tr>")
