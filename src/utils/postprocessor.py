@@ -128,6 +128,7 @@ class SchemaPostProcessor:
     def _filter_schema_columns(self, tablesfile: TablesFile) -> TablesFile:
         schema_keys = set(self.schema.column_names())
 
+        # TODO move to row.filter_semantic_columns()
         def filter_row(row: Row) -> Row:
             cols = {
                 k: v
