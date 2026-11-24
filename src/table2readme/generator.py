@@ -7,6 +7,8 @@ from tablevalidate.schema import TablesFile
 from utils.column_schema import ColumnSchema
 from utils.column_values import NA_VALUES
 from utils.jsonc import load_jsonc
+from utils.sample_values import collect_column_values, count_values
+from utils.table_fragments import load_tablesfiles
 
 READER_PACKAGES = {
     "pdfplumber": "pdfplumber",
@@ -21,6 +23,8 @@ TYPE_MAP = {
     "int": "number",
     "float": "number",
 }
+
+TOP_VALUES_COUNT = 10
 
 
 def get_package_version(package: str) -> str:
@@ -94,8 +98,7 @@ def list_tools(tables_path: Path | None) -> list[str]:
     return tools
 
 
-def read_tables_json_citation(path: Path) -> str:
-    tablesfile = TablesFile.model_validate(load_jsonc(path))
+def citation_text(tablesfile: TablesFile) -> str:
     citation = tablesfile.citation
     if citation is None:
         return "[...]"
@@ -104,14 +107,45 @@ def read_tables_json_citation(path: Path) -> str:
     return str(citation[0].value) if citation else "[...]"
 
 
+def read_tables_json_citation(path: Path) -> str:
+    return citation_text(TablesFile.model_validate(load_jsonc(path)))
+
+
+def sorted_merges(papers: dict[str, TablesFile]) -> list[tuple[str, TablesFile]]:
+    return sorted(
+        (name.removesuffix(".tables.json"), tablesfile)
+        for name, tablesfile in papers.items()
+    )
+
+
 def list_paper_citations(merges_path: Path | None) -> list[tuple[str, str]]:
     if merges_path is None:
         return []
-    return sorted(
-        (f.name.removesuffix(".tables.json"), read_tables_json_citation(f))
-        for f in merges_path.glob("*.tables.json")
-        if f.name != "tables.metadata.json"
-    )
+    return [
+        (name, citation_text(tablesfile))
+        for name, tablesfile in sorted_merges(load_tablesfiles(merges_path))
+    ]
+
+
+def list_curators(papers: dict[str, TablesFile]) -> list[str]:
+    curators: list[str] = []
+    seen: set[str] = set()
+    for tablesfile in papers.values():
+        if not tablesfile.metadata or not tablesfile.metadata.curations:
+            continue
+        for curation in tablesfile.metadata.curations:
+            if curation.curator and curation.curator not in seen:
+                seen.add(curation.curator)
+                curators.append(curation.curator)
+    return curators
+
+
+def count_corrections(papers: dict[str, TablesFile]) -> int:
+    total = 0
+    for tablesfile in papers.values():
+        if tablesfile.metadata and tablesfile.metadata.curations:
+            total += len(tablesfile.metadata.curations)
+    return total
 
 
 def files_section(
@@ -132,6 +166,44 @@ def files_section(
     return "\n".join(lines)
 
 
+def top_values_subsection(
+    papers: dict[str, TablesFile], schema: ColumnSchema
+) -> str:
+    if not papers:
+        return ""
+    values = collect_column_values(papers, schema)
+    blocks: list[str] = []
+    for column_name, column_values in values.items():
+        top = count_values(column_values, TOP_VALUES_COUNT, None)
+        blocks.append(f"**{column_name}:**")
+        if not top:
+            blocks.append("- (no values)")
+        else:
+            for value, occurrences in top:
+                blocks.append(f"- {value} ({occurrences})")
+        blocks.append("")
+    return "\n".join(blocks).rstrip()
+
+
+def top_values_section(
+    merges: dict[str, TablesFile],
+    gathers: dict[str, TablesFile],
+    schema: ColumnSchema | None,
+) -> str:
+    if schema is None:
+        return ""
+    merges_block = top_values_subsection(merges, schema)
+    gathers_block = top_values_subsection(gathers, schema)
+    if not merges_block and not gathers_block:
+        return ""
+    parts = ["## Top values", ""]
+    if merges_block:
+        parts.extend(["### Merges", "", merges_block, ""])
+    if gathers_block:
+        parts.extend(["### Gathers", "", gathers_block, ""])
+    return "\n".join(parts).rstrip() + "\n"
+
+
 def generate_readme(
     merges_path: Path | None,
     tables_path: Path | None,
@@ -142,16 +214,31 @@ def generate_readme(
     tools = list_tools(tables_path)
     tools_section = "\n".join(f"- {tool}" for tool in tools)
 
-    papers = list_paper_citations(merges_path)
-    if papers:
-        papers_rows = "\n".join(f"| {title} | {doi} | [...] |" for title, doi in papers)
+    merges = load_tablesfiles(merges_path) if merges_path else {}
+    gathers = load_tablesfiles(gathers_path) if gathers_path else {}
+
+    citations = [
+        (name, citation_text(tablesfile))
+        for name, tablesfile in sorted_merges(merges)
+    ]
+    if citations:
+        papers_rows = "\n".join(
+            f"| {title} | {doi} | [...] |" for title, doi in citations
+        )
     else:
         papers_rows = "| [...] | [...] | [...] |"
+
+    curators = list_curators(merges)
+    members_line = ", ".join(curators) if curators else "[Name 1], [Name 2]"
+
+    corrections = count_corrections(merges)
+    corrections_line = str(corrections) if corrections > 0 else "[count]"
 
     missing_values_line = ", ".join(sorted(NA_VALUES))
 
     files = files_section(merges_path, tables_path, gathers_path)
 
+    schema = ColumnSchema.parse(schema_content) if schema_content else None
     columns = parse_schema_columns(schema_content) if schema_content else []
 
     reverse_aliases: dict[str, list[str]] = {}
@@ -166,10 +253,13 @@ def generate_readme(
     else:
         columns_rows = "| [...] | [...] | [...] | [...] | | [...] |"
 
+    top_values = top_values_section(merges, gathers, schema)
+    top_values_block = f"\n{top_values}" if top_values else ""
+
     return f"""\
 # Project title
 
-**Members:** [Name 1], [Name 2]
+**Members:** {members_line}
 
 **Topic:** [project topic]
 
@@ -218,10 +308,10 @@ What table was obtained and what it shows. Mention the result files.
 
 ## Curation
 
-- **Corrections made:** [count]
+- **Corrections made:** {corrections_line}
 - **Types of errors found:** [e.g.: incorrectly extracted values, missing data]
 - **Open issues:** [links or numbers]
-"""
+{top_values_block}"""
 
 
 def write_readme(

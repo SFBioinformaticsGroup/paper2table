@@ -5,7 +5,7 @@ from typing import cast
 
 from utils import colval
 from utils.jsonc import load_jsonc
-from utils.table_fragments import load_papers
+from utils.table_fragments import load_tablesfiles
 from tablevalidate.schema import (
     Citation,
     Curation,
@@ -18,7 +18,7 @@ from tablevalidate.schema import (
 from paper2table import __version__
 
 
-def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, TablesFile]]:
+def load_tablesfiles_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, TablesFile]]:
     metadata: dict = {}
     metadata_file = directory / "tables.metadata.json"
     if metadata_file.exists():
@@ -31,7 +31,7 @@ def load_papers_with_metadata(directory: Path) -> tuple[dict, dict, dict[str, Ta
     elif isinstance(metadata.get("settings"), dict):
         settings = metadata["settings"]
 
-    return metadata, settings, load_papers(directory)
+    return metadata, settings, load_tablesfiles(directory)
 
 
 def _reader_emoji(reader: str) -> str:
@@ -492,7 +492,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    metadata, settings, papers = load_papers_with_metadata(Path(args.input_dir))
+    metadata, settings, papers = load_tablesfiles_with_metadata(Path(args.input_dir))
     html = build_html(metadata, settings, papers)
     save_html(html, Path(args.out))
 

@@ -1,7 +1,7 @@
 import json
 import pytest
 from tablevalidate.schema import TablesFile
-from utils.table_fragments import load_papers
+from utils.table_fragments import load_tablesfiles
 
 
 @pytest.fixture
@@ -17,29 +17,29 @@ def papers_dir(tmp_path):
     return tmp_path
 
 
-def test_load_papers_returns_all_tables_files(papers_dir):
-    papers = load_papers(papers_dir)
+def test_load_tablesfiles_returns_all_tables_files(papers_dir):
+    papers = load_tablesfiles(papers_dir)
     assert set(papers.keys()) == {"paper1.tables.json", "paper2.tables.json"}
 
 
-def test_load_papers_returns_tablesfile_objects(papers_dir):
-    papers = load_papers(papers_dir)
+def test_load_tablesfiles_returns_tablesfile_objects(papers_dir):
+    papers = load_tablesfiles(papers_dir)
     assert isinstance(papers["paper1.tables.json"], TablesFile)
 
 
-def test_load_papers_parses_json(papers_dir):
-    papers = load_papers(papers_dir)
+def test_load_tablesfiles_parses_json(papers_dir):
+    papers = load_tablesfiles(papers_dir)
     row = papers["paper1.tables.json"].tables[0].rows[0]
     assert row.get_columns()["col"] == "a"
 
 
-def test_load_papers_excludes_metadata(papers_dir):
+def test_load_tablesfiles_excludes_metadata(papers_dir):
     (papers_dir / "tables.metadata.json").write_text(
         json.dumps({"meta": "data"}), encoding="utf-8"
     )
-    papers = load_papers(papers_dir)
+    papers = load_tablesfiles(papers_dir)
     assert "tables.metadata.json" not in papers
 
 
-def test_load_papers_empty_directory(tmp_path):
-    assert load_papers(tmp_path) == {}
+def test_load_tablesfiles_empty_directory(tmp_path):
+    assert load_tablesfiles(tmp_path) == {}

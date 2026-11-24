@@ -5,7 +5,7 @@ from pathlib import Path
 from utils.column_schema import ColumnSchema
 from utils.read_path import read_path
 from utils.sample_values import collect_column_values, count_values, sample_values
-from utils.table_fragments import load_papers
+from utils.table_fragments import load_tablesfiles
 from paper2table import __version__
 
 
@@ -88,7 +88,7 @@ def main():
     schema_str = read_path(args.schema_path, inline=args.schema)
     schema = ColumnSchema.parse(schema_str) if schema_str else None
 
-    papers = load_papers(Path(args.input_dir))
+    papers = load_tablesfiles(Path(args.input_dir))
     values = collect_column_values(papers, schema)
 
     if args.value_counts:

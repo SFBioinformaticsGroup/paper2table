@@ -13,7 +13,7 @@ from utils.cli import (
 )
 from utils.column_schema import ColumnSchema, try_parse_schema
 from utils.jsonc import load_jsonc
-from utils.table_fragments import load_papers
+from utils.table_fragments import load_tablesfiles
 
 from .collect import gather_tablesfiles
 from paper2table import __version__
@@ -105,7 +105,7 @@ def main():
 
     tablesfiles_with_paths: list[tuple[TablesFile, Path]] = []
     for directory in args.resultset_dirs:
-        papers = load_papers(Path(directory))
+        papers = load_tablesfiles(Path(directory))
         for name, tablesfile in papers.items():
             tablesfiles_with_paths.append((tablesfile, Path(directory) / name))
 

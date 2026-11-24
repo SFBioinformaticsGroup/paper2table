@@ -9,6 +9,7 @@ from utils.column_schema import ColumnSchema
 def collect_column_values(
     papers: dict[str, TablesFile], schema: ColumnSchema | None
 ) -> dict[str, list[str]]:
+    """Gathers all the column values into a dict of column name -> column values"""
     values: dict[str, list[str]] = {}
     if schema is not None:
         for column_name in schema.column_names():

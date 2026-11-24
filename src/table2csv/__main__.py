@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 import pandas as pd
-from utils.table_fragments import load_papers
+from utils.table_fragments import load_tablesfiles
 from tablevalidate.schema import TablesFile
 from paper2table import __version__
 
@@ -44,7 +44,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    papers = load_papers(Path(args.input_dir))
+    papers = load_tablesfiles(Path(args.input_dir))
     Path(args.output_directory).mkdir(parents=True, exist_ok=True)
     for basename, dataframes in build_dataframes(papers).items():
         for index, dataframe in enumerate(dataframes):
