@@ -474,12 +474,15 @@ def run_readme(
     working_path: Path,
     schema_path: str | None,
     merge_config: MergeConfig | None,
+    na_values: list[str] | None = None,
 ) -> None:
     args = [
         "table2readme",
         "-o",
         str(working_path / "README.md"),
     ]
+    if na_values:
+        args += na_values
     merges_dir = working_path / "merges"
     tables_dir = working_path / "tables"
     gathers_dir = working_path / "gathers"
@@ -551,4 +554,10 @@ def run_pipeline(pipeline: Pipeline) -> None:
         )
 
     if pipeline.readme is not None:
-        run_readme(pipeline.readme, working_path, schema_path, pipeline.merge)
+        run_readme(
+            pipeline.readme,
+            working_path,
+            schema_path,
+            pipeline.merge,
+            na_values=na_values,
+        )

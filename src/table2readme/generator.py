@@ -5,6 +5,7 @@ from pathlib import Path
 from tablemerge.aliases import parse_column_aliases
 from tablevalidate.schema import TablesFile
 from utils.column_schema import ColumnSchema
+from utils.column_values import NA_VALUES
 from utils.jsonc import load_jsonc
 
 READER_PACKAGES = {
@@ -147,6 +148,8 @@ def generate_readme(
     else:
         papers_rows = "| [...] | [...] | [...] |"
 
+    missing_values_line = ", ".join(sorted(NA_VALUES))
+
     files = files_section(merges_path, tables_path, gathers_path)
 
     columns = parse_schema_columns(schema_content) if schema_content else []
@@ -202,7 +205,7 @@ def generate_readme(
 {columns_rows}
 
 **Conventions:**
-- Missing values: [how they are marked, e.g.: empty cell]
+- Missing values: {missing_values_line}
 - Units: [...]
 - Date format: [...]
 - Allowed values: [if any column has a fixed set]

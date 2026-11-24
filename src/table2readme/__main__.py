@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from paper2table import __version__
+from utils.cli import add_na_values_args
 from utils.read_path import read_path
 
 from .generator import load_column_aliases, write_readme
@@ -67,6 +68,7 @@ def main():
         action="store_true",
         help="Overwrite the output file if it already exists",
     )
+    add_na_values_args(parser)
 
     args = parser.parse_args()
 
