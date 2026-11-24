@@ -5,12 +5,14 @@ from pathlib import Path
 from typing import cast
 
 from utils.column_schema import ColumnSchema
+from utils.column_value_normalizations import parse_column_value_normalizations
 from utils.column_values import (
     DEFAULT_NA_VALUES,
     configure_na_values,
     parse_na_values,
 )
 from utils.postprocessor import PostProcessor, build_postprocessors
+from utils.read_path import read_path
 
 
 def add_postprocessor_args(parser: ArgumentParser) -> None:
@@ -72,6 +74,23 @@ def add_postprocessor_args(parser: ArgumentParser) -> None:
         default=True,
         help="Skip dropping tables that are entirely empty",
     )
+    parser.add_argument(
+        "--column-value-normalizations",
+        type=str,
+        help=(
+            "Inline cell value normalization rules, one 'column:original:new' per line. "
+            "'original' is a Python regex; the sentinel '<remove>' as 'new' nullifies "
+            "any cell whose value matches the pattern."
+        ),
+    )
+    parser.add_argument(
+        "--column-value-normalizations-path",
+        type=str,
+        help=(
+            "Path to a file with 'column:original:new' normalization rules "
+            "(same format as --column-value-normalizations)."
+        ),
+    )
 
 
 class ConfigureNoDataExpressionsAction(argparse.Action):
@@ -123,6 +142,15 @@ def build_postprocessors_from_args(
         if flag and schema is None:
             print(f"Error: {name} requires --schema/--schema-path.", file=sys.stderr)
             sys.exit(1)
+    normalizations_text = read_path(
+        args.column_value_normalizations_path,
+        inline=args.column_value_normalizations,
+    )
+    column_value_normalizations = (
+        parse_column_value_normalizations(normalizations_text)
+        if normalizations_text
+        else None
+    )
     return build_postprocessors(
         schema=schema,
         filter_columns=args.filter_schema_columns,
@@ -131,4 +159,5 @@ def build_postprocessors_from_args(
         filter_semantic_columns=args.filter_semantic_columns,
         drop_empty_columns=args.drop_empty_columns,
         drop_empty_tables=args.drop_empty_tables,
+        column_value_normalizations=column_value_normalizations,
     )

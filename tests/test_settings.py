@@ -31,6 +31,8 @@ def test_from_args_maps_fields_and_ignores_extras():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        column_value_normalizations=None,
+        column_value_normalizations_path=None,
         na_values=None,
         na_values_path=None,
         schema="family:str",
@@ -82,6 +84,8 @@ def test_from_args_reads_schema_from_path():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        column_value_normalizations=None,
+        column_value_normalizations_path=None,
         na_values=None,
         na_values_path=None,
         schema=None,
@@ -125,6 +129,8 @@ def test_from_args_paths_stored_as_list():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        column_value_normalizations=None,
+        column_value_normalizations_path=None,
         na_values=None,
         na_values_path=None,
         schema=None,
@@ -168,6 +174,8 @@ def test_from_args_captures_inline_na_values():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        column_value_normalizations=None,
+        column_value_normalizations_path=None,
         na_values="none\nn/a",
         na_values_path=None,
         schema=None,
@@ -211,6 +219,8 @@ def test_from_args_reads_na_values_from_path():
         paper_aliases_path=None,
         column_hints=None,
         column_hints_path=None,
+        column_value_normalizations=None,
+        column_value_normalizations_path=None,
         na_values=None,
         na_values_path="tests/data/demo_na_values.txt",
         schema=None,
@@ -231,6 +241,16 @@ def test_na_values_roundtrip_through_dict():
     settings = MergeSettings.from_dict({"na_values": "n/a\nnone"})
     assert settings.na_values == "n/a\nnone"
     assert settings.to_dict()["na_values"] == "n/a\nnone"
+
+
+def test_column_value_normalizations_roundtrip_through_dict():
+    settings = MergeSettings.from_dict(
+        {"column_value_normalizations": "family:^foo$:bar"}
+    )
+    assert settings.column_value_normalizations == "family:^foo$:bar"
+    assert (
+        settings.to_dict()["column_value_normalizations"] == "family:^foo$:bar"
+    )
 
 
 def test_from_dict_includes_paths():

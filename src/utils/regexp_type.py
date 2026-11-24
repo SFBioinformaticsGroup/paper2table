@@ -17,7 +17,7 @@ class RegexpColumnType(ColumnType):
         return cls(args[0])
 
     def __init__(self, pattern: str):
-        self._pattern = re.compile(pattern)
+        self._pattern = re.compile(pattern, re.IGNORECASE)
         self._pattern_str = pattern
 
     def coerce(self, value: str) -> str | None:

@@ -312,6 +312,94 @@ def test_build_merge_args_explicit_paper_aliases_path_takes_precedence_over_file
     assert args[args.index("--paper-aliases-path") + 1] == "/other/aliases.txt"
 
 
+def test_build_merge_args_uses_column_value_normalizations_txt_when_present(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = MergeConfig()
+    args = build_merge_args(config, tmp_path, None)
+    assert "--column-value-normalizations-path" in args
+    assert args[args.index("--column-value-normalizations-path") + 1] == str(
+        tmp_path / "column_value_normalizations.txt"
+    )
+
+
+def test_build_merge_args_inline_column_value_normalizations_takes_precedence_over_file(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = MergeConfig(column_value_normalizations="color:^red$:crimson")
+    args = build_merge_args(config, tmp_path, None)
+    assert "--column-value-normalizations" in args
+    assert (
+        args[args.index("--column-value-normalizations") + 1] == "color:^red$:crimson"
+    )
+    assert "--column-value-normalizations-path" not in args
+
+
+def test_build_merge_args_explicit_column_value_normalizations_path_takes_precedence_over_file(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = MergeConfig(column_value_normalizations_path="/other/norm.txt")
+    args = build_merge_args(config, tmp_path, None)
+    assert "--column-value-normalizations-path" in args
+    assert (
+        args[args.index("--column-value-normalizations-path") + 1] == "/other/norm.txt"
+    )
+
+
+def test_build_merge_args_no_column_value_normalizations_when_nothing_present(tmp_path):
+    config = MergeConfig()
+    args = build_merge_args(config, tmp_path, None)
+    assert "--column-value-normalizations" not in args
+    assert "--column-value-normalizations-path" not in args
+
+
+def test_build_gather_args_uses_column_value_normalizations_txt_when_present(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = GatherConfig()
+    args = build_gather_args(config, tmp_path, None)
+    assert "--column-value-normalizations-path" in args
+    assert args[args.index("--column-value-normalizations-path") + 1] == str(
+        tmp_path / "column_value_normalizations.txt"
+    )
+
+
+def test_build_gather_args_inline_column_value_normalizations_takes_precedence_over_file(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = GatherConfig(column_value_normalizations="color:^red$:crimson")
+    args = build_gather_args(config, tmp_path, None)
+    assert "--column-value-normalizations" in args
+    assert (
+        args[args.index("--column-value-normalizations") + 1] == "color:^red$:crimson"
+    )
+    assert "--column-value-normalizations-path" not in args
+
+
+def test_build_gather_args_explicit_column_value_normalizations_path_takes_precedence_over_file(tmp_path):
+    (tmp_path / "column_value_normalizations.txt").write_text(
+        "family:^foo$:bar\n", encoding="utf-8"
+    )
+    config = GatherConfig(column_value_normalizations_path="/other/norm.txt")
+    args = build_gather_args(config, tmp_path, None)
+    assert "--column-value-normalizations-path" in args
+    assert (
+        args[args.index("--column-value-normalizations-path") + 1] == "/other/norm.txt"
+    )
+
+
+def test_build_gather_args_no_column_value_normalizations_when_nothing_present(tmp_path):
+    config = GatherConfig()
+    args = build_gather_args(config, tmp_path, None)
+    assert "--column-value-normalizations" not in args
+    assert "--column-value-normalizations-path" not in args
+
+
 def test_extract_config_page_ranges_defaults_to_none():
     assert ExtractConfig(runs=[ExtractRun()]).page_ranges is None
 

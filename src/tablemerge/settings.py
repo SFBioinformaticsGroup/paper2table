@@ -18,6 +18,7 @@ class MergeSettings:
     column_alignment_threshold: float = 0.5
     column_name_semantic_alignment: bool = False
     column_hints: Optional[str] = None
+    column_value_normalizations: Optional[str] = None
     column_value_semantic_alignment: bool = False
     drop_empty_columns: bool = True
     drop_empty_tables: bool = True
@@ -57,6 +58,10 @@ class MergeSettings:
                 ),
                 "column_hints": read_path(
                     args.column_hints_path, inline=args.column_hints
+                ),
+                "column_value_normalizations": read_path(
+                    args.column_value_normalizations_path,
+                    inline=args.column_value_normalizations,
                 ),
                 "na_values": read_path(args.na_values_path, inline=args.na_values),
                 "schema": read_path(args.schema_path, inline=args.schema),

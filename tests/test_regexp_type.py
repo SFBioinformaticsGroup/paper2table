@@ -47,3 +47,13 @@ def test_complex_pattern():
     assert regexp_type.coerce("3.5mm") == "3.5mm"
     assert regexp_type.coerce("about 10 cm long") == "10 cm"
     assert regexp_type.coerce("blue") == "blue"
+
+
+def test_coerce_is_case_insensitive():
+    assert RegexpColumnType(r"red").coerce("RED") == "RED"
+    assert RegexpColumnType(r"red").coerce("Red car") == "Red"
+
+
+def test_matches_value_is_case_insensitive():
+    assert RegexpColumnType(r"red").matches_value("RED") is True
+    assert RegexpColumnType(r"red").matches_value("Red") is True

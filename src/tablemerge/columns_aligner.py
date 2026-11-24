@@ -1,5 +1,6 @@
 from tablevalidate.schema import TableFragment, Row, ColumnValue
-from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer, REMOVE_COLUMN
+from utils.tokenize_schema import REMOVE_KEYWORD
+from .analyzers import LoadTimeAnalyzer, MergeTimeAnalyzer
 
 
 def append_column_value(existing: ColumnValue, new_value: ColumnValue) -> ColumnValue:
@@ -32,7 +33,7 @@ class BaseColumnAligner:
         renamed_columns = {}
         for column, value in row.get_columns().items():
             new_name = self.rename_column(column)
-            if new_name != REMOVE_COLUMN:
+            if new_name != REMOVE_KEYWORD:
                 if new_name in renamed_columns:
                     if column == new_name:
                         renamed_columns[new_name] = append_column_value(

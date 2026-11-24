@@ -11,8 +11,6 @@ from utils.column_schema import ColumnSchema
 from utils.jaccard import jaccard
 from utils.str import normalize_str
 
-REMOVE_COLUMN = "<remove>"
-
 
 def renamable_source_columns(
     columns: list[str], schema: Optional[ColumnSchema]
@@ -139,10 +137,10 @@ class AliasLoadTimeAnalyzer:
 
     Applies an explicit user-provided rename dictionary to each fragment independently.
     No heuristics, no data inspection. Makes sense when sources use different column names
-    for the same concept (e.g. "familia" → "family"). Works on any column regardless of
+    for the same concept (e.g. "familia" => "family"). Works on any column regardless of
     numeric/semantic classification.
 
-    A target value of REMOVE_COLUMN ("<remove>") signals that the column should be dropped
+    A target value of REMOVE_KEYWORD signals that the column should be dropped
     entirely from the fragment (e.g. "notes:<remove>" removes the "notes" column).
     """
 

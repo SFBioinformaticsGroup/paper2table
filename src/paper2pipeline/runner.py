@@ -319,6 +319,13 @@ def build_merge_args(
         args += ["--paper-aliases", config.paper_aliases]
     elif paper_aliases_path:
         args += ["--paper-aliases-path", paper_aliases_path]
+    normalizations_path = config.column_value_normalizations_path or find_file(
+        "column_value_normalizations.txt", working_path
+    )
+    if config.column_value_normalizations:
+        args += ["--column-value-normalizations", config.column_value_normalizations]
+    elif normalizations_path:
+        args += ["--column-value-normalizations-path", normalizations_path]
     if config.fix_reversed_column_values:
         args += ["--fix-reversed-column-values"]
     if config.strip_leading_row_numbers:
@@ -406,6 +413,13 @@ def build_gather_args(
         args += ["-p", schema_path]
     if config.key_columns:
         args += ["--key-columns", *config.key_columns]
+    normalizations_path = config.column_value_normalizations_path or find_file(
+        "column_value_normalizations.txt", working_path
+    )
+    if config.column_value_normalizations:
+        args += ["--column-value-normalizations", config.column_value_normalizations]
+    elif normalizations_path:
+        args += ["--column-value-normalizations-path", normalizations_path]
     if config.filter_schema_columns:
         args += ["--filter-schema-columns"]
     if config.order_schema_columns:

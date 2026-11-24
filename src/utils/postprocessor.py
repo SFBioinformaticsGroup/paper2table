@@ -5,19 +5,71 @@ from tablevalidate.schema import (
     TableFragment,
     TableWithFragments,
     Row,
-    ColumnValue,
+    ScalarValue,
 )
 from utils.column_schema import ColumnSchema
-from utils.column_type import ColumnType
+from utils.column_value_normalizations import ColumnValueNormalizationRule
 from utils.filters import (
     drop_empty_columns,
     drop_empty_tables,
     filter_semantic_columns,
 )
+from utils.tokenize_schema import REMOVE_KEYWORD
 
 
 class PostProcessor(Protocol):
     def postprocess(self, tablesfile: TablesFile) -> TablesFile: ...
+
+
+class NormalizeColumnValuePostProcessor:
+    _rules: dict[str, list[ColumnValueNormalizationRule]] = {}
+    """Normalization rules grouped by column name"""
+
+    def __init__(self, rules: list[ColumnValueNormalizationRule]):
+        for rule in rules:
+            self._rules.setdefault(rule.column, []).append(rule)
+
+    def postprocess(self, tablesfile: TablesFile) -> TablesFile:
+        def apply_rules(rules: list[ColumnValueNormalizationRule]):
+            def apply(value: str) -> ScalarValue:
+                current = value
+                for rule in rules:
+                    if rule.pattern.search(current):
+                        if rule.replacement == REMOVE_KEYWORD:
+                            return None
+                        current = rule.pattern.sub(rule.replacement, current)
+                return current
+
+            return apply
+
+        def normalize_row(row: Row) -> Row:
+            return row.clone(
+                columns={
+                    col: (
+                        Row.compact(Row.map_text(val, apply_rules(self._rules[col])))
+                        if col in self._rules
+                        else val
+                    )
+                    for col, val in row.get_columns().items()
+                }
+            )
+
+        def normalize_fragment(fragment: TableFragment) -> TableFragment:
+            return TableFragment(
+                rows=[normalize_row(row) for row in fragment.rows],
+                page=fragment.page,
+            )
+
+        tables = [
+            TableWithFragments(
+                table_fragments=[
+                    normalize_fragment(fragment)
+                    for fragment in table.get_table_fragments()
+                ]
+            )
+            for table in tablesfile.tables
+        ]
+        return tablesfile.clone(tables=tables)
 
 
 class FilterSemanticColumnsPostProcessor:
@@ -154,6 +206,7 @@ class SchemaPostProcessor:
         ]
         return self._rebuild_tablesfile(tablesfile, tables)
 
+
 def build_postprocessors(
     schema: Optional[ColumnSchema],
     filter_columns: bool,
@@ -162,8 +215,11 @@ def build_postprocessors(
     filter_semantic_columns: bool = False,
     drop_empty_columns: bool = True,
     drop_empty_tables: bool = True,
+    column_value_normalizations: Optional[list[ColumnValueNormalizationRule]] = None,
 ) -> list[PostProcessor]:
     result: list[PostProcessor] = []
+    if column_value_normalizations:
+        result.append(NormalizeColumnValuePostProcessor(column_value_normalizations))
     if filter_semantic_columns:
         result.append(FilterSemanticColumnsPostProcessor())
     if drop_empty_columns:

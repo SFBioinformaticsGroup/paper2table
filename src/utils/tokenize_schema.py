@@ -1,3 +1,5 @@
+REMOVE_KEYWORD = "<remove>"
+
 def tokenize_schema(text: str) -> list[str]:
     return [
         stripped

@@ -8,7 +8,7 @@
   "properties": {
     "working_path": {
       "type": "string",
-      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. schema.txt, column_hints.txt, column_aliases.txt, paper_aliases.txt, and na.txt are auto-read from ${working_path} when they exist and are non-empty."
+      "description": "Base directory for the pipeline. Input PDFs must be in ${working_path}/papers/. schema.txt, column_hints.txt, column_aliases.txt, paper_aliases.txt, column_value_normalizations.txt, and na.txt are auto-read from ${working_path} when they exist and are non-empty."
     },
     "pretty": {
       "type": "boolean",
@@ -243,6 +243,16 @@
           "default": null,
           "description": "Explicit path to paper alias map file; if omitted, ${working_path}/paper_aliases.txt is used when present and non-empty. Overridden by paper_aliases."
         },
+        "column_value_normalizations": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Inline cell value normalization rules, one 'column:original:new' per line. 'original' is a Python regex; '<remove>' as 'new' nullifies matching cells."
+        },
+        "column_value_normalizations_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Explicit path to a normalization rules file; if omitted, ${working_path}/column_value_normalizations.txt is used when present and non-empty. Overridden by column_value_normalizations."
+        },
         "fix_reversed_column_values": { "type": "boolean", "default": false },
         "strip_leading_row_numbers": { "type": "boolean", "default": false },
         "split_conjunction_columns": { "type": "boolean", "default": false },
@@ -308,6 +318,16 @@
           ],
           "default": null,
           "description": "Column names to sort gathered rows by."
+        },
+        "column_value_normalizations": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Inline cell value normalization rules, one 'column:original:new' per line. 'original' is a Python regex; '<remove>' as 'new' nullifies matching cells."
+        },
+        "column_value_normalizations_path": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }],
+          "default": null,
+          "description": "Explicit path to a normalization rules file; if omitted, ${working_path}/column_value_normalizations.txt is used when present and non-empty. Overridden by column_value_normalizations."
         },
         "filter_schema_columns": { "type": "boolean", "default": false },
         "order_schema_columns": { "type": "boolean", "default": false },

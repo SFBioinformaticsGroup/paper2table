@@ -50,13 +50,7 @@ class MergeConfig(BaseModel):
     column_name_semantic_alignment: bool = False
     column_value_semantic_alignment: bool = False
     semantic_language: str = "en"
-    column_aliases: str | None = None
-    column_aliases_path: str | None = None
-    column_hints: str | None = None
-    column_hints_path: str | None = None
     hints_column_alignment: str | None = None
-    paper_aliases: str | None = None
-    paper_aliases_path: str | None = None
     fix_reversed_column_values: bool = False
     strip_leading_row_numbers: bool = False
     split_conjunction_columns: bool = False
@@ -72,6 +66,18 @@ class MergeConfig(BaseModel):
     export: list[str] = []
     override: bool = False
     force_update: bool = False
+
+    column_aliases: str | None = None
+    column_aliases_path: str | None = None
+
+    column_hints: str | None = None
+    column_hints_path: str | None = None
+
+    paper_aliases: str | None = None
+    paper_aliases_path: str | None = None
+
+    column_value_normalizations: str | None = None
+    column_value_normalizations_path: str | None = None
 
 
 class GatherConfig(BaseModel):
@@ -89,6 +95,9 @@ class GatherConfig(BaseModel):
     stats: bool = False
     export: list[str] = []
     override: bool = False
+
+    column_value_normalizations: str | None = None
+    column_value_normalizations_path: str | None = None
 
 
 class ReadmeConfig(BaseModel):
