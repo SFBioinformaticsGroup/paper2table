@@ -8,7 +8,6 @@ from table2readme.generator import (
     list_paper_citations,
     list_tools,
     load_column_aliases,
-    parse_aliases,
     parse_schema_columns,
     read_tables_json_citation,
     write_readme,
@@ -106,20 +105,6 @@ def test_add_reader_tool_handles_unknown_bare_reader():
     tools: list[str] = []
     add_reader_tool("tablemerge", tools, set(), set())
     assert tools == ["tablemerge"]
-
-
-def test_parse_aliases_parses_colon_separated_pairs():
-    assert parse_aliases("familia:family\nespecie:species\n") == {
-        "familia": "family",
-        "especie": "species",
-    }
-
-
-def test_parse_aliases_skips_blank_lines():
-    assert parse_aliases("familia:family\n\nespecie:species\n") == {
-        "familia": "family",
-        "especie": "species",
-    }
 
 
 def test_load_column_aliases_reads_inline():

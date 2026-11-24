@@ -2,6 +2,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
+from tablemerge.aliases import parse_column_aliases
 from tablevalidate.schema import TablesFile
 from utils.column_schema import ColumnSchema
 from utils.jsonc import load_jsonc
@@ -36,22 +37,11 @@ def versioned_tool(name: str, package: str | None = None) -> str:
 def parse_schema_columns(schema_content: str) -> list[tuple[str, str]]:
     return list(ColumnSchema.parse(schema_content).serialize().items())
 
-
-def parse_aliases(text: str) -> dict[str, str]:
-    result = {}
-    for line in text.splitlines():
-        line = line.strip()
-        if line and ":" in line:
-            original, renamed = line.split(":", 1)
-            result[original.strip()] = renamed.strip()
-    return result
-
-
 def load_column_aliases(inline: str | None, path: str | None) -> dict[str, str]:
     if inline:
-        return parse_aliases(inline)
+        return parse_column_aliases(inline)
     if path:
-        return parse_aliases(Path(path).read_text(encoding="utf-8"))
+        return parse_column_aliases(Path(path).read_text(encoding="utf-8"))
     return {}
 
 
