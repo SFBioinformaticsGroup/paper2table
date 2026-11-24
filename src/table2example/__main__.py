@@ -1,62 +1,12 @@
 import argparse
 import random
-from collections import Counter
 from pathlib import Path
 
-from tablevalidate.schema import TablesFile
-from utils import colval
 from utils.column_schema import ColumnSchema
 from utils.read_path import read_path
+from utils.sample_values import collect_column_values, count_values, sample_values
 from utils.table_fragments import load_papers
 from paper2table import __version__
-
-
-def collect_column_values(
-    papers: dict[str, TablesFile], schema: ColumnSchema | None
-) -> dict[str, list[str]]:
-    values: dict[str, list[str]] = {}
-    if schema is not None:
-        for column_name in schema.column_names():
-            values[column_name] = []
-
-    for tablesfile in papers.values():
-        for table in tablesfile.tables:
-            for fragment in table.get_table_fragments():
-                for row in fragment.rows:
-                    columns = (
-                        row.get_columns() if schema is not None
-                        else row.get_semantic_columns()
-                    )
-                    for column_name, column_value in columns.items():
-                        if schema is not None and column_name not in schema:
-                            continue
-                        text = colval.to_text(column_value).strip()
-                        if not text:
-                            continue
-                        values.setdefault(column_name, []).append(text)
-    return values
-
-
-def filter_by_length(values: list[str], max_length: int | None) -> list[str]:
-    if max_length is None:
-        return values
-    return [v for v in values if len(v) <= max_length]
-
-
-def sample_examples(
-    values: list[str], count: int, max_length: int | None, rng: random.Random
-) -> list[str]:
-    candidates = list(dict.fromkeys(filter_by_length(values, max_length)))
-    if len(candidates) <= count:
-        return candidates
-    return rng.sample(candidates, count)
-
-
-def count_values(
-    values: list[str], count: int, max_length: int | None
-) -> list[tuple[str, int]]:
-    candidates = filter_by_length(values, max_length)
-    return Counter(candidates).most_common(count)
 
 
 def format_report(samples: dict[str, list[str]]) -> str:
@@ -152,7 +102,7 @@ def main():
     else:
         rng = random.Random(args.seed)
         samples = {
-            column_name: sample_examples(
+            column_name: sample_values(
                 column_values, args.examples_count, args.max_length, rng
             )
             for column_name, column_values in values.items()
